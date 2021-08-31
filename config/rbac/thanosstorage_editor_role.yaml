@@ -1,0 +1,24 @@
+# permissions for end users to edit thanosstorages.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: thanosstorage-editor-role
+rules:
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - thanosstorages
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - thanosstorages/status
+  verbs:
+  - get

@@ -1,0 +1,7 @@
+apiVersion: monitoring.paodin.io/v1alpha1
+kind: ThanosStorage
+metadata:
+  name: thanosstorage-sample
+spec:
+  # Add fields here
+  foo: bar
