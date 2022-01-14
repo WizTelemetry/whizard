@@ -30,21 +30,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (q *ThanosQuery) configMaps() []*corev1.ConfigMap {
+func (q *ThanosQuery) configMaps() ([]*corev1.ConfigMap, error) {
 	storeSDCm, err := q.storeSDConfigMap()
 	if err != nil {
-		// TODO return err
-		panic(err)
+		return nil, err
 	}
 	envoyCm, err := q.envoyConfigMap()
 	if err != nil {
-		// TODO return err
-		panic(err)
+		return nil, err
 	}
 	return []*corev1.ConfigMap{
 		storeSDCm,
 		envoyCm,
-	}
+	}, nil
 }
 
 func (q *ThanosQuery) storeSDConfigMap() (*corev1.ConfigMap, error) {
@@ -122,6 +120,9 @@ func (q *ThanosQuery) envoyConfigMap() (*corev1.ConfigMap, error) {
 	}
 
 	cds, err := getEnvoyCDS(q.Instance)
+	if err != nil {
+		return nil, err
+	}
 	cdsString, err := m.MarshalToString(cds)
 	if err != nil {
 		return nil, err
@@ -147,8 +148,6 @@ func (q *ThanosQuery) envoyConfigMap() (*corev1.ConfigMap, error) {
 
 func getEnvoyBootstrap(instance v1alpha1.ThanosQuery) (*envoy_config_bootstrap.Bootstrap, error) {
 	// TODO secret reload
-	// https://www.envoyproxy.io/docs/envoy/v1.19.0/operations/certificates
-	// https://www.envoyproxy.io/docs/envoy/v1.19.0/configuration/security/secret.html?highlight=sds#example-three-certificate-rotation-for-xds-grpc-connection
 
 	var bootstrap = &envoy_config_bootstrap.Bootstrap{}
 	adminAccessLog, err := anypb.New(&envoy_extentions_accessloggers.FileAccessLog{Path: "/tmp/admin_access.log"})

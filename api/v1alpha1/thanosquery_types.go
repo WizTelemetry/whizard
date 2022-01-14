@@ -45,7 +45,7 @@ type ThanosQuerySpec struct {
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// Stores config store api servers from where series are queried
-	Stores         []QueryStore      `json:"stores,omitempty"`
+	Stores []QueryStore `json:"stores,omitempty"`
 	// SelectorLabels config query selector labels that will be exposed in info endpoint
 	SelectorLabels map[string]string `json:"selectorLabels,omitempty"`
 
@@ -55,7 +55,7 @@ type ThanosQuerySpec struct {
 	GrpcIngress *IngressSpec `json:"grpcIngress,omitempty"`
 
 	// LogLevel configs log filtering level. Possible options: error, warn, info, debug
-	LogLevel  string `json:"level,omitempty"`
+	LogLevel string `json:"level,omitempty"`
 	// LogFormat configs log format to use. Possible options: logfmt or json
 	LogFormat string `json:"format,omitempty"`
 

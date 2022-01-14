@@ -18,19 +18,19 @@ package controllers
 
 import (
 	"context"
-	"github.com/kubesphere/paodin-monitoring/pkg/config"
-	"github.com/kubesphere/paodin-monitoring/pkg/resources/thanosquery"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	monitoringv1alpha1 "github.com/kubesphere/paodin-monitoring/api/v1alpha1"
+	"github.com/kubesphere/paodin-monitoring/pkg/config"
+	"github.com/kubesphere/paodin-monitoring/pkg/resources/thanosquery"
 )
 
 // ThanosQueryReconciler reconciles a ThanosQuery object

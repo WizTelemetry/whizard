@@ -3,11 +3,12 @@ package thanosreceive
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/kubesphere/paodin-monitoring/api/v1alpha1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/kubesphere/paodin-monitoring/api/v1alpha1"
 )
 
 func (r *ThanosReceive) configMaps() ([]*corev1.ConfigMap, error) {

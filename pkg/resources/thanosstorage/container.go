@@ -1,9 +1,10 @@
 package thanosstorage
 
 import (
+	"path/filepath"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"path/filepath"
 )
 
 func (s *ThanosStorage) gatewayContainer() corev1.Container {

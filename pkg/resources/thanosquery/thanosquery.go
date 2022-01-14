@@ -2,6 +2,7 @@ package thanosquery
 
 import (
 	"context"
+
 	"github.com/go-logr/logr"
 	"github.com/kubesphere/paodin-monitoring/api/v1alpha1"
 	"github.com/kubesphere/paodin-monitoring/pkg/config"

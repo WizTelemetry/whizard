@@ -98,7 +98,7 @@ func (q *ThanosQuery) envoyContainer() corev1.Container {
 	var (
 		image           = q.Cfg.EnvoyDefaultImage
 		imagePullPolicy = corev1.PullIfNotPresent
-		resources corev1.ResourceRequirements
+		resources       corev1.ResourceRequirements
 	)
 	if envoySpec := q.Instance.Spec.Envoy; envoySpec != nil {
 		if envoySpec.Image != "" {

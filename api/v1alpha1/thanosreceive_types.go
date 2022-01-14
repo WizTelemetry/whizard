@@ -42,22 +42,22 @@ type ThanosReceiveSpec struct {
 	Image           string            `json:"image,omitempty"`
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 	// Number of replicas for a thanos receive component
-	Replicas        *int32            `json:"replicas,omitempty"`
+	Replicas *int32 `json:"replicas,omitempty"`
 
 	// Router specifies the configs that thanos receive running in the router mode requires
-	Router   *ReceiveRouterSpec   `json:"router,omitempty"`
+	Router *ReceiveRouterSpec `json:"router,omitempty"`
 	// Ingestor specifies the configs that thanos receive running in the ingestor mode requires
 	Ingestor *ReceiveIngestorSpec `json:"ingestor,omitempty"`
 
 	// TenantHeader configs the HTTP header specifying the replica number of a write request to thanos receive
-	TenantHeader    string `json:"tenantHeader,omitempty"`
+	TenantHeader string `json:"tenantHeader,omitempty"`
 	// DefaultTenantId configs the default tenant ID to use when none is provided via a header
 	DefaultTenantId string `json:"defaultTenantId,omitempty"`
 	// TenantLabelName configs the label name through which the tenant will be announced.
 	TenantLabelName string `json:"tenantLabelName,omitempty"`
 
 	// LogLevel configs log filtering level. Possible options: error, warn, info, debug
-	LogLevel  string `json:"level,omitempty"`
+	LogLevel string `json:"level,omitempty"`
 	// LogFormat configs log format to use. Possible options: logfmt or json
 	LogFormat string `json:"format,omitempty"`
 }
@@ -107,12 +107,12 @@ type ReceiveRouterSpec struct {
 	ReplicationFactor *uint64 `json:"replicationFactor,omitempty"`
 
 	// RemoteWriteIngress configs remote write request entry from services outside the cluster
-	RemoteWriteIngress *IngressSpec            `json:"remoteWriteIngress,omitempty"`
+	RemoteWriteIngress *IngressSpec `json:"remoteWriteIngress,omitempty"`
 }
 
 // RouterHashringConfig defines the hashring config for a team of tenants
 type RouterHashringConfig struct {
-	Name    string   `json:"name,omitempty"`
+	Name string `json:"name,omitempty"`
 
 	// Tenants if not empty indicates current config is for hard tenants; otherwise, it is for soft tenants.
 	Tenants []string `json:"tenants,omitempty"`
@@ -129,11 +129,11 @@ type RouterHashringConfig struct {
 // ReceiveIngestorSpec defines the configs that thanos receive running in the ingestor mode requires
 type ReceiveIngestorSpec struct {
 	// LocalTSDBRetention configs how long to retain raw samples on local storage
-	LocalTSDBRetention  string                    `json:"localTsdbRetention,omitempty"`
+	LocalTSDBRetention string `json:"localTsdbRetention,omitempty"`
 	// ObjectStorageConfig allows specifying a key of a Secret containing object store configuration
 	ObjectStorageConfig *corev1.SecretKeySelector `json:"objectStorageConfig,omitempty"`
 	// DataVolume specifies how volume shall be used
-	DataVolume          *KubernetesVolume         `json:"dataVolume,omitempty"`
+	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
 }
 
 // KubernetesVolume defines the configured volume for a thanos receiver.

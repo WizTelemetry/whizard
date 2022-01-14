@@ -9,7 +9,10 @@ import (
 )
 
 func (q *ThanosQuery) reconcileConfigMaps() error {
-	configmaps := q.configMaps()
+	configmaps, err := q.configMaps()
+	if err != nil {
+		return err
+	}
 
 	for _, desired := range configmaps {
 		if err := ctrl.SetControllerReference(&q.Instance, desired, q.Scheme); err != nil {
