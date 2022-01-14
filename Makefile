@@ -109,6 +109,7 @@ endef
 
 bundle: manifests kustomize
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+	cd config/default && $(KUSTOMIZE) edit set namespace kubesphere-monitoring-system
 	$(KUSTOMIZE) build config/default > config/bundle.yaml
 
 docs/api.md: tools/docgen/docgen.go api/v1alpha1/thanosquery_types.go api/v1alpha1/thanosreceive_types.go api/v1alpha1/thanosstorage_types.go
