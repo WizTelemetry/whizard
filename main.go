@@ -82,28 +82,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.ThanosQueryReconciler{
-		Cfg:    cfg,
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+	if err = (&controllers.ThanosReconciler{
+		DefaulterValidator: controllers.CreateThanosDefaulterValidator(cfg),
+		Client:             mgr.GetClient(),
+		Scheme:             mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ThanosQuery")
-		os.Exit(1)
-	}
-	if err = (&controllers.ThanosStorageReconciler{
-		Cfg:    cfg,
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ThanosStorage")
-		os.Exit(1)
-	}
-	if err = (&controllers.ThanosReceiveReconciler{
-		Cfg:    cfg,
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ThanosReceive")
+		setupLog.Error(err, "unable to create controller", "controller", "Thanos")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

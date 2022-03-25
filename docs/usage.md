@@ -28,27 +28,29 @@ Follow the steps below to deploy and configure host cluster to query monitoring 
     ```
     > A service or ingress may be configured to make the Thanos Sidecar accessible to host cluster.  
 
-2. On host cluster, deploy the operator of PaodinMonitoring, and then create a Thanos Query to connect the Thanos Sidecar accross all clusters.  
+2. On host cluster, deploy the operator of PaodinMonitoring, and then create a Thanos cluster only with Query to connect the Thanos Sidecar accross all clusters.  
     ```shell
     kubectl apply -f https://raw.githubusercontent.com/kubesphere/paodin-monitoring/master/config/bundle.yaml
 
     cat <<EOF | kubectl apply -f -
     apiVersion: monitoring.paodin.io/v1alpha1
-    kind: ThanosQuery
+    kind: Thanos
     metadata:
-      name: sample
+      name: t1
       namespace: kubesphere-monitoring-system
     spec:
-      stores:
-        - address: prometheus-operated:10901 # for host cluster
-        - address: <member-thanos-sidecar-adress>:10901
+      query:
+        stores:
+        - addresses:
+          - prometheus-operated:10901 # for host cluster
+          - <member-thanos-sidecar-adress>:10901
     EOF
     ```
 
 3. On host cluster, query data from multi clusters.
 
     ```shell
-    curl --data "query=up{cluster='host|member'}" thanosquery-sample-operated.kubesphere-monitoring-system.svc:10902/api/v1/query
+    curl --data "query=up{cluster='host|member'}" t1-query-operated.kubesphere-monitoring-system.svc:10902/api/v1/query
     ```
 
 ## host cluster queries multi-cluster data pushed by member clusters
@@ -67,42 +69,30 @@ Here are the pros and cons of this mode:
     2. member clusters are still heavy. 
 
 
-1. On host cluster, deploy the operator of PaodinMonitoring, and then create a Thanos Receive router to receive data from member clusters, a Thanos Receive to land data.    
+1. On host cluster, deploy the operator of PaodinMonitoring, and then create a Thanos cluster with a receive router to receive data from member clusters, a receive ingestor to land data.    
     ```shell
     kubectl apply -f https://raw.githubusercontent.com/kubesphere/paodin-monitoring/master/config/bundle.yaml
 
     cat <<EOF | kubectl apply -f -
     apiVersion: monitoring.paodin.io/v1alpha1
-    kind: ThanosReceive
+    kind: Thanos
     metadata:
-      name: ingestor
+      name: t2
     spec:
-      replicas: 2
-      ingestor:
-        dataVolume:
-          pvc:
-            spec:
-              resources:
-                requests:
-                  storage: 5Gi
-    EOF
-
-    cat <<EOF | kubectl apply -f -
-    apiVersion: monitoring.paodin.io/v1alpha1
-    kind: ThanosReceive
-    metadata:
-      name: router
-      namespace: kubesphere-monitoring-system
-    spec:
-      replicas: 2
-      router:
-        softTenantHashring:
-          name: soft
-          endpointsSelector:
-            matchLabels:
-              "app.kubernetes.io/component": "thanosreceive"
-              "app.kubernetes.io/instance": "ingestor"
-              "thanos.receive/ingestor": "true"
+      query: 
+        replicas: 2
+      receive:
+        router:
+          replicas: 2
+        ingestors:
+        - name: softs
+          replicas: 2
+          dataVolume:
+            pvc:
+              spec:
+                resources:
+                  requests:
+                    storage: 5Gi
     EOF
     ```
     > A service or ingress may be configured to make the Thanos Receive router accessible to member clusters.  

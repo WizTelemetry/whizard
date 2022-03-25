@@ -1,0 +1,24 @@
+# permissions for end users to edit thanos.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: thanos-editor-role
+rules:
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - thanos
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - thanos/status
+  verbs:
+  - get

@@ -10,25 +10,7 @@ resources:
   controller: true
   domain: paodin.io
   group: monitoring
-  kind: ThanosQuery
-  path: github.com/kubesphere/paodin-monitoring/api/v1alpha1
-  version: v1alpha1
-- api:
-    crdVersion: v1
-    namespaced: true
-  controller: true
-  domain: paodin.io
-  group: monitoring
-  kind: ThanosStorage
-  path: github.com/kubesphere/paodin-monitoring/api/v1alpha1
-  version: v1alpha1
-- api:
-    crdVersion: v1
-    namespaced: true
-  controller: true
-  domain: paodin.io
-  group: monitoring
-  kind: ThanosReceive
+  kind: Thanos
   path: github.com/kubesphere/paodin-monitoring/api/v1alpha1
   version: v1alpha1
 version: "3"

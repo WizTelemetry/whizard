@@ -112,6 +112,6 @@ bundle: manifests kustomize
 	cd config/default && $(KUSTOMIZE) edit set namespace kubesphere-monitoring-system
 	$(KUSTOMIZE) build config/default > config/bundle.yaml
 
-docs/api.md: tools/docgen/docgen.go api/v1alpha1/thanosquery_types.go api/v1alpha1/thanosreceive_types.go api/v1alpha1/thanosstorage_types.go
-	go run github.com/kubesphere/paodin-monitoring/tools/docgen api/v1alpha1/thanosquery_types.go api/v1alpha1/thanosreceive_types.go api/v1alpha1/thanosstorage_types.go > docs/api.md
+docs/api.md: tools/docgen/docgen.go api/v1alpha1/thanos_types.go
+	go run github.com/kubesphere/paodin-monitoring/tools/docgen api/v1alpha1/thanos_types.go > docs/api.md
 

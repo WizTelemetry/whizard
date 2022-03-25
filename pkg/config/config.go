@@ -5,8 +5,8 @@ import (
 )
 
 const (
-	ThanosDefaultImage = "thanosio/thanos:v0.22.0"
-	EnvoyDefaultImage  = "envoyproxy/envoy:v1.19.0"
+	ThanosDefaultImage = "thanosio/thanos:v0.25.1"
+	EnvoyDefaultImage  = "envoyproxy/envoy:v1.20.2"
 )
 
 type Config struct {
