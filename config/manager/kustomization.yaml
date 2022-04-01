@@ -14,3 +14,15 @@ images:
 - name: controller
   newName: kubespheredev/paodin-monitoring
   newTag: latest
+
+vars:
+- fieldref:
+    fieldPath: metadata.name
+  name: OPERATOR_NAME
+  objref:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: controller-manager
+
+configurations:
+- kustomizeconfig.yaml

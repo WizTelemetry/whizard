@@ -8,4 +8,4 @@ webhook:
   port: 9443
 leaderElection:
   leaderElect: true
-  resourceName: d2b3d494.paodin.io
+  resourceName: paodin-monitoring-controller-manager-leader-election

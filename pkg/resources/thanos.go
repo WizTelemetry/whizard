@@ -12,8 +12,8 @@ import (
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/kubesphere/paodin-monitoring/api/v1alpha1"
-	"github.com/kubesphere/paodin-monitoring/pkg/k8sutil"
+	"github.com/kubesphere/paodin-monitoring/pkg/api/v1alpha1"
+	"github.com/kubesphere/paodin-monitoring/pkg/util"
 )
 
 var (
@@ -74,9 +74,9 @@ func (r *ThanosBaseReconciler) ReconcileResources(resources []Resource) error {
 			if func() error {
 				switch desired := obj.(type) {
 				case *appsv1.Deployment:
-					return k8sutil.CreateOrUpdateDeployment(r.Context, r.Client, desired)
+					return util.CreateOrUpdateDeployment(r.Context, r.Client, desired)
 				default:
-					return k8sutil.CreateOrUpdate(r.Context, r.Client, desired.(client.Object))
+					return util.CreateOrUpdate(r.Context, r.Client, desired.(client.Object))
 				}
 			}(); err != nil {
 				return err

@@ -9,9 +9,9 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/kubesphere/paodin-monitoring/api/v1alpha1"
-	"github.com/kubesphere/paodin-monitoring/pkg/k8sutil"
+	"github.com/kubesphere/paodin-monitoring/pkg/api/v1alpha1"
 	"github.com/kubesphere/paodin-monitoring/pkg/resources"
+	"github.com/kubesphere/paodin-monitoring/pkg/util"
 )
 
 var (
@@ -91,7 +91,7 @@ func (r *Receive) Reconcile() error {
 	for _, item := range stss.Items {
 		sts := item
 		for _, ref := range r.OwnerReferences() {
-			if k8sutil.IndexOwnerRef(sts.ObjectMeta.OwnerReferences, ref) > 0 {
+			if util.IndexOwnerRef(sts.ObjectMeta.OwnerReferences, ref) > 0 {
 				if name, ok := sts.Labels[LabelReceiveIngestorNameKey]; ok {
 					oldIngestors = append(oldIngestors, name)
 				}

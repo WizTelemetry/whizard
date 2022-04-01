@@ -1,8 +1,6 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  labels:
-    control-plane: controller-manager
   name: kubesphere-monitoring-system
 ---
 apiVersion: apiextensions.k8s.io/v1
@@ -35,7 +33,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: ThanosSpec defines the desired state of Thanos
+            description: ThanosSpec defines the desired state of a Thanos cluster
             properties:
               compact:
                 properties:
@@ -700,7 +698,7 @@ spec:
                     - key
                     type: object
                   replicas:
-                    description: Number of replicas for a thanos query component
+                    description: Number of replicas for a thanos component
                     format: int32
                     type: integer
                   resources:
@@ -1238,7 +1236,7 @@ spec:
                         type: object
                     type: object
                   envoy:
-                    description: Envoy is used to config sidecar which proxies requests to the secure stores
+                    description: Envoy is used to config sidecar which proxies requests requiring auth to the secure stores
                     properties:
                       image:
                         description: Image is the thanos image with tag/version
@@ -1281,7 +1279,7 @@ spec:
                     description: Define which Nodes the Pods are scheduled on.
                     type: object
                   replicas:
-                    description: Number of replicas for a thanos query component
+                    description: Number of replicas for a thanos component
                     format: int32
                     type: integer
                   resources:
@@ -2007,6 +2005,7 @@ spec:
                           description: 'Log filtering level. Possible options: error, warn, info, debug'
                           type: string
                         name:
+                          description: Ingestor name must be unique within current thanos cluster, which follows the regulation for k8s resource name.
                           type: string
                         nodeSelector:
                           additionalProperties:
@@ -2029,7 +2028,7 @@ spec:
                           - key
                           type: object
                         replicas:
-                          description: Number of replicas for a thanos query component
+                          description: Number of replicas for a thanos component
                           format: int32
                           type: integer
                         resources:
@@ -2548,7 +2547,7 @@ spec:
                             type: object
                         type: object
                       defaultTenantId:
-                        description: DefaultTenantId configs the default tenant ID to use when none is provided via a header
+                        description: Default tenant ID to use when none is provided via a header
                         type: string
                       image:
                         description: Image is the thanos image with tag/version
@@ -2565,7 +2564,7 @@ spec:
                         description: Define which Nodes the Pods are scheduled on.
                         type: object
                       replicas:
-                        description: Number of replicas for a thanos query component
+                        description: Number of replicas for a thanos component
                         format: int32
                         type: integer
                       replicationFactor:
@@ -2594,10 +2593,10 @@ spec:
                             type: object
                         type: object
                       tenantHeader:
-                        description: TenantHeader configs the HTTP header to determine tenant for write requests
+                        description: HTTP header to determine tenant for remote write requests
                         type: string
                       tenantLabelName:
-                        description: TenantLabelName configs the label name through which the tenant will be announced.
+                        description: Label name through which the tenant will be announced.
                         type: string
                       tolerations:
                         description: If specified, the pod's tolerations.
@@ -3290,7 +3289,7 @@ spec:
                     - key
                     type: object
                   replicas:
-                    description: Number of replicas for a thanos query component
+                    description: Number of replicas for a thanos component
                     format: int32
                     type: integer
                   resources:
@@ -3539,7 +3538,7 @@ data:
       port: 9443
     leaderElection:
       leaderElect: true
-      resourceName: d2b3d494.paodin.io
+      resourceName: paodin-monitoring-controller-manager-leader-election
 kind: ConfigMap
 metadata:
   name: paodin-monitoring-manager-config
@@ -3564,6 +3563,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
+    app: paodin-monitoring-controller-manager
     control-plane: controller-manager
   name: paodin-monitoring-controller-manager
   namespace: kubesphere-monitoring-system
@@ -3571,10 +3571,12 @@ spec:
   replicas: 1
   selector:
     matchLabels:
+      app: paodin-monitoring-controller-manager
       control-plane: controller-manager
   template:
     metadata:
       labels:
+        app: paodin-monitoring-controller-manager
         control-plane: controller-manager
     spec:
       containers:

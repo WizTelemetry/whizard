@@ -30,9 +30,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	monitoringv1alpha1 "github.com/kubesphere/paodin-monitoring/api/v1alpha1"
-	"github.com/kubesphere/paodin-monitoring/controllers"
+	monitoringv1alpha1 "github.com/kubesphere/paodin-monitoring/pkg/api/v1alpha1"
 	"github.com/kubesphere/paodin-monitoring/pkg/config"
+	"github.com/kubesphere/paodin-monitoring/pkg/controllers"
 	//+kubebuilder:scaffold:imports
 )
 
