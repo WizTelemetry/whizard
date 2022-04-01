@@ -16,7 +16,7 @@ import (
 func (r *StoreGateway) statefulSet() (runtime.Object, resources.Operation, error) {
 	var sts = &appsv1.StatefulSet{ObjectMeta: r.meta(r.name())}
 
-	if r.store == nil {
+	if r.store == nil || r.Service.Spec.Thanos.ObjectStorageConfig == nil {
 		return sts, resources.OperationDelete, nil
 	}
 
@@ -110,7 +110,7 @@ func (r *StoreGateway) statefulSet() (runtime.Object, resources.Operation, error
 		})
 	}
 
-	osConfig := r.store.ObjectStorageConfig
+	osConfig := r.Service.Spec.Thanos.ObjectStorageConfig
 	osVol := corev1.Volume{
 		Name: "secret-" + osConfig.Name,
 		VolumeSource: corev1.VolumeSource{

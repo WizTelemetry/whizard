@@ -62,6 +62,11 @@ func (r *Receive) meta(name string) metav1.ObjectMeta {
 	}
 }
 
+func (r *Receive) HttpAddr() string {
+	router := receiveRouter{Receive: *r, Router: r.receive.Router}
+	return fmt.Sprintf("http://%s:10902", router.name("operated"))
+}
+
 func (r *Receive) GrpcAddrs() []string {
 	var svcs []string
 	if r.receive != nil {

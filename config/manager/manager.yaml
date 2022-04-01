@@ -10,18 +10,18 @@ metadata:
   namespace: system
   labels:
     control-plane: controller-manager
-    app: $(OPERATOR_NAME)
+    app: $(MANAGER_NAME)
 spec:
   selector:
     matchLabels:
       control-plane: controller-manager
-      app: $(OPERATOR_NAME)
+      app: $(MANAGER_NAME)
   replicas: 1
   template:
     metadata:
       labels:
         control-plane: controller-manager
-        app: $(OPERATOR_NAME)
+        app: $(MANAGER_NAME)
     spec:
       securityContext:
         runAsNonRoot: true

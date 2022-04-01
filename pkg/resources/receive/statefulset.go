@@ -126,7 +126,7 @@ func (r *receiveIngestor) statefulSet() (runtime.Object, resources.Operation, er
 		})
 	}
 
-	osConfig := r.Ingestor.ObjectStorageConfig
+	osConfig := r.Service.Spec.Thanos.ObjectStorageConfig
 	if osConfig != nil && osConfig.Name != "" {
 		sts.Spec.Template.Spec.Volumes = append(sts.Spec.Template.Spec.Volumes, corev1.Volume{
 			Name: "secret-" + osConfig.Name,
@@ -162,6 +162,16 @@ func (r *receiveIngestor) statefulSet() (runtime.Object, resources.Operation, er
 		container.Args = append(container.Args, "--objstore.config-file="+filepath.Join(secretsDir, osConfig.Name, osConfig.Key))
 	} else {
 		// TODO enable block compact when using only local storage
+	}
+
+	if r.Service.Spec.TenantHeader != "" {
+		container.Args = append(container.Args, "--receive.tenant-header="+r.Service.Spec.TenantHeader)
+	}
+	if r.Service.Spec.TenantLabelName != "" {
+		container.Args = append(container.Args, "--receive.tenant-label-name="+r.Service.Spec.TenantLabelName)
+	}
+	if r.Service.Spec.DefaultTenantId != "" {
+		container.Args = append(container.Args, "--receive.default-tenant-id="+r.Service.Spec.DefaultTenantId)
 	}
 
 	sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, container)

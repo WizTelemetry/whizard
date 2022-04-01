@@ -4,6 +4,8 @@ metadata:
   name: service-sample
   namespace: kubesphere-monitoring-system
 spec:
+  gateway: 
+    image: junotx/paodin-monitoring-gateway:latest
   thanos: 
     defaultFields:
       logLevel: info

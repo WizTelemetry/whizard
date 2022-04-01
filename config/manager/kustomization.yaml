@@ -12,13 +12,13 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 images:
 - name: controller
-  newName: kubespheredev/paodin-monitoring
+  newName: junotx/paodin-monitoring-controller-manager
   newTag: latest
 
 vars:
 - fieldref:
     fieldPath: metadata.name
-  name: OPERATOR_NAME
+  name: MANAGER_NAME
   objref:
     apiVersion: apps/v1
     kind: Deployment

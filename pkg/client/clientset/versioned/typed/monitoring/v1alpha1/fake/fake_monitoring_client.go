@@ -27,6 +27,10 @@ type FakeMonitoringV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakeMonitoringV1alpha1) Agents(namespace string) v1alpha1.AgentInterface {
+	return &FakeAgents{c, namespace}
+}
+
 func (c *FakeMonitoringV1alpha1) Services(namespace string) v1alpha1.ServiceInterface {
 	return &FakeServices{c, namespace}
 }

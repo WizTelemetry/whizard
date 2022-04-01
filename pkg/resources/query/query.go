@@ -1,6 +1,7 @@
 package query
 
 import (
+	"fmt"
 	"net"
 	"path/filepath"
 	"strconv"
@@ -100,6 +101,10 @@ func (q *Query) meta(name string) metav1.ObjectMeta {
 		Labels:          q.labels(),
 		OwnerReferences: q.OwnerReferences(),
 	}
+}
+
+func (q *Query) HttpAddr() string {
+	return fmt.Sprintf("http://%s:10902", q.name("operated"))
 }
 
 func (q *Query) Reconcile() error {

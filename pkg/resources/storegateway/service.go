@@ -10,7 +10,7 @@ import (
 func (r *StoreGateway) service() (runtime.Object, resources.Operation, error) {
 	var s = &corev1.Service{ObjectMeta: r.meta(r.name("operated"))}
 
-	if r.store == nil {
+	if r.store == nil || r.Service.Spec.Thanos.ObjectStorageConfig == nil {
 		return s, resources.OperationDelete, nil
 	}
 

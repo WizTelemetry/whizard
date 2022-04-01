@@ -33,6 +33,7 @@ import (
 	"github.com/kubesphere/paodin-monitoring/pkg/config"
 	"github.com/kubesphere/paodin-monitoring/pkg/resources"
 	"github.com/kubesphere/paodin-monitoring/pkg/resources/compact"
+	"github.com/kubesphere/paodin-monitoring/pkg/resources/gateway"
 	"github.com/kubesphere/paodin-monitoring/pkg/resources/query"
 	"github.com/kubesphere/paodin-monitoring/pkg/resources/receive"
 	"github.com/kubesphere/paodin-monitoring/pkg/resources/storegateway"
@@ -48,8 +49,9 @@ type ServiceReconciler struct {
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=services,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=services/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=services/finalizers,verbs=update
-//+kubebuilder:rbac:groups=core,resources=services;configmaps,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=services;configmaps;serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=deployments;statefulsets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -88,12 +90,14 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	var reconciles []func() error
-	if instance.Spec.Thanos != nil {
-		reconciles = append(reconciles, compact.New(serviceBaseReconciler).Reconcile)
-		reconciles = append(reconciles, storegateway.New(serviceBaseReconciler).Reconcile)
-		reconciles = append(reconciles, receive.New(serviceBaseReconciler).Reconcile)
-		reconciles = append(reconciles, query.New(serviceBaseReconciler).Reconcile)
+	if instance.Spec.Thanos == nil {
+		serviceBaseReconciler.Service.Spec.Thanos = &monitoringv1alpha1.Thanos{}
 	}
+	reconciles = append(reconciles, compact.New(serviceBaseReconciler).Reconcile)
+	reconciles = append(reconciles, storegateway.New(serviceBaseReconciler).Reconcile)
+	reconciles = append(reconciles, receive.New(serviceBaseReconciler).Reconcile)
+	reconciles = append(reconciles, query.New(serviceBaseReconciler).Reconcile)
+	reconciles = append(reconciles, gateway.New(serviceBaseReconciler).Reconcile)
 	for _, reconcile := range reconciles {
 		if err := reconcile(); err != nil {
 			return ctrl.Result{}, err

@@ -1,4 +1,4 @@
-package compact
+package gateway
 
 import (
 	corev1 "k8s.io/api/core/v1"
@@ -7,21 +7,20 @@ import (
 	"github.com/kubesphere/paodin-monitoring/pkg/resources"
 )
 
-func (r *Compact) service() (runtime.Object, resources.Operation, error) {
-	var s = &corev1.Service{ObjectMeta: r.meta(r.name("operated"))}
+func (g *Gateway) service() (runtime.Object, resources.Operation, error) {
+	var s = &corev1.Service{ObjectMeta: g.meta(g.name("operated"))}
 
-	if r.compact == nil || r.Service.Spec.Thanos.ObjectStorageConfig == nil {
+	if g.gateway == nil {
 		return s, resources.OperationDelete, nil
 	}
-
 	s.Spec = corev1.ServiceSpec{
-		ClusterIP: corev1.ClusterIPNone,
-		Selector:  r.labels(),
+		ClusterIP: "None",
+		Selector:  g.labels(),
 		Ports: []corev1.ServicePort{
 			{
 				Protocol: corev1.ProtocolTCP,
 				Name:     "http",
-				Port:     10902,
+				Port:     9080,
 			},
 		},
 	}

@@ -29,12 +29,50 @@ type ServiceSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Define one Thanos cluster
+	// HTTP header to determine tenant for remote write requests.
+	TenantHeader string `json:"tenantHeader,omitempty"`
+	// Default tenant ID to use when none is provided via a header.
+	DefaultTenantId string `json:"defaultTenantId,omitempty"`
+	// Label name through which the tenant will be announced.
+	TenantLabelName string `json:"tenantLabelName,omitempty"`
+
+	// Define one Gateway instance to proxy and auth requests to thanos.
+	Gateway *Gateway `json:"gateway,omitempty"`
+
+	// Define one Thanos cluster.
 	Thanos *Thanos `json:"thanos,omitempty"`
+}
+
+type Gateway struct {
+	// Image is the gateway image with tag/version.
+	Image string `json:"image,omitempty"`
+	// Log filtering level. Possible options: error, warn, info, debug.
+	LogLevel string `json:"logLevel,omitempty"`
+	// Log format to use. Possible options: logfmt or json.
+	LogFormat string `json:"logFormat,omitempty"`
+
+	// If specified, the pod's scheduling constraints.
+	Affinity *corev1.Affinity `json:"affinity,omitempty"`
+	// Define which Nodes the Pods are scheduled on.
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+	// If specified, the pod's tolerations.
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+	// Define resources requests and limits for main container.
+	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
+	// Number of replicas for a thanos component
+	Replicas *int32 `json:"replicas,omitempty"`
+
+	// Secret name for HTTP Server certificate (Kubernetes TLS secret type)
+	ServerCertificate string `json:"serverCertificate,omitempty"`
+	// Secret name for HTTP Client CA certificate (Kubernetes TLS secret type)
+	ClientCACertificate string `json:"clientCaCertificate,omitempty"`
 }
 
 type Thanos struct {
 	DefaultFields CommonThanosFields `json:"defaultFields,omitempty"`
+
+	// ObjectStorageConfig allows specifying a key of a Secret containing object store configuration
+	ObjectStorageConfig *corev1.SecretKeySelector `json:"objectStorageConfig,omitempty"`
 
 	Query *Query `json:"query,omitempty"`
 
@@ -109,17 +147,11 @@ type ReceiveRouter struct {
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 	// Define resources requests and limits for main container.
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-	// Number of replicas for a thanos component
+	// Number of replicas for a thanos component.
 	Replicas *int32 `json:"replicas,omitempty"`
 
-	//
+	// How many times to replicate incoming write requests
 	ReplicationFactor *uint64 `json:"replicationFactor,omitempty"`
-	// HTTP header to determine tenant for remote write requests
-	TenantHeader string `json:"tenantHeader,omitempty"`
-	// Default tenant ID to use when none is provided via a header
-	DefaultTenantId string `json:"defaultTenantId,omitempty"`
-	// Label name through which the tenant will be announced.
-	TenantLabelName string `json:"tenantLabelName,omitempty"`
 }
 
 type ReceiveIngestor struct {

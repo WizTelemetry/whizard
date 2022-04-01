@@ -13,4 +13,13 @@ resources:
   kind: Service
   path: github.com/kubesphere/paodin-monitoring/pkg/api/monitoring/v1alpha1
   version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: false
+  domain: paodin.io
+  group: monitoring
+  kind: Agent
+  path: github.com/kubesphere/paodin-monitoring/pkg/api/monitoring/v1alpha1
+  version: v1alpha1
 version: "3"

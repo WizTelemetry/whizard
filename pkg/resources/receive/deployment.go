@@ -106,6 +106,16 @@ func (r *receiveRouter) deployment() (runtime.Object, resources.Operation, error
 		container.Args = append(container.Args, fmt.Sprintf("--receive.replication-factor=%d", *r.Router.ReplicationFactor))
 	}
 
+	if r.Service.Spec.TenantHeader != "" {
+		container.Args = append(container.Args, "--receive.tenant-header="+r.Service.Spec.TenantHeader)
+	}
+	if r.Service.Spec.TenantLabelName != "" {
+		container.Args = append(container.Args, "--receive.tenant-label-name="+r.Service.Spec.TenantLabelName)
+	}
+	if r.Service.Spec.DefaultTenantId != "" {
+		container.Args = append(container.Args, "--receive.default-tenant-id="+r.Service.Spec.DefaultTenantId)
+	}
+
 	d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, container)
 
 	return d, resources.OperationCreateOrUpdate, nil
