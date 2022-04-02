@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/kubesphere/paodin-monitoring/pkg/api/v1alpha1"
+	"github.com/kubesphere/paodin-monitoring/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/paodin-monitoring/pkg/resources"
 	"github.com/kubesphere/paodin-monitoring/pkg/util"
 )

@@ -6,7 +6,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/kubesphere/paodin-monitoring/pkg/api/v1alpha1"
+	"github.com/kubesphere/paodin-monitoring/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/paodin-monitoring/pkg/resources"
 )
 

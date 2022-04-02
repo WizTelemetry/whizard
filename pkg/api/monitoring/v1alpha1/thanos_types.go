@@ -219,6 +219,7 @@ type ThanosStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+// +genclient
 
 // Thanos is the Schema for the thanos API
 type Thanos struct {

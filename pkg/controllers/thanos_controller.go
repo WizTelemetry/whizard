@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	monitoringv1alpha1 "github.com/kubesphere/paodin-monitoring/pkg/api/v1alpha1"
+	monitoringv1alpha1 "github.com/kubesphere/paodin-monitoring/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/paodin-monitoring/pkg/config"
 	"github.com/kubesphere/paodin-monitoring/pkg/resources"
 	"github.com/kubesphere/paodin-monitoring/pkg/resources/compact"

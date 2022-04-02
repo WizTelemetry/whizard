@@ -11,6 +11,6 @@ resources:
   domain: paodin.io
   group: monitoring
   kind: Thanos
-  path: github.com/kubesphere/paodin-monitoring/pkg/api/v1alpha1
+  path: github.com/kubesphere/paodin-monitoring/pkg/api/monitoring/v1alpha1
   version: v1alpha1
 version: "3"

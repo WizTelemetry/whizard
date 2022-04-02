@@ -107,11 +107,14 @@ rm -rf $$TMP_DIR ;\
 }
 endef
 
+clientset:
+	./hack/generate_client.sh monitoring:v1alpha1
+
 bundle: manifests kustomize
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	cd config/default && $(KUSTOMIZE) edit set namespace kubesphere-monitoring-system
 	$(KUSTOMIZE) build config/default > config/bundle.yaml
 
-docs/api.md: tools/docgen/docgen.go pkg/api/v1alpha1/thanos_types.go
-	go run github.com/kubesphere/paodin-monitoring/tools/docgen pkg/api/v1alpha1/thanos_types.go > docs/api.md
+docs/api.md: tools/docgen/docgen.go pkg/api/monitoring/v1alpha1/thanos_types.go
+	go run github.com/kubesphere/paodin-monitoring/tools/docgen pkg/api/monitoring/v1alpha1/thanos_types.go > docs/api.md
 
