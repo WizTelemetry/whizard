@@ -26,7 +26,7 @@ func (q *Query) proxyConfigMap() (runtime.Object, resources.Operation, error) {
 	if err != nil {
 		return nil, resources.OperationCreateOrUpdate, err
 	}
-	data, err := envoyConfigFiles(q.Thanos.Namespace+"/"+q.Thanos.Name, *stores)
+	data, err := envoyConfigFiles(q.Service.Namespace+"/"+q.Service.Name, *stores)
 	if err != nil {
 		return nil, resources.OperationCreateOrUpdate, err
 	}
@@ -58,8 +58,8 @@ func (q *Query) storesConfigMap() (runtime.Object, resources.Operation, error) {
 		})
 	}
 
-	innerStores := receive.New(q.ThanosBaseReconciler).GrpcAddrs()
-	innerStores = append(innerStores, storegateway.New(q.ThanosBaseReconciler).GrpcAddrs()...)
+	innerStores := receive.New(q.ServiceBaseReconciler).GrpcAddrs()
+	innerStores = append(innerStores, storegateway.New(q.ServiceBaseReconciler).GrpcAddrs()...)
 	for _, store := range innerStores {
 		if store != "" {
 			targets = append(targets, model.LabelSet{

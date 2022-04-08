@@ -1,24 +1,20 @@
-# permissions for end users to edit thanos.
+# permissions for end users to view service.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: thanos-editor-role
+  name: service-viewer-role
 rules:
 - apiGroups:
   - monitoring.paodin.io
   resources:
-  - thanos
+  - service
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - monitoring.paodin.io
   resources:
-  - thanos/status
+  - service/status
   verbs:
   - get

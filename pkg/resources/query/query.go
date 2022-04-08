@@ -18,14 +18,14 @@ var (
 )
 
 type Query struct {
-	resources.ThanosBaseReconciler
+	resources.ServiceBaseReconciler
 	query *v1alpha1.Query
 }
 
-func New(reconciler resources.ThanosBaseReconciler) *Query {
+func New(reconciler resources.ServiceBaseReconciler) *Query {
 	return &Query{
-		ThanosBaseReconciler: reconciler,
-		query:                reconciler.Thanos.Spec.Query,
+		ServiceBaseReconciler: reconciler,
+		query:                 reconciler.Service.Spec.Thanos.Query,
 	}
 }
 
@@ -85,7 +85,7 @@ func (q *Query) labels() map[string]string {
 }
 
 func (q *Query) name(nameSuffix ...string) string {
-	name := q.Thanos.Name + "-query"
+	name := q.Service.Name + "-query"
 	if len(nameSuffix) > 0 {
 		name += "-" + strings.Join(nameSuffix, "-")
 	}
@@ -96,7 +96,7 @@ func (q *Query) meta(name string) metav1.ObjectMeta {
 
 	return metav1.ObjectMeta{
 		Name:            name,
-		Namespace:       q.Thanos.Namespace,
+		Namespace:       q.Service.Namespace,
 		Labels:          q.labels(),
 		OwnerReferences: q.OwnerReferences(),
 	}

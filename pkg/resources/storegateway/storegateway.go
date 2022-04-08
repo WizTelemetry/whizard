@@ -16,14 +16,14 @@ var (
 )
 
 type StoreGateway struct {
-	resources.ThanosBaseReconciler
+	resources.ServiceBaseReconciler
 	store *v1alpha1.StoreGateway
 }
 
-func New(reconciler resources.ThanosBaseReconciler) *StoreGateway {
+func New(reconciler resources.ServiceBaseReconciler) *StoreGateway {
 	return &StoreGateway{
-		ThanosBaseReconciler: reconciler,
-		store:                reconciler.Thanos.Spec.StoreGateway,
+		ServiceBaseReconciler: reconciler,
+		store:                 reconciler.Service.Spec.Thanos.StoreGateway,
 	}
 }
 
@@ -34,7 +34,7 @@ func (r *StoreGateway) labels() map[string]string {
 }
 
 func (r *StoreGateway) name(nameSuffix ...string) string {
-	name := r.Thanos.Name + "-storegateway"
+	name := r.Service.Name + "-storegateway"
 	if len(nameSuffix) > 0 {
 		name += "-" + strings.Join(nameSuffix, "-")
 	}
@@ -44,7 +44,7 @@ func (r *StoreGateway) name(nameSuffix ...string) string {
 func (r *StoreGateway) meta(name string) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
 		Name:            name,
-		Namespace:       r.Thanos.Namespace,
+		Namespace:       r.Service.Namespace,
 		Labels:          r.labels(),
 		OwnerReferences: r.OwnerReferences(),
 	}

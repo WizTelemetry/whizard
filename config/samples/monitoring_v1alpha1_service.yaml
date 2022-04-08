@@ -1,0 +1,19 @@
+apiVersion: monitoring.paodin.io/v1alpha1
+kind: Service
+metadata:
+  name: service-sample
+  namespace: kubesphere-monitoring-system
+spec:
+  thanos: 
+    defaultFields:
+      logLevel: info
+    query:
+      stores:
+      # - addresses:
+      #   - prometheus-operated:10901
+    receive:
+      router: 
+        replicationFactor: 2
+      ingestors:
+      - name: soft-tenants
+        replicas: 2

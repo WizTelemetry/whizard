@@ -34,16 +34,17 @@ Follow the steps below to deploy and configure host cluster to query monitoring 
 
     cat <<EOF | kubectl apply -f -
     apiVersion: monitoring.paodin.io/v1alpha1
-    kind: Thanos
+    kind: Service
     metadata:
       name: t1
       namespace: kubesphere-monitoring-system
     spec:
-      query:
-        stores:
-        - addresses:
-          - prometheus-operated:10901 # for host cluster
-          - <member-thanos-sidecar-adress>:10901
+      thanos
+        query:
+          stores:
+          - addresses:
+            - prometheus-operated:10901 # for host cluster
+            - <member-thanos-sidecar-adress>:10901
     EOF
     ```
 
@@ -75,24 +76,25 @@ Here are the pros and cons of this mode:
 
     cat <<EOF | kubectl apply -f -
     apiVersion: monitoring.paodin.io/v1alpha1
-    kind: Thanos
+    kind: Service
     metadata:
       name: t2
     spec:
-      query: 
-        replicas: 2
-      receive:
-        router:
+      thanos: 
+        query: 
           replicas: 2
-        ingestors:
-        - name: softs
-          replicas: 2
-          dataVolume:
-            pvc:
-              spec:
-                resources:
-                  requests:
-                    storage: 5Gi
+        receive:
+          router:
+            replicas: 2
+          ingestors:
+          - name: softs
+            replicas: 2
+            dataVolume:
+              pvc:
+                spec:
+                  resources:
+                    requests:
+                      storage: 5Gi
     EOF
     ```
     > A service or ingress may be configured to make the Thanos Receive router accessible to member clusters.  

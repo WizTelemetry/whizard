@@ -35,7 +35,7 @@ rules:
 - apiGroups:
   - monitoring.paodin.io
   resources:
-  - thanos
+  - services
   verbs:
   - create
   - delete
@@ -47,13 +47,13 @@ rules:
 - apiGroups:
   - monitoring.paodin.io
   resources:
-  - thanos/finalizers
+  - services/finalizers
   verbs:
   - update
 - apiGroups:
   - monitoring.paodin.io
   resources:
-  - thanos/status
+  - services/status
   verbs:
   - get
   - patch

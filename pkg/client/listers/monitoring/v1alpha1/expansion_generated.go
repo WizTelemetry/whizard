@@ -17,10 +17,10 @@ limitations under the License.
 
 package v1alpha1
 
-// ThanosListerExpansion allows custom methods to be added to
-// ThanosLister.
-type ThanosListerExpansion interface{}
+// ServiceListerExpansion allows custom methods to be added to
+// ServiceLister.
+type ServiceListerExpansion interface{}
 
-// ThanosNamespaceListerExpansion allows custom methods to be added to
-// ThanosNamespaceLister.
-type ThanosNamespaceListerExpansion interface{}
+// ServiceNamespaceListerExpansion allows custom methods to be added to
+// ServiceNamespaceLister.
+type ServiceNamespaceListerExpansion interface{}

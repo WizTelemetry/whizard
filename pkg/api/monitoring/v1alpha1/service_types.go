@@ -24,11 +24,16 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// ThanosSpec defines the desired state of a Thanos cluster
-type ThanosSpec struct {
+// ServiceSpec defines the desired state of a Service
+type ServiceSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
+	// Define one Thanos cluster
+	Thanos *Thanos `json:"thanos,omitempty"`
+}
+
+type Thanos struct {
 	DefaultFields CommonThanosFields `json:"defaultFields,omitempty"`
 
 	Query *Query `json:"query,omitempty"`
@@ -211,8 +216,8 @@ type Retention struct {
 	Retention1h string `json:"retention1h,omitempty"`
 }
 
-// ThanosStatus defines the observed state of Thanos
-type ThanosStatus struct {
+// ServiceStatus defines the observed state of Service
+type ServiceStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 }
@@ -221,24 +226,24 @@ type ThanosStatus struct {
 //+kubebuilder:subresource:status
 // +genclient
 
-// Thanos is the Schema for the thanos API
-type Thanos struct {
+// Service is the Schema for the monitoring service API
+type Service struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ThanosSpec   `json:"spec,omitempty"`
-	Status ThanosStatus `json:"status,omitempty"`
+	Spec   ServiceSpec   `json:"spec,omitempty"`
+	Status ServiceStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// ThanosList contains a list of Thanos
-type ThanosList struct {
+// ServiceList contains a list of Service
+type ServiceList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Thanos `json:"items"`
+	Items           []Service `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&Thanos{}, &ThanosList{})
+	SchemeBuilder.Register(&Service{}, &ServiceList{})
 }

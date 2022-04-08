@@ -10,7 +10,7 @@ resources:
   controller: true
   domain: paodin.io
   group: monitoring
-  kind: Thanos
+  kind: Service
   path: github.com/kubesphere/paodin-monitoring/pkg/api/monitoring/v1alpha1
   version: v1alpha1
 version: "3"

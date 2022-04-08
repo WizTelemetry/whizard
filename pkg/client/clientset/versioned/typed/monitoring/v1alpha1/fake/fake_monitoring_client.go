@@ -27,8 +27,8 @@ type FakeMonitoringV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeMonitoringV1alpha1) Thanoses(namespace string) v1alpha1.ThanosInterface {
-	return &FakeThanoses{c, namespace}
+func (c *FakeMonitoringV1alpha1) Services(namespace string) v1alpha1.ServiceInterface {
+	return &FakeServices{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

@@ -82,12 +82,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.ThanosReconciler{
-		DefaulterValidator: controllers.CreateThanosDefaulterValidator(cfg),
+	if err = (&controllers.ServiceReconciler{
+		DefaulterValidator: controllers.CreateServiceDefaulterValidator(cfg),
 		Client:             mgr.GetClient(),
 		Scheme:             mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Thanos")
+		setupLog.Error(err, "unable to create controller", "controller", "Service")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

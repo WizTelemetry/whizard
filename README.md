@@ -12,11 +12,12 @@ The architecture diagram above covers a variety of scenarios for which PaodinMon
 
 PaodinMonitoring contains an operator that acts on the following CRDs to deploy some key components: 
 
-- `Thanos`, which defines a desired thanos cluster contains multiple thanos components: 
-    - `Query` for a Thanos Query instance, which can query from the Receive instances with ingestor mode and the Store Gateway instance in current thanos cluster, and other external thanos StoreAPI servers. It also will be with an envoy sidecar container to proxy query requests requiring auth to secure StoreAPI servers.  
-    - `Receive` for multiple Thanos Receive instances which contains one receive router to receive external remote write requests, and multiple ingestors for different tenants to land data from the router.  
-    - `StoreGateway` for a Thanos Store Gateway instance to provide query for metrics in a object storage as a StoreAPI server.
-    - `Compact` for a Thanos Compact instance to compact metrics block and manage metrics lifecycle. 
+- `Service`, which defines a desired monitoring service contains the following components:  
+    - `Thanos` for a Thanos cluster contains multiple thanos components: 
+        - `Query` for a Thanos Query instance, which can query from the Receive instances with ingestor mode and the Store Gateway instance in current thanos cluster, and other external thanos StoreAPI servers. It also will be with an envoy sidecar container to proxy query requests requiring auth to secure StoreAPI servers.  
+        - `Receive` for multiple Thanos Receive instances which contains one receive router to receive external remote write requests, and multiple ingestors for different tenants to land data from the router.  
+        - `StoreGateway` for a Thanos Store Gateway instance to provide query for metrics in a object storage as a StoreAPI server.
+        - `Compact` for a Thanos Compact instance to compact metrics block and manage metrics lifecycle. 
 
 To learn more about them have a look at the [api doc](docs/api.md).
 
@@ -31,7 +32,7 @@ kubectl apply -f https://raw.githubusercontent.com/kubesphere/paodin-monitoring/
 Create a Thanos cluster:
 
 ```shell
-kubectl apply -f https://raw.githubusercontent.com/kubesphere/paodin-monitoring/master/config/samples/monitoring_v1alpha1_thanos.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubesphere/paodin-monitoring/master/config/samples/monitoring_v1alpha1_service.yaml
 ```
 
 > See [here](./docs/usage.md) to learn more usages.

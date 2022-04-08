@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	ThanosDefaultImage = "thanosio/thanos:v0.25.1"
+	ThanosDefaultImage = "thanosio/thanos:v0.25.2"
 	EnvoyDefaultImage  = "envoyproxy/envoy:v1.20.2"
 )
 

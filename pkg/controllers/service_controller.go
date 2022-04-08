@@ -38,34 +38,34 @@ import (
 	"github.com/kubesphere/paodin-monitoring/pkg/resources/storegateway"
 )
 
-// ThanosReconciler reconciles a Thanos object
-type ThanosReconciler struct {
-	DefaulterValidator ThanosDefaulterValidator
+// ServiceReconciler reconciles a Service object
+type ServiceReconciler struct {
+	DefaulterValidator ServiceDefaulterValidator
 	client.Client
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=thanos,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=thanos/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=thanos/finalizers,verbs=update
+//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=services,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=services/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=services/finalizers,verbs=update
 //+kubebuilder:rbac:groups=core,resources=services;configmaps,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=deployments;statefulsets,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
-// the Thanos object against the actual cluster state, and then
+// the Service object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
-func (r *ThanosReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	l := log.FromContext(ctx).WithValues("thanos", req.NamespacedName)
+func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	l := log.FromContext(ctx).WithValues("service", req.NamespacedName)
 
-	l.Info("sync thanos")
+	l.Info("sync service")
 	_ = sync.Once{}
-	instance := &monitoringv1alpha1.Thanos{}
+	instance := &monitoringv1alpha1.Service{}
 	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -79,19 +79,21 @@ func (r *ThanosReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, err
 	}
 
-	thanosBaseReconciler := resources.ThanosBaseReconciler{
+	serviceBaseReconciler := resources.ServiceBaseReconciler{
 		Client:  r.Client,
 		Log:     l,
 		Scheme:  r.Scheme,
 		Context: ctx,
-		Thanos:  instance,
+		Service: instance,
 	}
 
 	var reconciles []func() error
-	reconciles = append(reconciles, compact.New(thanosBaseReconciler).Reconcile)
-	reconciles = append(reconciles, storegateway.New(thanosBaseReconciler).Reconcile)
-	reconciles = append(reconciles, receive.New(thanosBaseReconciler).Reconcile)
-	reconciles = append(reconciles, query.New(thanosBaseReconciler).Reconcile)
+	if instance.Spec.Thanos != nil {
+		reconciles = append(reconciles, compact.New(serviceBaseReconciler).Reconcile)
+		reconciles = append(reconciles, storegateway.New(serviceBaseReconciler).Reconcile)
+		reconciles = append(reconciles, receive.New(serviceBaseReconciler).Reconcile)
+		reconciles = append(reconciles, query.New(serviceBaseReconciler).Reconcile)
+	}
 	for _, reconcile := range reconciles {
 		if err := reconcile(); err != nil {
 			return ctrl.Result{}, err
@@ -102,9 +104,9 @@ func (r *ThanosReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ThanosReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&monitoringv1alpha1.Thanos{}).
+		For(&monitoringv1alpha1.Service{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Service{}).
@@ -112,9 +114,9 @@ func (r *ThanosReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-type ThanosDefaulterValidator func(spec monitoringv1alpha1.ThanosSpec) (monitoringv1alpha1.ThanosSpec, error)
+type ServiceDefaulterValidator func(spec monitoringv1alpha1.ServiceSpec) (monitoringv1alpha1.ServiceSpec, error)
 
-func CreateThanosDefaulterValidator(cfg config.Config) ThanosDefaulterValidator {
+func CreateServiceDefaulterValidator(cfg config.Config) ServiceDefaulterValidator {
 	var replicas int32 = 1
 	var applyDefaultFields = func(defaultFields,
 		fields monitoringv1alpha1.CommonThanosFields) monitoringv1alpha1.CommonThanosFields {
@@ -130,52 +132,61 @@ func CreateThanosDefaulterValidator(cfg config.Config) ThanosDefaulterValidator 
 		return fields
 	}
 
-	return func(spec monitoringv1alpha1.ThanosSpec) (monitoringv1alpha1.ThanosSpec, error) {
-		if spec.DefaultFields.Image == "" {
-			spec.DefaultFields.Image = cfg.ThanosDefaultImage
+	return func(spec monitoringv1alpha1.ServiceSpec) (monitoringv1alpha1.ServiceSpec, error) {
+		if spec.Thanos == nil {
+			return spec, nil
 		}
 
-		if spec.Query != nil {
-			spec.Query.CommonThanosFields = applyDefaultFields(spec.DefaultFields, spec.Query.CommonThanosFields)
-			if spec.Query.Replicas == nil || *spec.Query.Replicas < 0 {
-				spec.Query.Replicas = &replicas
+		var thanos = spec.Thanos
+
+		if thanos.DefaultFields.Image == "" {
+			thanos.DefaultFields.Image = cfg.ThanosDefaultImage
+		}
+
+		if thanos.Query != nil {
+			thanos.Query.CommonThanosFields = applyDefaultFields(thanos.DefaultFields, thanos.Query.CommonThanosFields)
+			if thanos.Query.Replicas == nil || *thanos.Query.Replicas < 0 {
+				thanos.Query.Replicas = &replicas
 			}
-			if spec.Query.Envoy.Image == "" {
-				spec.Query.Envoy.Image = cfg.EnvoyDefaultImage
+			if thanos.Query.Envoy.Image == "" {
+				thanos.Query.Envoy.Image = cfg.EnvoyDefaultImage
 			}
 
 		}
-		if spec.Receive != nil {
-			spec.Receive.Router.CommonThanosFields = applyDefaultFields(spec.DefaultFields, spec.Receive.Router.CommonThanosFields)
-			if spec.Receive.Router.Replicas == nil || *spec.Receive.Router.Replicas < 0 {
-				spec.Receive.Router.Replicas = &replicas
+		if thanos.Receive != nil {
+			thanos.Receive.Router.CommonThanosFields = applyDefaultFields(thanos.DefaultFields, thanos.Receive.Router.CommonThanosFields)
+			if thanos.Receive.Router.Replicas == nil || *thanos.Receive.Router.Replicas < 0 {
+				thanos.Receive.Router.Replicas = &replicas
 			}
 			var ingestors []monitoringv1alpha1.ReceiveIngestor
-			for _, i := range spec.Receive.Ingestors {
+			for _, i := range thanos.Receive.Ingestors {
 				ingestor := i
 				if ingestor.Name == "" {
 					return spec, fmt.Errorf("ingestor->name can not empty")
 				}
-				ingestor.CommonThanosFields = applyDefaultFields(spec.DefaultFields, ingestor.CommonThanosFields)
+				ingestor.CommonThanosFields = applyDefaultFields(thanos.DefaultFields, ingestor.CommonThanosFields)
 				if ingestor.Replicas == nil || *ingestor.Replicas < 0 {
 					ingestor.Replicas = &replicas
 				}
 				ingestors = append(ingestors, ingestor)
 			}
-			spec.Receive.Ingestors = ingestors
+			thanos.Receive.Ingestors = ingestors
 		}
-		if spec.StoreGateway != nil {
-			spec.StoreGateway.CommonThanosFields = applyDefaultFields(spec.DefaultFields, spec.StoreGateway.CommonThanosFields)
-			if spec.StoreGateway.Replicas == nil || *spec.StoreGateway.Replicas < 0 {
-				spec.StoreGateway.Replicas = &replicas
+		if thanos.StoreGateway != nil {
+			thanos.StoreGateway.CommonThanosFields = applyDefaultFields(thanos.DefaultFields, thanos.StoreGateway.CommonThanosFields)
+			if thanos.StoreGateway.Replicas == nil || *thanos.StoreGateway.Replicas < 0 {
+				thanos.StoreGateway.Replicas = &replicas
 			}
 		}
-		if spec.Compact != nil {
-			spec.Compact.CommonThanosFields = applyDefaultFields(spec.DefaultFields, spec.Compact.CommonThanosFields)
-			if spec.Compact.Replicas == nil || *spec.Compact.Replicas < 0 {
-				spec.Compact.Replicas = &replicas
+		if thanos.Compact != nil {
+			thanos.Compact.CommonThanosFields = applyDefaultFields(thanos.DefaultFields, thanos.Compact.CommonThanosFields)
+			if thanos.Compact.Replicas == nil || *thanos.Compact.Replicas < 0 {
+				thanos.Compact.Replicas = &replicas
 			}
 		}
+
+		spec.Thanos = thanos
+
 		return spec, nil
 	}
 }

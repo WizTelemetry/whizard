@@ -15,14 +15,14 @@ var (
 )
 
 type Compact struct {
-	resources.ThanosBaseReconciler
+	resources.ServiceBaseReconciler
 	compact *v1alpha1.Compact
 }
 
-func New(reconciler resources.ThanosBaseReconciler) *Compact {
+func New(reconciler resources.ServiceBaseReconciler) *Compact {
 	return &Compact{
-		ThanosBaseReconciler: reconciler,
-		compact:              reconciler.Thanos.Spec.Compact,
+		ServiceBaseReconciler: reconciler,
+		compact:               reconciler.Service.Spec.Thanos.Compact,
 	}
 }
 
@@ -33,7 +33,7 @@ func (r *Compact) labels() map[string]string {
 }
 
 func (r *Compact) name(nameSuffix ...string) string {
-	name := r.Thanos.Name + "-compact"
+	name := r.Service.Name + "-compact"
 	if len(nameSuffix) > 0 {
 		name += "-" + strings.Join(nameSuffix, "-")
 	}
@@ -43,13 +43,14 @@ func (r *Compact) name(nameSuffix ...string) string {
 func (r *Compact) meta(name string) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
 		Name:            name,
-		Namespace:       r.Thanos.Namespace,
+		Namespace:       r.Service.Namespace,
 		Labels:          r.labels(),
 		OwnerReferences: r.OwnerReferences(),
 	}
 }
 
 func (r *Compact) Reconcile() error {
+
 	return r.ReconcileResources([]resources.Resource{
 		r.statefulSet,
 		r.service,

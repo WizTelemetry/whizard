@@ -16,10 +16,11 @@ This Document documents the types introduced by the paodin-monitoring to be cons
 * [ReceiveIngestor](#receiveingestor)
 * [ReceiveRouter](#receiverouter)
 * [Retention](#retention)
+* [Service](#service)
+* [ServiceList](#servicelist)
+* [ServiceSpec](#servicespec)
 * [StoreGateway](#storegateway)
 * [Thanos](#thanos)
-* [ThanosList](#thanoslist)
-* [ThanosSpec](#thanosspec)
 
 ## CommonThanosFields
 
@@ -161,6 +162,39 @@ Retention defines the config for retaining samples
 
 [Back to TOC](#table-of-contents)
 
+## Service
+
+Service is the Schema for the monitoring service API
+
+| Field | Description | Scheme | Required |
+| ----- | ----------- | ------ | -------- |
+| metadata |  | [metav1.ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#objectmeta-v1-meta) | false |
+| spec |  | [ServiceSpec](#servicespec) | false |
+| status |  | [ServiceStatus](#servicestatus) | false |
+
+[Back to TOC](#table-of-contents)
+
+## ServiceList
+
+ServiceList contains a list of Service
+
+| Field | Description | Scheme | Required |
+| ----- | ----------- | ------ | -------- |
+| metadata |  | [metav1.ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#listmeta-v1-meta) | false |
+| items |  | [][Service](#service) | true |
+
+[Back to TOC](#table-of-contents)
+
+## ServiceSpec
+
+ServiceSpec defines the desired state of a Service
+
+| Field | Description | Scheme | Required |
+| ----- | ----------- | ------ | -------- |
+| thanos | Define one Thanos cluster | *[Thanos](#thanos) | false |
+
+[Back to TOC](#table-of-contents)
+
 ## StoreGateway
 
 
@@ -181,30 +215,7 @@ Retention defines the config for retaining samples
 
 ## Thanos
 
-Thanos is the Schema for the thanos API
 
-| Field | Description | Scheme | Required |
-| ----- | ----------- | ------ | -------- |
-| metadata |  | [metav1.ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#objectmeta-v1-meta) | false |
-| spec |  | [ThanosSpec](#thanosspec) | false |
-| status |  | [ThanosStatus](#thanosstatus) | false |
-
-[Back to TOC](#table-of-contents)
-
-## ThanosList
-
-ThanosList contains a list of Thanos
-
-| Field | Description | Scheme | Required |
-| ----- | ----------- | ------ | -------- |
-| metadata |  | [metav1.ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#listmeta-v1-meta) | false |
-| items |  | [][Thanos](#thanos) | true |
-
-[Back to TOC](#table-of-contents)
-
-## ThanosSpec
-
-ThanosSpec defines the desired state of a Thanos cluster
 
 | Field | Description | Scheme | Required |
 | ----- | ----------- | ------ | -------- |

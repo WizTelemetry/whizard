@@ -27,14 +27,14 @@ var (
 )
 
 type Receive struct {
-	resources.ThanosBaseReconciler
+	resources.ServiceBaseReconciler
 	receive *v1alpha1.Receive
 }
 
-func New(reconciler resources.ThanosBaseReconciler) *Receive {
+func New(reconciler resources.ServiceBaseReconciler) *Receive {
 	return &Receive{
-		ThanosBaseReconciler: reconciler,
-		receive:              reconciler.Thanos.Spec.Receive,
+		ServiceBaseReconciler: reconciler,
+		receive:               reconciler.Service.Spec.Thanos.Receive,
 	}
 }
 
@@ -45,7 +45,7 @@ func (r *Receive) labels() map[string]string {
 }
 
 func (r *Receive) name(nameSuffix ...string) string {
-	name := r.Thanos.Name + "-receive"
+	name := r.Service.Name + "-receive"
 	if len(nameSuffix) > 0 {
 		name += "-" + strings.Join(nameSuffix, "-")
 	}
@@ -56,7 +56,7 @@ func (r *Receive) meta(name string) metav1.ObjectMeta {
 
 	return metav1.ObjectMeta{
 		Name:            name,
-		Namespace:       r.Thanos.Namespace,
+		Namespace:       r.Service.Namespace,
 		Labels:          r.labels(),
 		OwnerReferences: r.OwnerReferences(),
 	}
@@ -82,7 +82,7 @@ func (r *Receive) Reconcile() error {
 	var ingestorCommonLabels = r.labels()
 	ingestorCommonLabels[LabelReceiveTypeKey] = LabelReceiveTypeValueIngestor
 	if err := r.Client.List(r.Context, stss, &client.ListOptions{
-		Namespace:     r.Thanos.Namespace,
+		Namespace:     r.Service.Namespace,
 		LabelSelector: labels.SelectorFromSet(ingestorCommonLabels),
 	}); err != nil {
 		return err
@@ -99,7 +99,7 @@ func (r *Receive) Reconcile() error {
 		}
 	}
 
-	if r.Thanos.Spec.Receive == nil {
+	if r.receive == nil {
 		router := receiveRouter{
 			Receive: *r,
 			Router:  v1alpha1.ReceiveRouter{},
@@ -118,13 +118,13 @@ func (r *Receive) Reconcile() error {
 	}
 
 	var newIngestors = map[string]struct{}{}
-	for _, i := range r.Thanos.Spec.Receive.Ingestors {
+	for _, i := range r.receive.Ingestors {
 		in := i
 		ingestor := receiveIngestor{Receive: *r, Ingestor: in}
 		ress = append(ress, ingestor.resources()...)
 		newIngestors[r.name("ingestor", i.Name)] = struct{}{}
 	}
-	router := receiveRouter{Receive: *r, Router: r.Thanos.Spec.Receive.Router}
+	router := receiveRouter{Receive: *r, Router: r.receive.Router}
 	ress = append(ress, router.resources()...)
 
 	for _, name := range oldIngestors {

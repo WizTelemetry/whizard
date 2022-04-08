@@ -23,8 +23,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
-	// Thanoses returns a ThanosInformer.
-	Thanoses() ThanosInformer
+	// Services returns a ServiceInformer.
+	Services() ServiceInformer
 }
 
 type version struct {
@@ -38,7 +38,7 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// Thanoses returns a ThanosInformer.
-func (v *version) Thanoses() ThanosInformer {
-	return &thanosInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+// Services returns a ServiceInformer.
+func (v *version) Services() ServiceInformer {
+	return &serviceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

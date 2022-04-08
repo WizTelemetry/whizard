@@ -29,8 +29,8 @@ const (
 
 type Resource func() (runtime.Object, Operation, error)
 
-type ThanosBaseReconciler struct {
-	Thanos *v1alpha1.Thanos
+type ServiceBaseReconciler struct {
+	Service *v1alpha1.Service
 
 	Context  context.Context
 	Client   client.Client
@@ -39,26 +39,26 @@ type ThanosBaseReconciler struct {
 	Recorder record.EventRecorder
 }
 
-func (r *ThanosBaseReconciler) BaseLabels() map[string]string {
+func (r *ServiceBaseReconciler) BaseLabels() map[string]string {
 	return map[string]string{
-		"app.kubernetes.io/managed-by": r.Thanos.Name,
-		"app.kubernetes.io/part-of":    "thanos",
+		"app.kubernetes.io/managed-by": r.Service.Name,
+		"app.kubernetes.io/part-of":    "service",
 	}
 }
 
-func (r *ThanosBaseReconciler) OwnerReferences() []metav1.OwnerReference {
+func (r *ServiceBaseReconciler) OwnerReferences() []metav1.OwnerReference {
 	return []metav1.OwnerReference{
 		{
-			APIVersion: r.Thanos.APIVersion,
-			Kind:       r.Thanos.Kind,
-			Name:       r.Thanos.Name,
-			UID:        r.Thanos.UID,
+			APIVersion: r.Service.APIVersion,
+			Kind:       r.Service.Kind,
+			Name:       r.Service.Name,
+			UID:        r.Service.UID,
 			Controller: pointer.BoolPtr(true),
 		},
 	}
 }
 
-func (r *ThanosBaseReconciler) ReconcileResources(resources []Resource) error {
+func (r *ServiceBaseReconciler) ReconcileResources(resources []Resource) error {
 	for _, resource := range resources {
 		obj, operation, err := resource()
 		if err != nil {
