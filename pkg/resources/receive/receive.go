@@ -67,6 +67,11 @@ func (r *Receive) HttpAddr() string {
 	return fmt.Sprintf("http://%s:10902", router.name("operated"))
 }
 
+func (r *Receive) RemoteWriteAddr() string {
+	router := receiveRouter{Receive: *r, Router: r.receive.Router}
+	return fmt.Sprintf("http://%s:19291", router.name("operated"))
+}
+
 func (r *Receive) GrpcAddrs() []string {
 	var svcs []string
 	if r.receive != nil {

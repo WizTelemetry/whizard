@@ -17,7 +17,19 @@ import (
 	"github.com/prometheus/prometheus/model/labels"
 )
 
-var apiPrefix = "/namespaces/:namespace/agents/:name"
+const (
+	apiPrefix = "/namespaces/:namespace/agents/:name"
+
+	epQuery       = "/query"
+	epQueryRange  = "/query_range"
+	epSeries      = "/series"
+	epLabels      = "/labels"
+	epLabelValues = "/label/*path"
+	epTargetsMeta = "/targets/meta"
+
+	epWrite = "/write"
+)
+
 var apiPrefixRegexp = regexp.MustCompile("/namespaces/[^/]+/agents/[^/]+")
 
 type Options struct {
@@ -59,15 +71,16 @@ func NewHandler(logger log.Logger, o *Options) *Handler {
 		getAgentFunc:     o.GetAgentFunc,
 	}
 
-	h.router.Get("/query", h.wrap(h.query))
-	h.router.Post("/query", h.wrap(h.query))
-	h.router.Get("/query_range", h.wrap(h.query))
-	h.router.Post("/query_range", h.wrap(h.query))
-	h.router.Post("/write", h.wrap(h.remoteWrite))
-	h.router.Get("/series", h.wrap(h.matcher(matchersParam)))
-	h.router.Get("/labels", h.wrap(h.matcher(matchersParam)))
-	h.router.Get("/label/*path", h.wrap(h.matcher(matchersParam)))
-	h.router.Get("/targets/metadata", h.wrap(h.matcher(targetMatchersParam)))
+	h.router.Get(epQuery, h.wrap(h.query))
+	h.router.Post(epQuery, h.wrap(h.query))
+	h.router.Get(epQueryRange, h.wrap(h.query))
+	h.router.Post(epQueryRange, h.wrap(h.query))
+	h.router.Get(epSeries, h.wrap(h.matcher(matchersParam)))
+	h.router.Get(epLabels, h.wrap(h.matcher(matchersParam)))
+	h.router.Get(epLabelValues, h.wrap(h.matcher(matchersParam)))
+	h.router.Get(epTargetsMeta, h.wrap(h.matcher(targetMatchersParam)))
+
+	h.router.Post(epWrite, h.wrap(h.remoteWrite))
 
 	return h
 }
@@ -229,6 +242,8 @@ func (h *Handler) remoteWrite(w http.ResponseWriter, req *http.Request) {
 	}
 
 	req.Header.Set(h.options.TenantHeader, tenant)
+
+	req.URL.Path = strings.TrimSuffix(req.URL.Path, epWrite) + "/receive"
 
 	h.remoteWriteProxy.ServeHTTP(w, req)
 }

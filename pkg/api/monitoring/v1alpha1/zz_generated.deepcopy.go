@@ -169,11 +169,6 @@ func (in *Compact) DeepCopyInto(out *Compact) {
 		*out = new(Retention)
 		**out = **in
 	}
-	if in.ObjectStorageConfig != nil {
-		in, out := &in.ObjectStorageConfig, &out.ObjectStorageConfig
-		*out = new(v1.SecretKeySelector)
-		(*in).DeepCopyInto(*out)
-	}
 	if in.DataVolume != nil {
 		in, out := &in.DataVolume, &out.DataVolume
 		*out = new(KubernetesVolume)
@@ -315,6 +310,11 @@ func (in *Query) DeepCopyInto(out *Query) {
 			(*out)[key] = val
 		}
 	}
+	if in.ReplicaLabelNames != nil {
+		in, out := &in.ReplicaLabelNames, &out.ReplicaLabelNames
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	in.Envoy.DeepCopyInto(&out.Envoy)
 }
 
@@ -409,11 +409,6 @@ func (in *ReceiveIngestor) DeepCopyInto(out *ReceiveIngestor) {
 		in, out := &in.Replicas, &out.Replicas
 		*out = new(int32)
 		**out = **in
-	}
-	if in.ObjectStorageConfig != nil {
-		in, out := &in.ObjectStorageConfig, &out.ObjectStorageConfig
-		*out = new(v1.SecretKeySelector)
-		(*in).DeepCopyInto(*out)
 	}
 	if in.DataVolume != nil {
 		in, out := &in.DataVolume, &out.DataVolume
@@ -620,11 +615,6 @@ func (in *StoreGateway) DeepCopyInto(out *StoreGateway) {
 		in, out := &in.Replicas, &out.Replicas
 		*out = new(int32)
 		**out = **in
-	}
-	if in.ObjectStorageConfig != nil {
-		in, out := &in.ObjectStorageConfig, &out.ObjectStorageConfig
-		*out = new(v1.SecretKeySelector)
-		(*in).DeepCopyInto(*out)
 	}
 	if in.DataVolume != nil {
 		in, out := &in.DataVolume, &out.DataVolume

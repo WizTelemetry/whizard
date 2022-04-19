@@ -112,6 +112,9 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 		queryContainer.Args = append(queryContainer.Args, "--log.format="+q.query.LogFormat)
 	}
 	queryContainer.Args = append(queryContainer.Args, "--store.sd-files="+filepath.Join(configDir, storesFile))
+	for _, ln := range q.query.ReplicaLabelNames {
+		queryContainer.Args = append(queryContainer.Args, "--query.replica-label="+ln)
+	}
 
 	var envoyContainer = corev1.Container{
 		Name:  "proxy",

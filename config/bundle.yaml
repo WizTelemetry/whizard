@@ -1294,21 +1294,6 @@ spec:
                           type: string
                         description: Define which Nodes the Pods are scheduled on.
                         type: object
-                      objectStorageConfig:
-                        description: ObjectStorageConfig allows specifying a key of a Secret containing object store configuration
-                        properties:
-                          key:
-                            description: The key of the secret to select from.  Must be a valid secret key.
-                            type: string
-                          name:
-                            description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
-                            type: string
-                          optional:
-                            description: Specify whether the Secret or its key must be defined
-                            type: boolean
-                        required:
-                        - key
-                        type: object
                       replicas:
                         description: Number of replicas for a thanos component
                         format: int32
@@ -1905,6 +1890,11 @@ spec:
                           type: string
                         description: Define which Nodes the Pods are scheduled on.
                         type: object
+                      replicaLabelNames:
+                        description: Labels to treat as a replica indicator along which data is deduplicated.
+                        items:
+                          type: string
+                        type: array
                       replicas:
                         description: Number of replicas for a thanos component
                         format: int32
@@ -2654,21 +2644,6 @@ spec:
                               additionalProperties:
                                 type: string
                               description: Define which Nodes the Pods are scheduled on.
-                              type: object
-                            objectStorageConfig:
-                              description: ObjectStorageConfig allows specifying a key of a Secret containing object store configuration
-                              properties:
-                                key:
-                                  description: The key of the secret to select from.  Must be a valid secret key.
-                                  type: string
-                                name:
-                                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
-                                  type: string
-                                optional:
-                                  description: Specify whether the Secret or its key must be defined
-                                  type: boolean
-                              required:
-                              - key
                               type: object
                             replicas:
                               description: Number of replicas for a thanos component
@@ -3923,21 +3898,6 @@ spec:
                         additionalProperties:
                           type: string
                         description: Define which Nodes the Pods are scheduled on.
-                        type: object
-                      objectStorageConfig:
-                        description: ObjectStorageConfig allows specifying a key of a Secret containing object store configuration
-                        properties:
-                          key:
-                            description: The key of the secret to select from.  Must be a valid secret key.
-                            type: string
-                          name:
-                            description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
-                            type: string
-                          optional:
-                            description: Specify whether the Secret or its key must be defined
-                            type: boolean
-                        required:
-                        - key
                         type: object
                       replicas:
                         description: Number of replicas for a thanos component

@@ -125,7 +125,7 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 		container.Args = append(container.Args, "--tenant.label-name="+g.Service.Spec.TenantLabelName)
 	}
 
-	container.Args = append(container.Args, fmt.Sprintf("--agent.selector=services.%s=%s", v1alpha1.SchemeGroupVersion.Group, g.Service.Name))
+	container.Args = append(container.Args, fmt.Sprintf("--agent.selector=%s/service=%s", v1alpha1.SchemeGroupVersion.Group, g.Service.Name))
 	container.Args = append(container.Args, fmt.Sprintf("--agent.namespace=%s", g.Service.Namespace))
 
 	if thanos := g.Service.Spec.Thanos; thanos != nil {
@@ -135,7 +135,7 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 		}
 		if thanos.Receive != nil {
 			r := receive.New(g.ServiceBaseReconciler)
-			container.Args = append(container.Args, fmt.Sprintf("--remote-write.address=%s", r.HttpAddr()))
+			container.Args = append(container.Args, fmt.Sprintf("--remote-write.address=%s", r.RemoteWriteAddr()))
 		}
 	}
 

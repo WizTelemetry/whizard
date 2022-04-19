@@ -110,6 +110,8 @@ type Query struct {
 	Stores []QueryStores `json:"stores,omitempty"`
 	// Selector labels that will be exposed in info endpoint.
 	SelectorLabels map[string]string `json:"selectorLabels,omitempty"`
+	// Labels to treat as a replica indicator along which data is deduplicated.
+	ReplicaLabelNames []string `json:"replicaLabelNames,omitempty"`
 
 	// Envoy is used to config sidecar which proxies requests requiring auth to the secure stores
 	Envoy EnvoySpec `json:"envoy,omitempty"`
@@ -176,8 +178,6 @@ type ReceiveIngestor struct {
 	// LocalTsdbRetention configs how long to retain raw samples on local storage
 	LocalTsdbRetention string `json:"localTsdbRetention,omitempty"`
 
-	// ObjectStorageConfig allows specifying a key of a Secret containing object store configuration
-	ObjectStorageConfig *corev1.SecretKeySelector `json:"objectStorageConfig,omitempty"`
 	// DataVolume specifies how volume shall be used
 	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
 }
@@ -201,8 +201,6 @@ type StoreGateway struct {
 	// MaxTime specifies end of time range limit to serve
 	MaxTime string `json:"maxTime,omitempty"`
 
-	// ObjectStorageConfig allows specifying a key of a Secret containing object store configuration
-	ObjectStorageConfig *corev1.SecretKeySelector `json:"objectStorageConfig,omitempty"`
 	// DataVolume specifies how volume shall be used
 	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
 }
@@ -226,8 +224,6 @@ type Compact struct {
 	// Retention configs how long to retain samples
 	Retention *Retention `json:"retention,omitempty"`
 
-	// ObjectStorageConfig allows specifying a key of a Secret containing object store configuration
-	ObjectStorageConfig *corev1.SecretKeySelector `json:"objectStorageConfig,omitempty"`
 	// DataVolume specifies how volume shall be used
 	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
 }
