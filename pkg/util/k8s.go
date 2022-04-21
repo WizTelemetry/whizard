@@ -31,6 +31,29 @@ func CreateOrUpdateDeployment(ctx context.Context, cli client.Client, desired *a
 	})
 }
 
+func CreateOrUpdateService(ctx context.Context, cli client.Client, desired *corev1.Service) error {
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		var current = &corev1.Service{}
+		err := cli.Get(ctx, client.ObjectKeyFromObject(desired), current)
+		if err != nil {
+			if !apierrors.IsNotFound(err) {
+				return err
+			}
+			return cli.Create(ctx, desired)
+		}
+
+		// Apply immutable fields from the existing service.
+		desired.Spec.IPFamilies = current.Spec.IPFamilies
+		desired.Spec.IPFamilyPolicy = current.Spec.IPFamilyPolicy
+		desired.Spec.ClusterIP = current.Spec.ClusterIP
+		desired.Spec.ClusterIPs = current.Spec.ClusterIPs
+
+		mergeMetadata(&desired.ObjectMeta, &current.ObjectMeta)
+
+		return cli.Update(ctx, desired)
+	})
+}
+
 func CreateOrUpdateConfigMap(ctx context.Context, cli client.Client, desired *corev1.ConfigMap) error {
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		var current = &appsv1.Deployment{}
@@ -52,6 +75,29 @@ func CreateOrUpdateConfigMap(ctx context.Context, cli client.Client, desired *co
 	})
 }
 
+func CreateOrUpdateServiceAccount(ctx context.Context, cli client.Client, desired *corev1.ServiceAccount) error {
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		var current = &corev1.ServiceAccount{}
+		err := cli.Get(ctx, client.ObjectKeyFromObject(desired), current)
+		if err != nil {
+			if !apierrors.IsNotFound(err) {
+				return err
+			}
+			return cli.Create(ctx, desired)
+		}
+
+		mergeMetadata(&desired.ObjectMeta, &current.ObjectMeta)
+
+		if apiequality.Semantic.DeepEqual(current, desired) {
+			return nil
+		}
+
+		desired.Secrets = current.Secrets // ignoring secrets update
+
+		return cli.Update(ctx, desired)
+	})
+}
+
 func CreateOrUpdate(ctx context.Context, cli client.Client, desired client.Object) error {
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		var current = desired.DeepCopyObject().(client.Object)
@@ -64,6 +110,20 @@ func CreateOrUpdate(ctx context.Context, cli client.Client, desired client.Objec
 		}
 
 		return cli.Update(ctx, desired)
+	})
+}
+
+func CreateIfNotExists(ctx context.Context, cli client.Client, desired client.Object) error {
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		var current = desired.DeepCopyObject().(client.Object)
+		err := cli.Get(ctx, client.ObjectKeyFromObject(desired), current)
+		if err != nil {
+			if !apierrors.IsNotFound(err) {
+				return err
+			}
+			return cli.Create(ctx, desired)
+		}
+		return nil
 	})
 }
 

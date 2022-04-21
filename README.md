@@ -23,19 +23,13 @@ To learn more about them have a look at the [api doc](docs/api.md).
 
 ## QuickStart
 
-Install PaodinMonitoring:
+Firstly install paodin-controller-manager:
 
 ```shell
 kubectl apply -f https://raw.githubusercontent.com/kubesphere/paodin-monitoring/master/config/bundle.yaml
 ```
 
-Create a Thanos cluster:
-
-```shell
-kubectl apply -f https://raw.githubusercontent.com/kubesphere/paodin-monitoring/master/config/samples/monitoring_v1alpha1_service.yaml
-```
-
-> See [here](./docs/usage.md) to learn more usages.
+Then see [here](./docs/examples.md) to deploy your monitoring service based on your scenario.
 
 ## Roadmap
 

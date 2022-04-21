@@ -20,10 +20,34 @@ rules:
   - update
   - watch
 - apiGroups:
+  - apps
+  resources:
+  - statefulsets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - ""
   resources:
   - configmaps
   - serviceaccounts
+  - services
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
   - services
   verbs:
   - create
@@ -55,6 +79,58 @@ rules:
   - monitoring.paodin.io
   resources:
   - services/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - stores
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - stores/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - stores/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - thanosreceiveingestors
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - thanosreceiveingestors/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - thanosreceiveingestors/status
   verbs:
   - get
   - patch

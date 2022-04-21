@@ -23,10 +23,12 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
-	// Agents returns a AgentInformer.
-	Agents() AgentInformer
 	// Services returns a ServiceInformer.
 	Services() ServiceInformer
+	// Stores returns a StoreInformer.
+	Stores() StoreInformer
+	// ThanosReceiveIngestors returns a ThanosReceiveIngestorInformer.
+	ThanosReceiveIngestors() ThanosReceiveIngestorInformer
 }
 
 type version struct {
@@ -40,12 +42,17 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// Agents returns a AgentInformer.
-func (v *version) Agents() AgentInformer {
-	return &agentInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
 // Services returns a ServiceInformer.
 func (v *version) Services() ServiceInformer {
 	return &serviceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// Stores returns a StoreInformer.
+func (v *version) Stores() StoreInformer {
+	return &storeInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// ThanosReceiveIngestors returns a ThanosReceiveIngestorInformer.
+func (v *version) ThanosReceiveIngestors() ThanosReceiveIngestorInformer {
+	return &thanosReceiveIngestorInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

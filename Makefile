@@ -1,8 +1,12 @@
-
 REPO ?= kubespheredev
 TAG ?= latest
+
+CONTROLLER_MANAGER_IMG=${REPO}/paodin-controller-manager:${TAG}
+MONITORING_GATEWAY_IMG=${REPO}/paodin-monitoring-gateway:${TAG}
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
+
+GV="monitoring:v1alpha1"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -18,22 +22,6 @@ SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
 all: build
-
-##@ General
-
-# The help target prints out all targets with their descriptions organized
-# beneath their categories. The categories are represented by '##@' and the
-# target descriptions by '##'. The awk commands is responsible for reading the
-# entire set of makefiles included in this invocation, looking for lines of the
-# file as xyz: ## something, and then pretty-format the target and help. Then,
-# if there's a line with ##@ something, that gets pretty-printed as a category.
-# More info on the usage of ANSI control characters for terminal formatting:
-# https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_parameters
-# More info on the awk command:
-# http://linuxcommand.org/lc3_adv_awk.php
-
-help: ## Display this help.
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 ##@ Development
 
@@ -57,21 +45,21 @@ test: manifests generate fmt vet ## Run tests.
 
 ##@ Build
 
-build: manager gateway
+build: controller-manager monitoring-gateway
 
-manager: 
-	go build -o bin/manager cmd/manager/main.go
+controller-manager: 
+	go build -o bin/controller-manager cmd/controller-manager/controller-manager.go
 
-gateway: 
-	go build -o bin/gateway cmd/gateway/main.go
+monitoring-gateway: 
+	go build -o bin/monitoring-gateway cmd/monitoring-gateway/monitoring-gateway.go
 
-image: .manager-image .gateway-image
+docker-build: docker-build-controller-manager docker-build-monitoring-gateway
 
-.manager-image: 
-	docker build -t ${REPO}/paodin-monitoring-controller-manager:${TAG} .
+docker-build-controller-manager: 
+	docker build -t $(CONTROLLER_MANAGER_IMG) -f build/controller-manager/Dockerfile .
 
-.gateway-image:
-	docker build -t ${REPO}/paodin-monitoring-gateway:${TAG} -f cmd/gateway/Dockerfile .
+docker-build-monitoring-gateway:
+	docker build -t $(MONITORING_GATEWAY_IMG) -f build/monitoring-gateway/Dockerfile .
 
 ##@ Deployment
 
@@ -112,13 +100,14 @@ rm -rf $$TMP_DIR ;\
 endef
 
 clientset:
-	./hack/generate_client.sh monitoring:v1alpha1
+	./hack/generate_client.sh $(GV)
 
 bundle: manifests kustomize
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${REPO}/paodin-monitoring-controller-manager:${TAG}
+	cd config/manager && $(KUSTOMIZE) edit set image controller=$(CONTROLLER_MANAGER_IMG)
 	cd config/default && $(KUSTOMIZE) edit set namespace kubesphere-monitoring-system
 	$(KUSTOMIZE) build config/default > config/bundle.yaml
 
-docs/api.md: tools/docgen/docgen.go pkg/api/monitoring/v1alpha1/service_types.go
-	go run github.com/kubesphere/paodin-monitoring/tools/docgen pkg/api/monitoring/v1alpha1/service_types.go > docs/api.md
+TYPE_GOES=$(shell find pkg/api -name *_types.go | tr '\n' ' ')
+docs/api.md: tools/docgen/docgen.go $(TYPE_GOES)
+	go run github.com/kubesphere/paodin-monitoring/tools/docgen $(TYPE_GOES) > docs/api.md
 

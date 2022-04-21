@@ -4,18 +4,11 @@ metadata:
   name: service-sample
   namespace: kubesphere-monitoring-system
 spec:
-  gateway: 
-    image: junotx/paodin-monitoring-gateway:latest
+  gateway: {}
   thanos: 
-    defaultFields:
-      logLevel: info
     query:
       stores:
       # - addresses:
       #   - prometheus-operated:10901
-    receive:
-      router: 
-        replicationFactor: 2
-      ingestors:
-      - name: soft-tenants
-        replicas: 2
+    receiveRouter: 
+      replicationFactor: 2

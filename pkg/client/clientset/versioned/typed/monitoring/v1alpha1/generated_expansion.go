@@ -17,6 +17,8 @@ limitations under the License.
 
 package v1alpha1
 
-type AgentExpansion interface{}
-
 type ServiceExpansion interface{}
+
+type StoreExpansion interface{}
+
+type ThanosReceiveIngestorExpansion interface{}

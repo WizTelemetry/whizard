@@ -25,8 +25,9 @@ import (
 
 type MonitoringV1alpha1Interface interface {
 	RESTClient() rest.Interface
-	AgentsGetter
 	ServicesGetter
+	StoresGetter
+	ThanosReceiveIngestorsGetter
 }
 
 // MonitoringV1alpha1Client is used to interact with features provided by the monitoring group.
@@ -34,12 +35,16 @@ type MonitoringV1alpha1Client struct {
 	restClient rest.Interface
 }
 
-func (c *MonitoringV1alpha1Client) Agents(namespace string) AgentInterface {
-	return newAgents(c, namespace)
-}
-
 func (c *MonitoringV1alpha1Client) Services(namespace string) ServiceInterface {
 	return newServices(c, namespace)
+}
+
+func (c *MonitoringV1alpha1Client) Stores(namespace string) StoreInterface {
+	return newStores(c, namespace)
+}
+
+func (c *MonitoringV1alpha1Client) ThanosReceiveIngestors(namespace string) ThanosReceiveIngestorInterface {
+	return newThanosReceiveIngestors(c, namespace)
 }
 
 // NewForConfig creates a new MonitoringV1alpha1Client for the given config.

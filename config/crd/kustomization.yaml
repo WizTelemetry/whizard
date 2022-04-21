@@ -3,7 +3,8 @@
 # It should be run by config/default
 resources:
 - bases/monitoring.paodin.io_services.yaml
-- bases/monitoring.paodin.io_agents.yaml
+- bases/monitoring.paodin.io_stores.yaml
+- bases/monitoring.paodin.io_thanosreceiveingestors.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:
