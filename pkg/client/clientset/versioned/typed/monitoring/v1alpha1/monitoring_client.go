@@ -18,6 +18,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"net/http"
+
 	v1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/paodin/pkg/client/clientset/versioned/scheme"
 	rest "k8s.io/client-go/rest"
@@ -25,14 +27,25 @@ import (
 
 type MonitoringV1alpha1Interface interface {
 	RESTClient() rest.Interface
+	AlertingRulesGetter
+	RuleGroupsGetter
 	ServicesGetter
 	StoresGetter
 	ThanosReceiveIngestorsGetter
+	ThanosRulersGetter
 }
 
 // MonitoringV1alpha1Client is used to interact with features provided by the monitoring group.
 type MonitoringV1alpha1Client struct {
 	restClient rest.Interface
+}
+
+func (c *MonitoringV1alpha1Client) AlertingRules(namespace string) AlertingRuleInterface {
+	return newAlertingRules(c, namespace)
+}
+
+func (c *MonitoringV1alpha1Client) RuleGroups(namespace string) RuleGroupInterface {
+	return newRuleGroups(c, namespace)
 }
 
 func (c *MonitoringV1alpha1Client) Services(namespace string) ServiceInterface {
@@ -47,13 +60,33 @@ func (c *MonitoringV1alpha1Client) ThanosReceiveIngestors(namespace string) Than
 	return newThanosReceiveIngestors(c, namespace)
 }
 
+func (c *MonitoringV1alpha1Client) ThanosRulers(namespace string) ThanosRulerInterface {
+	return newThanosRulers(c, namespace)
+}
+
 // NewForConfig creates a new MonitoringV1alpha1Client for the given config.
+// NewForConfig is equivalent to NewForConfigAndClient(c, httpClient),
+// where httpClient was generated with rest.HTTPClientFor(c).
 func NewForConfig(c *rest.Config) (*MonitoringV1alpha1Client, error) {
 	config := *c
 	if err := setConfigDefaults(&config); err != nil {
 		return nil, err
 	}
-	client, err := rest.RESTClientFor(&config)
+	httpClient, err := rest.HTTPClientFor(&config)
+	if err != nil {
+		return nil, err
+	}
+	return NewForConfigAndClient(&config, httpClient)
+}
+
+// NewForConfigAndClient creates a new MonitoringV1alpha1Client for the given config and http client.
+// Note the http client provided takes precedence over the configured transport values.
+func NewForConfigAndClient(c *rest.Config, h *http.Client) (*MonitoringV1alpha1Client, error) {
+	config := *c
+	if err := setConfigDefaults(&config); err != nil {
+		return nil, err
+	}
+	client, err := rest.RESTClientForConfigAndClient(&config, h)
 	if err != nil {
 		return nil, err
 	}

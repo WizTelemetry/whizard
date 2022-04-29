@@ -27,6 +27,14 @@ type FakeMonitoringV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakeMonitoringV1alpha1) AlertingRules(namespace string) v1alpha1.AlertingRuleInterface {
+	return &FakeAlertingRules{c, namespace}
+}
+
+func (c *FakeMonitoringV1alpha1) RuleGroups(namespace string) v1alpha1.RuleGroupInterface {
+	return &FakeRuleGroups{c, namespace}
+}
+
 func (c *FakeMonitoringV1alpha1) Services(namespace string) v1alpha1.ServiceInterface {
 	return &FakeServices{c, namespace}
 }
@@ -37,6 +45,10 @@ func (c *FakeMonitoringV1alpha1) Stores(namespace string) v1alpha1.StoreInterfac
 
 func (c *FakeMonitoringV1alpha1) ThanosReceiveIngestors(namespace string) v1alpha1.ThanosReceiveIngestorInterface {
 	return &FakeThanosReceiveIngestors{c, namespace}
+}
+
+func (c *FakeMonitoringV1alpha1) ThanosRulers(namespace string) v1alpha1.ThanosRulerInterface {
+	return &FakeThanosRulers{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

@@ -1,15 +1,13 @@
 package compact
 
 import (
-	"strings"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
 )
 
-var (
+const (
 	storageDir = "/thanos"
 	secretsDir = "/etc/thanos/secrets"
 )
@@ -28,16 +26,13 @@ func New(reconciler resources.StoreBaseReconciler) *Compact {
 
 func (r *Compact) labels() map[string]string {
 	labels := r.BaseLabels()
-	labels["app.kubernetes.io/name"] = "thanos-compact"
+	labels[resources.LabelNameAppName] = resources.AppNameThanosCompact
+	labels[resources.LabelNameAppManagedBy] = r.Store.Name
 	return labels
 }
 
 func (r *Compact) name(nameSuffix ...string) string {
-	name := "thanos-compact-" + r.Store.Name
-	if len(nameSuffix) > 0 {
-		name += "-" + strings.Join(nameSuffix, "-")
-	}
-	return name
+	return resources.QualifiedName(resources.AppNameThanosCompact, r.Store.Name, nameSuffix...)
 }
 
 func (r *Compact) meta(name string) metav1.ObjectMeta {

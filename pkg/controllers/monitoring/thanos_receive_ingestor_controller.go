@@ -18,6 +18,7 @@ package monitoring
 
 import (
 	"context"
+	"fmt"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -35,6 +36,7 @@ import (
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/options"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/receive_ingestor"
+	"github.com/prometheus/common/model"
 )
 
 // ThanosReceiveIngestorReconciler reconciles a ThanosReceiveIngestor object
@@ -133,6 +135,13 @@ func CreateThanosReceiveIngestorDefaulterValidator(opt options.Options) ThanosRe
 	var replicas int32 = 1
 
 	return func(ingestor *monitoringv1alpha1.ThanosReceiveIngestor) (*monitoringv1alpha1.ThanosReceiveIngestor, error) {
+
+		if ingestor.Spec.LocalTsdbRetention != "" {
+			_, err := model.ParseDuration(ingestor.Spec.LocalTsdbRetention)
+			if err != nil {
+				return nil, fmt.Errorf("invalid localTsdbRetention: %v", err)
+			}
+		}
 
 		if ingestor.Spec.Image == "" {
 			ingestor.Spec.Image = opt.ThanosImage

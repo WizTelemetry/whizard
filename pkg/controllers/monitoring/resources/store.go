@@ -15,8 +15,8 @@ type StoreBaseReconciler struct {
 
 func (r *StoreBaseReconciler) BaseLabels() map[string]string {
 	return map[string]string{
-		"app.kubernetes.io/managed-by": r.Store.Name,
-		"app.kubernetes.io/part-of":    "store",
+		LabelNameAppManagedBy: r.Store.Name,
+		LabelNameAppPartOf:    "store",
 	}
 }
 

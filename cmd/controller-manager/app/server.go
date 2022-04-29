@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	promv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/spf13/cobra"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -154,6 +155,8 @@ func run(s *options.PaodinControllerManagerOptions, ctx context.Context) error {
 	}
 	apis.AddToScheme(mgr.GetScheme())
 	_ = apiextensions.AddToScheme(mgr.GetScheme())
+
+	promv1.AddToScheme(mgr.GetScheme())
 
 	// register common meta types into schemas.
 	metav1.AddToGroupVersion(mgr.GetScheme(), metav1.SchemeGroupVersion)

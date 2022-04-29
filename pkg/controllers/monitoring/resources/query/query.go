@@ -5,7 +5,6 @@ import (
 	"net"
 	"path/filepath"
 	"strconv"
-	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -13,7 +12,7 @@ import (
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
 )
 
-var (
+const (
 	configDir  = "/etc/thanos"
 	storesFile = "store-sd.yaml"
 )
@@ -81,16 +80,13 @@ func (q *Query) stores() (*Stores, error) {
 
 func (q *Query) labels() map[string]string {
 	labels := q.BaseLabels()
-	labels["app.kubernetes.io/name"] = "thanos-query"
+	labels[resources.LabelNameAppName] = resources.AppNameThanosQuery
+	labels[resources.LabelNameAppManagedBy] = q.Service.Name
 	return labels
 }
 
 func (q *Query) name(nameSuffix ...string) string {
-	name := "thanos-query-" + q.Service.Name
-	if len(nameSuffix) > 0 {
-		name += "-" + strings.Join(nameSuffix, "-")
-	}
-	return name
+	return resources.QualifiedName(resources.AppNameThanosQuery, q.Service.Name, nameSuffix...)
 }
 
 func (q *Query) meta(name string) metav1.ObjectMeta {
@@ -104,7 +100,8 @@ func (q *Query) meta(name string) metav1.ObjectMeta {
 }
 
 func (q *Query) HttpAddr() string {
-	return fmt.Sprintf("http://%s:10902", q.name("operated"))
+	return fmt.Sprintf("http://%s.%s.svc:%d",
+		q.name(resources.ServiceNameSuffixOperated), q.Service.Namespace, resources.ThanosHTTPPort)
 }
 
 func (q *Query) Reconcile() error {

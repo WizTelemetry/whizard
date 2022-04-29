@@ -8,7 +8,7 @@ import (
 )
 
 func (r *Compact) service() (runtime.Object, resources.Operation, error) {
-	var s = &corev1.Service{ObjectMeta: r.meta(r.name("operated"))}
+	var s = &corev1.Service{ObjectMeta: r.meta(r.name(resources.ServiceNameSuffixOperated))}
 
 	if r.compact == nil || r.Store.Spec.ObjectStorageConfig == nil {
 		return s, resources.OperationDelete, nil
@@ -20,8 +20,8 @@ func (r *Compact) service() (runtime.Object, resources.Operation, error) {
 		Ports: []corev1.ServicePort{
 			{
 				Protocol: corev1.ProtocolTCP,
-				Name:     "http",
-				Port:     10902,
+				Name:     resources.ThanosHTTPPortName,
+				Port:     resources.ThanosHTTPPort,
 			},
 		},
 	}

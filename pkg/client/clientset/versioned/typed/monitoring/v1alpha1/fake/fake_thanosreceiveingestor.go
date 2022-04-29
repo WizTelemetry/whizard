@@ -116,7 +116,7 @@ func (c *FakeThanosReceiveIngestors) UpdateStatus(ctx context.Context, thanosRec
 // Delete takes name of the thanosReceiveIngestor and deletes it. Returns an error if one occurs.
 func (c *FakeThanosReceiveIngestors) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(thanosreceiveingestorsResource, c.ns, name), &v1alpha1.ThanosReceiveIngestor{})
+		Invokes(testing.NewDeleteActionWithOptions(thanosreceiveingestorsResource, c.ns, name, opts), &v1alpha1.ThanosReceiveIngestor{})
 
 	return err
 }

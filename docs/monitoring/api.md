@@ -7,6 +7,9 @@ This Document documents the types introduced by the paodin to be consumed by use
 > Note this document is generated from code comments. When contributing a change to this document please do so by changing the code comments.
 
 ## Table of Contents
+* [AlertingRule](#alertingrule)
+* [AlertingRuleList](#alertingrulelist)
+* [AlertingRuleSpec](#alertingrulespec)
 * [EnvoySpec](#envoyspec)
 * [Gateway](#gateway)
 * [KubernetesVolume](#kubernetesvolume)
@@ -14,6 +17,9 @@ This Document documents the types introduced by the paodin to be consumed by use
 * [Query](#query)
 * [QueryStores](#querystores)
 * [Retention](#retention)
+* [RuleGroup](#rulegroup)
+* [RuleGroupList](#rulegrouplist)
+* [RuleGroupSpec](#rulegroupspec)
 * [Service](#service)
 * [ServiceList](#servicelist)
 * [ServiceSpec](#servicespec)
@@ -26,8 +32,47 @@ This Document documents the types introduced by the paodin to be consumed by use
 * [ThanosReceiveIngestorList](#thanosreceiveingestorlist)
 * [ThanosReceiveIngestorSpec](#thanosreceiveingestorspec)
 * [ThanosReceiveRouter](#thanosreceiverouter)
+* [ThanosRuler](#thanosruler)
+* [ThanosRulerList](#thanosrulerlist)
+* [ThanosRulerSpec](#thanosrulerspec)
 * [ThanosStore](#thanosstore)
 * [ThanosStoreGateway](#thanosstoregateway)
+
+## AlertingRule
+
+AlertingRule is the Schema for the AlertingRule API
+
+| Field | Description | Scheme | Required |
+| ----- | ----------- | ------ | -------- |
+| metadata |  | [metav1.ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#objectmeta-v1-meta) | false |
+| spec |  | [AlertingRuleSpec](#alertingrulespec) | false |
+| status |  | [AlertingRuleStatus](#alertingrulestatus) | false |
+
+[Back to TOC](#table-of-contents)
+
+## AlertingRuleList
+
+AlertingRuleList contains a list of AlertingRule
+
+| Field | Description | Scheme | Required |
+| ----- | ----------- | ------ | -------- |
+| metadata |  | [metav1.ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#listmeta-v1-meta) | false |
+| items |  | [][AlertingRule](#alertingrule) | true |
+
+[Back to TOC](#table-of-contents)
+
+## AlertingRuleSpec
+
+AlertingRuleSpec defines the desired state of a AlertingRule
+
+| Field | Description | Scheme | Required |
+| ----- | ----------- | ------ | -------- |
+| expr |  | intstr.IntOrString | true |
+| for |  | string | false |
+| labels |  | map[string]string | false |
+| annotations |  | map[string]string | false |
+
+[Back to TOC](#table-of-contents)
 
 ## EnvoySpec
 
@@ -122,6 +167,40 @@ Retention defines the config for retaining samples
 | retentionRaw | RetentionRaw specifies how long to retain raw samples in bucket | string | false |
 | retention5m | Retention5m specifies how long to retain samples of 5m resolution in bucket | string | false |
 | retention1h | Retention1h specifies how long to retain samples of 1h resolution in bucket | string | false |
+
+[Back to TOC](#table-of-contents)
+
+## RuleGroup
+
+RuleGroup is the Schema for the RuleGroup API
+
+| Field | Description | Scheme | Required |
+| ----- | ----------- | ------ | -------- |
+| metadata |  | [metav1.ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#objectmeta-v1-meta) | false |
+| spec |  | [RuleGroupSpec](#rulegroupspec) | false |
+| status |  | [RuleGroupStatus](#rulegroupstatus) | false |
+
+[Back to TOC](#table-of-contents)
+
+## RuleGroupList
+
+RuleGroupList contains a list of RuleGroup
+
+| Field | Description | Scheme | Required |
+| ----- | ----------- | ------ | -------- |
+| metadata |  | [metav1.ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#listmeta-v1-meta) | false |
+| items |  | [][RuleGroup](#rulegroup) | true |
+
+[Back to TOC](#table-of-contents)
+
+## RuleGroupSpec
+
+RuleGroupSpec defines the desired state of a RuleGroup
+
+| Field | Description | Scheme | Required |
+| ----- | ----------- | ------ | -------- |
+| interval |  | string | false |
+| partial_response_strategy |  | string | false |
 
 [Back to TOC](#table-of-contents)
 
@@ -286,6 +365,53 @@ ThanosReceiveIngestorSpec defines the desired state of a ThanosReceiveIngestor
 | logLevel | Log filtering level. Possible options: error, warn, info, debug | string | false |
 | logFormat | Log format to use. Possible options: logfmt or json | string | false |
 | replicationFactor | How many times to replicate incoming write requests | *uint64 | false |
+
+[Back to TOC](#table-of-contents)
+
+## ThanosRuler
+
+ThanosRuler is the Schema for the ThanosRuler API
+
+| Field | Description | Scheme | Required |
+| ----- | ----------- | ------ | -------- |
+| metadata |  | [metav1.ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#objectmeta-v1-meta) | false |
+| spec |  | [ThanosRulerSpec](#thanosrulerspec) | false |
+| status |  | [ThanosRulerStatus](#thanosrulerstatus) | false |
+
+[Back to TOC](#table-of-contents)
+
+## ThanosRulerList
+
+ThanosRulerList contains a list of ThanosRuler
+
+| Field | Description | Scheme | Required |
+| ----- | ----------- | ------ | -------- |
+| metadata |  | [metav1.ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#listmeta-v1-meta) | false |
+| items |  | [][ThanosRuler](#thanosruler) | true |
+
+[Back to TOC](#table-of-contents)
+
+## ThanosRulerSpec
+
+ThanosRulerSpec defines the desired state of a ThanosRuler
+
+| Field | Description | Scheme | Required |
+| ----- | ----------- | ------ | -------- |
+| affinity | If specified, the pod's scheduling constraints. | *corev1.Affinity | false |
+| nodeSelector | Define which Nodes the Pods are scheduled on. | map[string]string | false |
+| tolerations | If specified, the pod's tolerations. | []corev1.Toleration | false |
+| resources | Define resources requests and limits for main container. | [corev1.ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#resourcerequirements-v1-core) | false |
+| replicas | Number of replicas for a thanos component. | *int32 | false |
+| image | Image is the thanos image with tag/version | string | false |
+| logLevel | Log filtering level. Possible options: error, warn, info, debug | string | false |
+| logFormat | Log format to use. Possible options: logfmt or json | string | false |
+| alertingRuleSelector | AlertingRules to be selected for alerting. | *[metav1.LabelSelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#labelselector-v1-meta) | false |
+| alertingRuleNamespaceSelector | Namespaces to be selected for AlertingRules discovery. If nil, only check own namespace. | *[metav1.LabelSelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#labelselector-v1-meta) | false |
+| ruleSelector | A label selector to select which PrometheusRules to mount for alerting and recording. | *[metav1.LabelSelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#labelselector-v1-meta) | false |
+| ruleNamespaceSelector | Namespaces to be selected for Rules discovery. If unspecified, only the same namespace as the ThanosRuler object is in is used. | *[metav1.LabelSelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#labelselector-v1-meta) | false |
+| alertmanagersUrl | Define URLs to send alerts to Alertmanager.  For Thanos v0.10.0 and higher, AlertManagersConfig should be used instead.  Note: this field will be ignored if AlertManagersConfig is specified. Maps to the `alertmanagers.url` arg. | []string | false |
+| alertmanagersConfig | Define configuration for connecting to alertmanager.  Only available with thanos v0.10.0 and higher.  Maps to the `alertmanagers.config` arg. | *corev1.SecretKeySelector | false |
+| dataVolume | DataVolume specifies how volume shall be used | *[KubernetesVolume](#kubernetesvolume) | false |
 
 [Back to TOC](#table-of-contents)
 

@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/intstr"
+
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
 )
 
 func (r *Compact) statefulSet() (runtime.Object, resources.Operation, error) {
@@ -43,33 +42,13 @@ func (r *Compact) statefulSet() (runtime.Object, resources.Operation, error) {
 		Resources: r.compact.Resources,
 		Ports: []corev1.ContainerPort{
 			{
-				Name:          "http",
-				ContainerPort: 10902,
+				Name:          resources.ThanosHTTPPortName,
+				ContainerPort: resources.ThanosHTTPPort,
 				Protocol:      corev1.ProtocolTCP,
 			},
 		},
-		LivenessProbe: &corev1.Probe{
-			FailureThreshold: 4,
-			PeriodSeconds:    30,
-			ProbeHandler: corev1.ProbeHandler{
-				HTTPGet: &corev1.HTTPGetAction{
-					Scheme: "HTTP",
-					Path:   "/-/healthy",
-					Port:   intstr.FromString("http"),
-				},
-			},
-		},
-		ReadinessProbe: &corev1.Probe{
-			FailureThreshold: 20,
-			PeriodSeconds:    5,
-			ProbeHandler: corev1.ProbeHandler{
-				HTTPGet: &corev1.HTTPGetAction{
-					Scheme: "HTTP",
-					Path:   "/-/ready",
-					Port:   intstr.FromString("http"),
-				},
-			},
-		},
+		LivenessProbe:  resources.ThanosDefaultLivenessProbe(),
+		ReadinessProbe: resources.ThanosDefaultReadinessProbe(),
 	}
 
 	var tsdbVolume = &corev1.Volume{
@@ -129,7 +108,7 @@ func (r *Compact) statefulSet() (runtime.Object, resources.Operation, error) {
 	if r.compact.LogFormat != "" {
 		container.Args = append(container.Args, "--log.format="+r.compact.LogFormat)
 	}
-	container.Args = append(container.Args, fmt.Sprintf(`--data-dir="%s"`, storageDir))
+	container.Args = append(container.Args, fmt.Sprintf("--data-dir=%s", storageDir))
 	if r.compact.DownsamplingDisable != nil {
 		container.Args = append(container.Args, fmt.Sprintf("--downsampling.disable=%v", r.compact.DownsamplingDisable))
 	}

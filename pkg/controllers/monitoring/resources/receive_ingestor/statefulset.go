@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/prometheus/common/model"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
 
 	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
@@ -24,7 +24,7 @@ func (r *ReceiveIngestor) statefulSet() (runtime.Object, resources.Operation, er
 		Selector: &metav1.LabelSelector{
 			MatchLabels: r.labels(),
 		},
-		ServiceName: r.name("operated"),
+		ServiceName: r.name(resources.ServiceNameSuffixOperated),
 		Template: corev1.PodTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
 				Labels: r.labels(),
@@ -44,46 +44,26 @@ func (r *ReceiveIngestor) statefulSet() (runtime.Object, resources.Operation, er
 		Resources: r.ingestor.Spec.Resources,
 		Ports: []corev1.ContainerPort{
 			{
-				Name:          "grpc",
-				ContainerPort: 10901,
 				Protocol:      corev1.ProtocolTCP,
+				Name:          resources.ThanosGRPCPortName,
+				ContainerPort: resources.ThanosGRPCPort,
 			},
 			{
-				Name:          "http",
-				ContainerPort: 10902,
 				Protocol:      corev1.ProtocolTCP,
+				Name:          resources.ThanosHTTPPortName,
+				ContainerPort: resources.ThanosHTTPPort,
 			},
 			{
-				Name:          "remote-write",
 				Protocol:      corev1.ProtocolTCP,
-				ContainerPort: 19291,
+				Name:          resources.ThanosRemoteWritePortName,
+				ContainerPort: resources.ThanosRemoteWritePort,
 			},
 		},
-		LivenessProbe: &corev1.Probe{
-			FailureThreshold: 4,
-			PeriodSeconds:    30,
-			ProbeHandler: corev1.ProbeHandler{
-				HTTPGet: &corev1.HTTPGetAction{
-					Scheme: "HTTP",
-					Path:   "/-/healthy",
-					Port:   intstr.FromString("http"),
-				},
-			},
-		},
-		ReadinessProbe: &corev1.Probe{
-			FailureThreshold: 20,
-			PeriodSeconds:    5,
-			ProbeHandler: corev1.ProbeHandler{
-				HTTPGet: &corev1.HTTPGetAction{
-					Scheme: "HTTP",
-					Path:   "/-/ready",
-					Port:   intstr.FromString("http"),
-				},
-			},
-		},
+		LivenessProbe:  resources.ThanosDefaultLivenessProbe(),
+		ReadinessProbe: resources.ThanosDefaultReadinessProbe(),
 		Env: []corev1.EnvVar{
 			{
-				Name: "NAME",
+				Name: "POD_NAME",
 				ValueFrom: &corev1.EnvVarSource{
 					FieldRef: &corev1.ObjectFieldSelector{
 						FieldPath: "metadata.name",
@@ -165,16 +145,33 @@ func (r *ReceiveIngestor) statefulSet() (runtime.Object, resources.Operation, er
 	if r.ingestor.Spec.LogFormat != "" {
 		container.Args = append(container.Args, "--log.format="+r.ingestor.Spec.LogFormat)
 	}
-	container.Args = append(container.Args, `--label=receive_replica="$(NAME)"`)
-	container.Args = append(container.Args, fmt.Sprintf(`--tsdb.path="%s"`, storageDir))
-	container.Args = append(container.Args, fmt.Sprintf("--receive.local-endpoint=$(NAME).%s:%d", r.name("operated"), 10901))
+	container.Args = append(container.Args, `--label=thanos_receive_replica="$(POD_NAME)"`)
+	container.Args = append(container.Args, fmt.Sprintf("--tsdb.path=%s", storageDir))
+	container.Args = append(container.Args, fmt.Sprintf("--receive.local-endpoint=$(POD_NAME).%s:%d", r.name(resources.ServiceNameSuffixOperated), resources.ThanosGRPCPort))
 	if r.ingestor.Spec.LocalTsdbRetention != "" {
 		container.Args = append(container.Args, "--tsdb.retention="+r.ingestor.Spec.LocalTsdbRetention)
 	}
 	if osConfig != nil && osConfig.Name != "" {
 		container.Args = append(container.Args, "--objstore.config-file="+filepath.Join(secretsDir, osConfig.Name, osConfig.Key))
 	} else {
-		// TODO enable block compact when using only local storage
+		// set tsdb.max-block-duration by localTsdbRetention to enable block compact when using only local storage
+		maxBlockDuration, err := model.ParseDuration("31d")
+		if err != nil {
+			return nil, resources.OperationCreateOrUpdate, err
+		}
+		retention := r.ingestor.Spec.LocalTsdbRetention
+		if retention == "" {
+			retention = "15d"
+		}
+		retentionDuration, err := model.ParseDuration(retention)
+		if err != nil {
+			return nil, resources.OperationCreateOrUpdate, err
+		}
+		if retentionDuration != 0 && retentionDuration/10 < maxBlockDuration {
+			maxBlockDuration = retentionDuration / 10
+		}
+
+		container.Args = append(container.Args, "--tsdb.max-block-duration="+maxBlockDuration.String())
 	}
 
 	namespacedName := monitoringv1alpha1.ServiceNamespacedName(r.ingestor)
@@ -190,7 +187,15 @@ func (r *ReceiveIngestor) statefulSet() (runtime.Object, resources.Operation, er
 				container.Args = append(container.Args, "--receive.tenant-header="+service.Spec.TenantHeader)
 			}
 			if service.Spec.TenantLabelName != "" {
-				container.Args = append(container.Args, "--receive.tenant-label-name="+service.Spec.TenantLabelName)
+				var setPseudo bool
+				if r.ingestor.Labels != nil {
+					_, setPseudo = r.ingestor.Labels[resources.LabelNamePaodinPreprocessedDataIngestor]
+				}
+				if setPseudo {
+					container.Args = append(container.Args, "--receive.tenant-label-name="+resources.PseudoTenantLabelName(service.Spec.TenantLabelName))
+				} else {
+					container.Args = append(container.Args, "--receive.tenant-label-name="+service.Spec.TenantLabelName)
+				}
 			}
 			if service.Spec.DefaultTenantId != "" {
 				container.Args = append(container.Args, "--receive.default-tenant-id="+service.Spec.DefaultTenantId)

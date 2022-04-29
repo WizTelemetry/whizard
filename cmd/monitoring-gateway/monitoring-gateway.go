@@ -35,6 +35,7 @@ var cli struct {
 }
 
 func main() {
+
 	ctx := kong.Parse(&cli)
 
 	logger := logging.NewLogger(cli.Log.Level, cli.Log.Format, "")

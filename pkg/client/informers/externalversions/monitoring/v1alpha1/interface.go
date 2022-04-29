@@ -23,12 +23,18 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// AlertingRules returns a AlertingRuleInformer.
+	AlertingRules() AlertingRuleInformer
+	// RuleGroups returns a RuleGroupInformer.
+	RuleGroups() RuleGroupInformer
 	// Services returns a ServiceInformer.
 	Services() ServiceInformer
 	// Stores returns a StoreInformer.
 	Stores() StoreInformer
 	// ThanosReceiveIngestors returns a ThanosReceiveIngestorInformer.
 	ThanosReceiveIngestors() ThanosReceiveIngestorInformer
+	// ThanosRulers returns a ThanosRulerInformer.
+	ThanosRulers() ThanosRulerInformer
 }
 
 type version struct {
@@ -40,6 +46,16 @@ type version struct {
 // New returns a new Interface.
 func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) Interface {
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
+}
+
+// AlertingRules returns a AlertingRuleInformer.
+func (v *version) AlertingRules() AlertingRuleInformer {
+	return &alertingRuleInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// RuleGroups returns a RuleGroupInformer.
+func (v *version) RuleGroups() RuleGroupInformer {
+	return &ruleGroupInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // Services returns a ServiceInformer.
@@ -55,4 +71,9 @@ func (v *version) Stores() StoreInformer {
 // ThanosReceiveIngestors returns a ThanosReceiveIngestorInformer.
 func (v *version) ThanosReceiveIngestors() ThanosReceiveIngestorInformer {
 	return &thanosReceiveIngestorInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// ThanosRulers returns a ThanosRulerInformer.
+func (v *version) ThanosRulers() ThanosRulerInformer {
+	return &thanosRulerInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

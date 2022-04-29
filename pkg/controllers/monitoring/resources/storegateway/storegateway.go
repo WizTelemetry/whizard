@@ -2,7 +2,6 @@ package storegateway
 
 import (
 	"fmt"
-	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -29,16 +28,13 @@ func New(reconciler resources.StoreBaseReconciler) *StoreGateway {
 
 func (r *StoreGateway) labels() map[string]string {
 	labels := r.BaseLabels()
-	labels["app.kubernetes.io/name"] = "thanos-store-gateway"
+	labels[resources.LabelNameAppName] = resources.AppNameThanosStoreGateway
+	labels[resources.LabelNameAppManagedBy] = r.Store.Name
 	return labels
 }
 
 func (r *StoreGateway) name(nameSuffix ...string) string {
-	name := "thanos-storegateway-" + r.Store.Name
-	if len(nameSuffix) > 0 {
-		name += "-" + strings.Join(nameSuffix, "-")
-	}
-	return name
+	return resources.QualifiedName(resources.AppNameThanosStoreGateway, r.Store.Name, nameSuffix...)
 }
 
 func (r *StoreGateway) meta(name string) metav1.ObjectMeta {
@@ -55,7 +51,8 @@ func (r *StoreGateway) GrpcAddrs() []string {
 	if r.store == nil {
 		return addrs
 	}
-	addrs = append(addrs, fmt.Sprintf("%s.%s:%d", r.name("operated"), r.Store.Namespace, 10901))
+	addrs = append(addrs, fmt.Sprintf("%s.%s.svc:%d",
+		r.name(resources.ServiceNameSuffixOperated), r.Store.Namespace, resources.ThanosGRPCPort))
 	return addrs
 }
 

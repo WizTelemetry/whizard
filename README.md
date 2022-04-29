@@ -10,8 +10,8 @@ Paodin is an observability platform for Kubernetes infrastructure and applicatio
 || `ThanosReceiveIngestor` (CRD) |  | Define one *Thanos Receive Ingestor* instance which lands metric data.
 || `Store` (CRD) |  | Define one Store instace, which contains *Thanos Store Gateway* and *Thanos Compact* for long term storage.
 || `ThanosRuler` (CRD) | | Define one *Thanos Ruler* instance.
-|| `AlertingRule` (CRD) | |
-|| `RuleGroup` (CRD) | |
+|| `AlertingRule` (CRD) | | Define one single alerting rule.
+|| `RuleGroup` (CRD) | | Deine one rule group.
 | *monitoring-gateway* | Auth/Proxy for monitoring service |  |
 | *monitoring-agent-proxy* | Proxy for prometheus agent
 | *paodin-apiserver* |

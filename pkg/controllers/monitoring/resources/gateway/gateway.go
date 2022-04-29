@@ -1,8 +1,6 @@
 package gateway
 
 import (
-	"strings"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
@@ -27,16 +25,12 @@ func New(reconciler resources.ServiceBaseReconciler) *Gateway {
 
 func (g *Gateway) labels() map[string]string {
 	labels := g.BaseLabels()
-	labels["app.kubernetes.io/name"] = "paodin-monitoring-gateway"
+	labels[resources.LabelNameAppName] = resources.AppNameGateway
 	return labels
 }
 
 func (g *Gateway) name(nameSuffix ...string) string {
-	name := "gateway-" + g.Service.Name
-	if len(nameSuffix) > 0 {
-		name += "-" + strings.Join(nameSuffix, "-")
-	}
-	return name
+	return resources.QualifiedName(resources.AppNameGateway, g.Service.Name, nameSuffix...)
 }
 
 func (g *Gateway) meta(name string) metav1.ObjectMeta {

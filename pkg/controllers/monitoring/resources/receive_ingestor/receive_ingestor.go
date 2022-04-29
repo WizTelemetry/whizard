@@ -2,7 +2,6 @@ package receive_ingestor
 
 import (
 	"fmt"
-	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
@@ -11,7 +10,7 @@ import (
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
 )
 
-var (
+const (
 	secretsDir = "/etc/thanos/secrets"
 	storageDir = "/thanos"
 )
@@ -30,17 +29,13 @@ func New(reconciler resources.BaseReconciler, ingestor *monitoringv1alpha1.Thano
 
 func (r *ReceiveIngestor) labels() map[string]string {
 	labels := r.BaseLabels()
-	labels["app.kubernetes.io/name"] = "thanos-receive-ingestor"
-	labels["app.kubernetes.io/managed-by"] = r.ingestor.Name
+	labels[resources.LabelNameAppName] = resources.AppNameThanosReceiveIngestor
+	labels[resources.LabelNameAppManagedBy] = r.ingestor.Name
 	return labels
 }
 
 func (r *ReceiveIngestor) name(nameSuffix ...string) string {
-	name := "thanos-receive-ingestor-" + r.ingestor.Name
-	if len(nameSuffix) > 0 {
-		name += "-" + strings.Join(nameSuffix, "-")
-	}
-	return name
+	return resources.QualifiedName(resources.AppNameThanosReceiveIngestor, r.ingestor.Name, nameSuffix...)
 }
 
 func (r *ReceiveIngestor) meta(name string) metav1.ObjectMeta {
@@ -73,7 +68,8 @@ func (r *ReceiveIngestor) GrpcAddrs() []string {
 		addrs = make([]string, *r.ingestor.Spec.Replicas)
 	}
 	for i := range addrs {
-		addrs[i] = fmt.Sprintf("%s-%d.%s.%s:10901", r.name(), i, r.name("operated"), r.ingestor.Namespace)
+		addrs[i] = fmt.Sprintf("%s-%d.%s.%s.svc:%d",
+			r.name(), i, r.name(resources.ServiceNameSuffixOperated), r.ingestor.Namespace, resources.ThanosGRPCPort)
 	}
 	return addrs
 }

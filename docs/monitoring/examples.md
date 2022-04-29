@@ -28,10 +28,14 @@ Follow the following steps to deploy components:
     name: scattered
     namespace: kubesphere-monitoring-system
   spec:
-    stores:
-    - addresses: 
-      - prometheus-operated:10901
-      - <member-prometheus-svc>:10901
+    thanos: 
+      query:
+        replicaLabelNames:
+        - prometheus_replica
+        stores:
+        - addresses: 
+          - prometheus-operated:10901
+          - <member-prometheus-svc>:10901
   EOF
   ```
 
@@ -86,7 +90,7 @@ Follow the following steps to deploy components:
       query:
         replicaLabelNames:
         - prometheus_replica
-        - receive_replica
+        - thanos_receive_replica
         - thanos_ruler_replica
       receiveRouter: 
         replicationFactor: 2
@@ -114,7 +118,7 @@ Follow the following steps to deploy components:
   EOF
   ```
 
-4. On host cluster, create an ingestor instance. The soft tenants instance with empty tenants as follows can receive requests with all tenants:
+4. On host cluster, create an ingestor instance to ingest scraped data. The soft tenants instance with empty tenants as follows can receive requests with all tenants:
 
   ```shell
   cat <<EOF | kubectl apply -f -
@@ -134,13 +138,58 @@ Follow the following steps to deploy components:
   EOF
   ```
 
-5. On all clusters, configure Prometheus to write to gateway:  
+5. On host cluster, create an ingestor instance to ingest preprocessed data from thanos ruler. 
+
+  ```shell
+  cat <<EOF | kubectl apply -f -
+  apiVersion: monitoring.paodin.io/v1alpha1
+  kind: ThanosReceiveIngestor
+  metadata:
+    name: preprocessed
+    namespace: kubesphere-monitoring-system
+    labels: 
+      monitoring.paodin.io/service: kubesphere-monitoring-system.central
+      monitoring.paodin.io/preprocessed-data-ingestor: '' 
+  spec:
+    tenants: []
+    replicas: 2
+    longTermStore: 
+      namespace: kubesphere-monitoring-system
+      name: longterm
+  EOF
+  ```
+
+> Set label `monitoring.paodin.io/preprocessed-data-ingestor` to indicate the ingestor to ingest preprocessed data.
+
+6. on host cluster, create a thanos ruler to eval recording rules and alerting rules: 
+
+```shell
+cat <<EOF | kubectl apply -f -
+apiVersion: monitoring.paodin.io/v1alpha1
+kind: ThanosRuler
+metadata:
+  labels:
+    monitoring.paodin.io/service: kubesphere-monitoring-system.central
+  name: mix
+  namespace: kubesphere-monitoring-system
+spec:
+  alertingRuleSelector: {}
+  alertmanagersUrl:
+    - 'dnssrv+http://alertmanager-operated.kubesphere-monitoring-system.svc:9093'
+  ruleSelector:
+    matchLabels:
+      role: record-rules
+      thanos-ruler: mix
+EOF
+```
+
+7. On all clusters, configure Prometheus to write to gateway:  
 
   ```shell
   kubectl -n kubesphere-monitoring-system patch prometheus k8s --patch='{"spec":{"remoteWrite":[{"url":"http://<gateway_address>:9090/<cluster_name>/api/v1/receive"}]}}' --type=merge
   ```
 
-6. On all clusters, configure ks-apiserver to read from gateway:  
+8. On all clusters, configure ks-apiserver to read from gateway:  
 
   update monitoring endpoint as follows by `kubectl -n kubesphere-system edit cm kubesphere-config`:   
 

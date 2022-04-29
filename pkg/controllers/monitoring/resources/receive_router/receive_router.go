@@ -2,7 +2,6 @@ package receive_router
 
 import (
 	"fmt"
-	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -10,7 +9,7 @@ import (
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
 )
 
-var (
+const (
 	configDir     = "/etc/thanos"
 	hashringsFile = "hashrings.json"
 )
@@ -29,16 +28,13 @@ func New(reconciler resources.ServiceBaseReconciler) *ReceiveRouter {
 
 func (r *ReceiveRouter) labels() map[string]string {
 	labels := r.BaseLabels()
-	labels["app.kubernetes.io/name"] = "thanos-receive-router"
+	labels[resources.LabelNameAppName] = resources.AppNameThanosReceiveRouter
+	labels[resources.LabelNameAppManagedBy] = r.Service.Name
 	return labels
 }
 
 func (r *ReceiveRouter) name(nameSuffix ...string) string {
-	name := "thanos-receive-router-" + r.Service.Name
-	if len(nameSuffix) > 0 {
-		name += "-" + strings.Join(nameSuffix, "-")
-	}
-	return name
+	return resources.QualifiedName(resources.AppNameThanosReceiveRouter, r.Service.Name, nameSuffix...)
 }
 
 func (r *ReceiveRouter) meta(name string) metav1.ObjectMeta {
@@ -52,11 +48,13 @@ func (r *ReceiveRouter) meta(name string) metav1.ObjectMeta {
 }
 
 func (r *ReceiveRouter) HttpAddr() string {
-	return fmt.Sprintf("http://%s:10902", r.name("operated"))
+	return fmt.Sprintf("http://%s.%s.svc:%d",
+		r.name(resources.ServiceNameSuffixOperated), r.Service.Namespace, resources.ThanosHTTPPort)
 }
 
 func (r *ReceiveRouter) RemoteWriteAddr() string {
-	return fmt.Sprintf("http://%s:19291", r.name("operated"))
+	return fmt.Sprintf("http://%s.%s.svc:%d",
+		r.name(resources.ServiceNameSuffixOperated), r.Service.Namespace, resources.ThanosRemoteWritePort)
 }
 
 func (r *ReceiveRouter) Reconcile() error {

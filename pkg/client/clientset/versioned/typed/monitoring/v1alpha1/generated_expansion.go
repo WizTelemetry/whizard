@@ -17,8 +17,14 @@ limitations under the License.
 
 package v1alpha1
 
+type AlertingRuleExpansion interface{}
+
+type RuleGroupExpansion interface{}
+
 type ServiceExpansion interface{}
 
 type StoreExpansion interface{}
 
 type ThanosReceiveIngestorExpansion interface{}
+
+type ThanosRulerExpansion interface{}

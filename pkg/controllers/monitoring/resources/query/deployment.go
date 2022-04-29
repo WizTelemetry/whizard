@@ -1,14 +1,16 @@
 package query
 
 import (
+	"fmt"
 	"path/filepath"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
 )
 
@@ -66,38 +68,18 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 		Resources: q.query.Resources,
 		Ports: []corev1.ContainerPort{
 			{
-				Name:          "grpc",
-				ContainerPort: 10901,
 				Protocol:      corev1.ProtocolTCP,
+				Name:          resources.ThanosGRPCPortName,
+				ContainerPort: resources.ThanosGRPCPort,
 			},
 			{
-				Name:          "http",
-				ContainerPort: 10902,
 				Protocol:      corev1.ProtocolTCP,
+				Name:          resources.ThanosHTTPPortName,
+				ContainerPort: resources.ThanosHTTPPort,
 			},
 		},
-		LivenessProbe: &corev1.Probe{
-			FailureThreshold: 4,
-			PeriodSeconds:    30,
-			ProbeHandler: corev1.ProbeHandler{
-				HTTPGet: &corev1.HTTPGetAction{
-					Scheme: "HTTP",
-					Path:   "/-/healthy",
-					Port:   intstr.FromString("http"),
-				},
-			},
-		},
-		ReadinessProbe: &corev1.Probe{
-			FailureThreshold: 20,
-			PeriodSeconds:    5,
-			ProbeHandler: corev1.ProbeHandler{
-				HTTPGet: &corev1.HTTPGetAction{
-					Scheme: "HTTP",
-					Path:   "/-/ready",
-					Port:   intstr.FromString("http"),
-				},
-			},
-		},
+		LivenessProbe:  resources.ThanosDefaultLivenessProbe(),
+		ReadinessProbe: resources.ThanosDefaultReadinessProbe(),
 		VolumeMounts: []corev1.VolumeMount{{
 			Name:      storesConfigVol.Name,
 			MountPath: configDir,
@@ -112,8 +94,22 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 		queryContainer.Args = append(queryContainer.Args, "--log.format="+q.query.LogFormat)
 	}
 	queryContainer.Args = append(queryContainer.Args, "--store.sd-files="+filepath.Join(configDir, storesFile))
-	for _, ln := range q.query.ReplicaLabelNames {
-		queryContainer.Args = append(queryContainer.Args, "--query.replica-label="+ln)
+	for _, labelName := range q.query.ReplicaLabelNames {
+		queryContainer.Args = append(queryContainer.Args, "--query.replica-label="+labelName)
+	}
+	queryContainer.Args = append(queryContainer.Args, "--query.replica-label="+resources.PseudoTenantLabelName(q.Service.Spec.TenantLabelName))
+
+	var rulerList monitoringv1alpha1.ThanosRulerList
+	if err := q.Client.List(q.Context, &rulerList,
+		client.MatchingLabels(monitoringv1alpha1.ManagedLabelByService(q.Service))); err != nil {
+
+		q.Log.WithValues("thanosrulerlist", "").Error(err, "")
+		return nil, resources.OperationCreateOrUpdate, err
+	}
+	for _, item := range rulerList.Items {
+		rulerSvcName := resources.QualifiedName(resources.AppNameThanosRuler, item.Name, resources.ServiceNameSuffixOperated)
+		endpoint := fmt.Sprintf("%s.%s.svc:%d", rulerSvcName, item.Namespace, resources.ThanosGRPCPort)
+		queryContainer.Args = append(queryContainer.Args, "--endpoint="+endpoint)
 	}
 
 	var envoyContainer = corev1.Container{

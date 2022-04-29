@@ -44,5 +44,17 @@ func addControllers(mgr manager.Manager, client k8s.Client, informerFactory info
 		klog.Errorf("Unable to create ThanosReceiveIngestor controller: %v", err)
 		return err
 	}
+
+	if err := (&monitoring.ThanosRulerReconciler{
+		DefaulterValidator: monitoring.CreateThanosRulerDefaulterValidator(*cmOptions.MonitoringOptions),
+		ReloaderConfig:     cmOptions.MonitoringOptions.PrometheusConfigReloader,
+		Client:             mgr.GetClient(),
+		Scheme:             mgr.GetScheme(),
+		Context:            ctx,
+	}).SetupWithManager(mgr); err != nil {
+		klog.Errorf("Unable to create ThanosRuler controller: %v", err)
+		return err
+	}
+
 	return nil
 }

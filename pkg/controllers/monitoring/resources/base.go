@@ -14,10 +14,6 @@ import (
 	"github.com/kubesphere/paodin/pkg/util"
 )
 
-var (
-	ManagedByLabel = "app.kubernetes.io/managed-by"
-)
-
 type Operation string
 
 const (

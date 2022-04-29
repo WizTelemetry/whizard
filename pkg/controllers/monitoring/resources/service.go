@@ -15,8 +15,8 @@ type ServiceBaseReconciler struct {
 
 func (r *ServiceBaseReconciler) BaseLabels() map[string]string {
 	return map[string]string{
-		"app.kubernetes.io/managed-by": r.Service.Name,
-		"app.kubernetes.io/part-of":    "service",
+		LabelNameAppManagedBy: r.Service.Name,
+		LabelNameAppPartOf:    "service",
 	}
 }
 

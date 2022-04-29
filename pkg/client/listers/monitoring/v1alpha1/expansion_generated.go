@@ -17,6 +17,22 @@ limitations under the License.
 
 package v1alpha1
 
+// AlertingRuleListerExpansion allows custom methods to be added to
+// AlertingRuleLister.
+type AlertingRuleListerExpansion interface{}
+
+// AlertingRuleNamespaceListerExpansion allows custom methods to be added to
+// AlertingRuleNamespaceLister.
+type AlertingRuleNamespaceListerExpansion interface{}
+
+// RuleGroupListerExpansion allows custom methods to be added to
+// RuleGroupLister.
+type RuleGroupListerExpansion interface{}
+
+// RuleGroupNamespaceListerExpansion allows custom methods to be added to
+// RuleGroupNamespaceLister.
+type RuleGroupNamespaceListerExpansion interface{}
+
 // ServiceListerExpansion allows custom methods to be added to
 // ServiceLister.
 type ServiceListerExpansion interface{}
@@ -40,3 +56,11 @@ type ThanosReceiveIngestorListerExpansion interface{}
 // ThanosReceiveIngestorNamespaceListerExpansion allows custom methods to be added to
 // ThanosReceiveIngestorNamespaceLister.
 type ThanosReceiveIngestorNamespaceListerExpansion interface{}
+
+// ThanosRulerListerExpansion allows custom methods to be added to
+// ThanosRulerLister.
+type ThanosRulerListerExpansion interface{}
+
+// ThanosRulerNamespaceListerExpansion allows custom methods to be added to
+// ThanosRulerNamespaceLister.
+type ThanosRulerNamespaceListerExpansion interface{}

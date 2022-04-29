@@ -8,7 +8,7 @@ import (
 )
 
 func (r *ReceiveIngestor) service() (runtime.Object, resources.Operation, error) {
-	var s = &corev1.Service{ObjectMeta: r.meta(r.name("operated"))}
+	var s = &corev1.Service{ObjectMeta: r.meta(r.name(resources.ServiceNameSuffixOperated))}
 
 	s.Spec = corev1.ServiceSpec{
 		ClusterIP: corev1.ClusterIPNone,
@@ -16,18 +16,18 @@ func (r *ReceiveIngestor) service() (runtime.Object, resources.Operation, error)
 		Ports: []corev1.ServicePort{
 			{
 				Protocol: corev1.ProtocolTCP,
-				Name:     "grpc",
-				Port:     10901,
+				Name:     resources.ThanosGRPCPortName,
+				Port:     resources.ThanosGRPCPort,
 			},
 			{
 				Protocol: corev1.ProtocolTCP,
-				Name:     "http",
-				Port:     10902,
+				Name:     resources.ThanosHTTPPortName,
+				Port:     resources.ThanosHTTPPort,
 			},
 			{
-				Name:     "remote-write",
 				Protocol: corev1.ProtocolTCP,
-				Port:     19291,
+				Name:     resources.ThanosRemoteWritePortName,
+				Port:     resources.ThanosRemoteWritePort,
 			},
 		},
 	}

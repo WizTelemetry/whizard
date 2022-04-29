@@ -22,6 +22,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -359,10 +360,164 @@ type ThanosReceiveIngestorList struct {
 	Items           []ThanosReceiveIngestor `json:"items"`
 }
 
+// ThanosRulerSpec defines the desired state of a ThanosRuler
+type ThanosRulerSpec struct {
+	// If specified, the pod's scheduling constraints.
+	Affinity *corev1.Affinity `json:"affinity,omitempty"`
+	// Define which Nodes the Pods are scheduled on.
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+	// If specified, the pod's tolerations.
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+	// Define resources requests and limits for main container.
+	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
+	// Number of replicas for a thanos component.
+	Replicas *int32 `json:"replicas,omitempty"`
+
+	// Image is the thanos image with tag/version
+	Image string `json:"image,omitempty"`
+	// Log filtering level. Possible options: error, warn, info, debug
+	LogLevel string `json:"logLevel,omitempty"`
+	// Log format to use. Possible options: logfmt or json
+	LogFormat string `json:"logFormat,omitempty"`
+
+	// AlertingRules to be selected for alerting.
+	AlertingRuleSelector *metav1.LabelSelector `json:"alertingRuleSelector,omitempty"`
+	// Namespaces to be selected for AlertingRules discovery. If nil, only
+	// check own namespace.
+	AlertingRuleNamespaceSelector *metav1.LabelSelector `json:"alertingRuleNamespaceSelector,omitempty"`
+
+	// A label selector to select which PrometheusRules to mount for alerting and
+	// recording.
+	RuleSelector *metav1.LabelSelector `json:"ruleSelector,omitempty"`
+	// Namespaces to be selected for Rules discovery. If unspecified, only
+	// the same namespace as the ThanosRuler object is in is used.
+	RuleNamespaceSelector *metav1.LabelSelector `json:"ruleNamespaceSelector,omitempty"`
+
+	// Labels configure the external label pairs to ThanosRuler. A default replica label
+	// `thanos_ruler_replica` will be always added  as a label with the value of the pod's name and it will be dropped in the alerts.
+	Labels map[string]string `json:"labels,omitempty"`
+	// AlertDropLabels configure the label names which should be dropped in ThanosRuler alerts.
+	// The replica label `thanos_ruler_replica` will always be dropped in alerts.
+	AlertDropLabels []string `json:"alertDropLabels,omitempty"`
+	// Define URLs to send alerts to Alertmanager.  For Thanos v0.10.0 and higher,
+	// AlertManagersConfig should be used instead.  Note: this field will be ignored
+	// if AlertManagersConfig is specified.
+	// Maps to the `alertmanagers.url` arg.
+	AlertManagersURL []string `json:"alertmanagersUrl,omitempty"`
+	// Define configuration for connecting to alertmanager.  Only available with thanos v0.10.0
+	// and higher.  Maps to the `alertmanagers.config` arg.
+	AlertManagersConfig *corev1.SecretKeySelector `json:"alertmanagersConfig,omitempty"`
+
+	// DataVolume specifies how volume shall be used
+	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
+}
+
+// ThanosRulerStatus defines the observed state of ThanosRuler
+type ThanosRulerStatus struct {
+	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+}
+
+//+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
+// +genclient
+
+// ThanosRuler is the Schema for the ThanosRuler API
+type ThanosRuler struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   ThanosRulerSpec   `json:"spec,omitempty"`
+	Status ThanosRulerStatus `json:"status,omitempty"`
+}
+
+//+kubebuilder:object:root=true
+
+// ThanosRulerList contains a list of ThanosRuler
+type ThanosRulerList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []ThanosRuler `json:"items"`
+}
+
+// AlertingRuleSpec defines the desired state of a AlertingRule
+type AlertingRuleSpec struct {
+	Expr        intstr.IntOrString `json:"expr"`
+	For         string             `json:"for,omitempty"`
+	Labels      map[string]string  `json:"labels,omitempty"`
+	Annotations map[string]string  `json:"annotations,omitempty"`
+}
+
+// AlertingRuleStatus defines the observed state of AlertingRule
+type AlertingRuleStatus struct {
+	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+}
+
+//+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
+// +genclient
+
+// AlertingRule is the Schema for the AlertingRule API
+type AlertingRule struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   AlertingRuleSpec   `json:"spec,omitempty"`
+	Status AlertingRuleStatus `json:"status,omitempty"`
+}
+
+//+kubebuilder:object:root=true
+
+// AlertingRuleList contains a list of AlertingRule
+type AlertingRuleList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []AlertingRule `json:"items"`
+}
+
+// RuleGroupSpec defines the desired state of a RuleGroup
+type RuleGroupSpec struct {
+	Interval                string `json:"interval,omitempty"`
+	PartialResponseStrategy string `json:"partial_response_strategy,omitempty"`
+}
+
+// RuleGroupStatus defines the observed state of RuleGroup
+type RuleGroupStatus struct {
+	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+}
+
+//+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
+// +genclient
+
+// RuleGroup is the Schema for the RuleGroup API
+type RuleGroup struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   RuleGroupSpec   `json:"spec,omitempty"`
+	Status RuleGroupStatus `json:"status,omitempty"`
+}
+
+//+kubebuilder:object:root=true
+
+// RuleGroupList contains a list of RuleGroup
+type RuleGroupList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []RuleGroup `json:"items"`
+}
+
 func init() {
-	SchemeBuilder.Register(&Service{}, &ServiceList{})
-	SchemeBuilder.Register(&ThanosReceiveIngestor{}, &ThanosReceiveIngestorList{})
-	SchemeBuilder.Register(&Store{}, &StoreList{})
+	SchemeBuilder = SchemeBuilder.
+		Register(&Service{}, &ServiceList{}).
+		Register(&ThanosReceiveIngestor{}, &ThanosReceiveIngestorList{}).
+		Register(&Store{}, &StoreList{}).
+		Register(&ThanosRuler{}, &ThanosRulerList{}).
+		Register(&AlertingRule{}, &AlertingRuleList{}).
+		Register(&RuleGroup{}, &RuleGroupList{})
 }
 
 func ManagedLabelByService(service metav1.Object) map[string]string {
@@ -387,4 +542,18 @@ func ServiceNamespacedName(managedByService metav1.Object) *types.NamespacedName
 		Namespace: arr[0],
 		Name:      arr[1],
 	}
+}
+
+func ManagedLabelByRuleGroup(ruleGroup metav1.Object) map[string]string {
+	return map[string]string{
+		"monitoring.paodin.io/rule-group": ruleGroup.GetName(),
+	}
+}
+
+func RuleGroupName(managedByRuleGroup metav1.Object) string {
+	ls := managedByRuleGroup.GetLabels()
+	if ls == nil {
+		return ""
+	}
+	return ls["monitoring.paodin.io/rule-group"]
 }

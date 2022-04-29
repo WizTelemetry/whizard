@@ -142,6 +142,16 @@ func CreateServiceDefaulterValidator(opt options.Options) ServiceDefaulterValida
 
 	return func(service *monitoringv1alpha1.Service) (*monitoringv1alpha1.Service, error) {
 
+		if service.Spec.TenantHeader == "" {
+			service.Spec.TenantHeader = "THANOS-TENANT"
+		}
+		if service.Spec.TenantLabelName == "" {
+			service.Spec.TenantLabelName = "tenant_id"
+		}
+		if service.Spec.DefaultTenantId == "" {
+			service.Spec.DefaultTenantId = "default-tenant"
+		}
+
 		if service.Spec.Gateway != nil && service.Spec.Gateway.Image == "" {
 			service.Spec.Gateway.Image = opt.PaodinMonitoringGatewayImage
 		}

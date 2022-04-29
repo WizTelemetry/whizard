@@ -8,7 +8,7 @@ import (
 )
 
 func (g *Gateway) service() (runtime.Object, resources.Operation, error) {
-	var s = &corev1.Service{ObjectMeta: g.meta(g.name("operated"))}
+	var s = &corev1.Service{ObjectMeta: g.meta(g.name(resources.ServiceNameSuffixOperated))}
 
 	if g.gateway == nil {
 		return s, resources.OperationDelete, nil

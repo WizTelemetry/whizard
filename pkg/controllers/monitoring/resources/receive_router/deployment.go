@@ -10,7 +10,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 func (r *ReceiveRouter) deployment() (runtime.Object, resources.Operation, error) {
@@ -56,38 +55,23 @@ func (r *ReceiveRouter) deployment() (runtime.Object, resources.Operation, error
 		Resources: r.router.Resources,
 		Ports: []corev1.ContainerPort{
 			{
-				Name:          "grpc",
-				ContainerPort: 10901,
 				Protocol:      corev1.ProtocolTCP,
+				Name:          resources.ThanosGRPCPortName,
+				ContainerPort: resources.ThanosGRPCPort,
 			},
 			{
-				Name:          "http",
-				ContainerPort: 10902,
 				Protocol:      corev1.ProtocolTCP,
+				Name:          resources.ThanosHTTPPortName,
+				ContainerPort: resources.ThanosHTTPPort,
+			},
+			{
+				Protocol:      corev1.ProtocolTCP,
+				Name:          resources.ThanosRemoteWritePortName,
+				ContainerPort: resources.ThanosRemoteWritePort,
 			},
 		},
-		LivenessProbe: &corev1.Probe{
-			FailureThreshold: 4,
-			PeriodSeconds:    30,
-			ProbeHandler: corev1.ProbeHandler{
-				HTTPGet: &corev1.HTTPGetAction{
-					Scheme: "HTTP",
-					Path:   "/-/healthy",
-					Port:   intstr.FromString("http"),
-				},
-			},
-		},
-		ReadinessProbe: &corev1.Probe{
-			FailureThreshold: 20,
-			PeriodSeconds:    5,
-			ProbeHandler: corev1.ProbeHandler{
-				HTTPGet: &corev1.HTTPGetAction{
-					Scheme: "HTTP",
-					Path:   "/-/ready",
-					Port:   intstr.FromString("http"),
-				},
-			},
-		},
+		LivenessProbe:  resources.ThanosDefaultLivenessProbe(),
+		ReadinessProbe: resources.ThanosDefaultReadinessProbe(),
 		VolumeMounts: []corev1.VolumeMount{{
 			Name:      hashringsVol.Name,
 			MountPath: configDir,
@@ -95,7 +79,7 @@ func (r *ReceiveRouter) deployment() (runtime.Object, resources.Operation, error
 		}},
 		Env: []corev1.EnvVar{
 			{
-				Name: "NAME",
+				Name: "POD_NAME",
 				ValueFrom: &corev1.EnvVarSource{
 					FieldRef: &corev1.ObjectFieldSelector{
 						FieldPath: "metadata.name",
@@ -110,7 +94,7 @@ func (r *ReceiveRouter) deployment() (runtime.Object, resources.Operation, error
 	if r.router.LogFormat != "" {
 		container.Args = append(container.Args, "--log.format="+r.router.LogFormat)
 	}
-	container.Args = append(container.Args, `--label=receive_replica="$(NAME)"`)
+	container.Args = append(container.Args, `--label=thanos_receive_replica="$(POD_NAME)"`)
 	container.Args = append(container.Args, "--receive.hashrings-file="+filepath.Join(configDir, hashringsFile))
 	if r.router.ReplicationFactor != nil {
 		container.Args = append(container.Args, fmt.Sprintf("--receive.replication-factor=%d", *r.router.ReplicationFactor))

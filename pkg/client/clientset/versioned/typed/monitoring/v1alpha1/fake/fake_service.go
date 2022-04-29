@@ -116,7 +116,7 @@ func (c *FakeServices) UpdateStatus(ctx context.Context, service *v1alpha1.Servi
 // Delete takes name of the service and deletes it. Returns an error if one occurs.
 func (c *FakeServices) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(servicesResource, c.ns, name), &v1alpha1.Service{})
+		Invokes(testing.NewDeleteActionWithOptions(servicesResource, c.ns, name, opts), &v1alpha1.Service{})
 
 	return err
 }
