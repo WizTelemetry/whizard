@@ -10,10 +10,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	monitoringv1alpha1 "github.com/kubesphere/paodin-monitoring/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin-monitoring/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/paodin-monitoring/pkg/controllers/monitoring/resources/receive_ingestor"
-	"github.com/kubesphere/paodin-monitoring/pkg/controllers/monitoring/resources/storegateway"
+	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/receive_ingestor"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/storegateway"
 )
 
 func (q *Query) proxyConfigMap() (runtime.Object, resources.Operation, error) {

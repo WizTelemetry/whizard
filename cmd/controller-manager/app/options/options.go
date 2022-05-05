@@ -8,11 +8,11 @@ import (
 	"github.com/spf13/pflag"
 	"k8s.io/client-go/tools/leaderelection"
 	cliflag "k8s.io/component-base/cli/flag"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
-	"github.com/kubesphere/paodin-monitoring/pkg/client/k8s"
-	"github.com/kubesphere/paodin-monitoring/pkg/controllers/config"
-	monitoring "github.com/kubesphere/paodin-monitoring/pkg/controllers/monitoring/options"
+	"github.com/kubesphere/paodin/pkg/client/k8s"
+	"github.com/kubesphere/paodin/pkg/controllers/config"
+	monitoring "github.com/kubesphere/paodin/pkg/controllers/monitoring/options"
 )
 
 type PaodinControllerManagerOptions struct {

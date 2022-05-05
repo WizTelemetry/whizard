@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/kubesphere/paodin-monitoring/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -51,7 +51,7 @@ func (r *Compact) statefulSet() (runtime.Object, resources.Operation, error) {
 		LivenessProbe: &corev1.Probe{
 			FailureThreshold: 4,
 			PeriodSeconds:    30,
-			Handler: corev1.Handler{
+			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Scheme: "HTTP",
 					Path:   "/-/healthy",
@@ -62,7 +62,7 @@ func (r *Compact) statefulSet() (runtime.Object, resources.Operation, error) {
 		ReadinessProbe: &corev1.Probe{
 			FailureThreshold: 20,
 			PeriodSeconds:    5,
-			Handler: corev1.Handler{
+			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Scheme: "HTTP",
 					Path:   "/-/ready",

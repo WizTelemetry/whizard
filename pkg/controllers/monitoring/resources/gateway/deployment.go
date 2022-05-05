@@ -9,9 +9,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/kubesphere/paodin-monitoring/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/paodin-monitoring/pkg/controllers/monitoring/resources/query"
-	"github.com/kubesphere/paodin-monitoring/pkg/controllers/monitoring/resources/receive_router"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/query"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/receive_router"
 )
 
 func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
@@ -54,7 +54,7 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 		// LivenessProbe: &corev1.Probe{
 		// 	FailureThreshold: 4,
 		// 	PeriodSeconds:    30,
-		// 	Handler: corev1.Handler{
+		// 	ProbeHandler: corev1.ProbeHandler{
 		// 		HTTPGet: &corev1.HTTPGetAction{
 		// 			Scheme: "HTTP",
 		// 			Path:   "/-/healthy",
@@ -65,7 +65,7 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 		// ReadinessProbe: &corev1.Probe{
 		// 	FailureThreshold: 20,
 		// 	PeriodSeconds:    5,
-		// 	Handler: corev1.Handler{
+		// 	ProbeHandler: corev1.ProbeHandler{
 		// 		HTTPGet: &corev1.HTTPGetAction{
 		// 			Scheme: "HTTP",
 		// 			Path:   "/-/ready",

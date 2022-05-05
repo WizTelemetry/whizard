@@ -20,7 +20,7 @@ package versioned
 import (
 	"fmt"
 
-	monitoringv1alpha1 "github.com/kubesphere/paodin-monitoring/pkg/client/clientset/versioned/typed/monitoring/v1alpha1"
+	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/client/clientset/versioned/typed/monitoring/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"

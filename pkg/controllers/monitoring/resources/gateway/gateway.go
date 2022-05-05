@@ -5,8 +5,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/kubesphere/paodin-monitoring/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin-monitoring/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
 )
 
 const (

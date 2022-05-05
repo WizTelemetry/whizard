@@ -8,10 +8,10 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
-	"github.com/kubesphere/paodin-monitoring/pkg/client/k8s"
-	monitoring "github.com/kubesphere/paodin-monitoring/pkg/controllers/monitoring/options"
+	"github.com/kubesphere/paodin/pkg/client/k8s"
+	monitoring "github.com/kubesphere/paodin/pkg/controllers/monitoring/options"
 )
 
 var (

@@ -11,7 +11,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/go-logr/logr"
-	"github.com/kubesphere/paodin-monitoring/pkg/util"
+	"github.com/kubesphere/paodin/pkg/util"
 )
 
 var (

@@ -12,8 +12,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	monitoringv1alpha1 "github.com/kubesphere/paodin-monitoring/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin-monitoring/pkg/controllers/monitoring/resources"
+	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
 )
 
 func (r *ReceiveIngestor) statefulSet() (runtime.Object, resources.Operation, error) {
@@ -62,7 +62,7 @@ func (r *ReceiveIngestor) statefulSet() (runtime.Object, resources.Operation, er
 		LivenessProbe: &corev1.Probe{
 			FailureThreshold: 4,
 			PeriodSeconds:    30,
-			Handler: corev1.Handler{
+			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Scheme: "HTTP",
 					Path:   "/-/healthy",
@@ -73,7 +73,7 @@ func (r *ReceiveIngestor) statefulSet() (runtime.Object, resources.Operation, er
 		ReadinessProbe: &corev1.Probe{
 			FailureThreshold: 20,
 			PeriodSeconds:    5,
-			Handler: corev1.Handler{
+			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Scheme: "HTTP",
 					Path:   "/-/ready",
@@ -183,7 +183,7 @@ func (r *ReceiveIngestor) statefulSet() (runtime.Object, resources.Operation, er
 		var service monitoringv1alpha1.Service
 		if err := r.Client.Get(r.Context, *namespacedName, &service); err != nil {
 			if !apierrors.IsNotFound(err) {
-				r.Log.Error(err, "")
+				return nil, resources.OperationCreateOrUpdate, err
 			}
 		} else {
 			if service.Spec.TenantHeader != "" {

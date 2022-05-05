@@ -18,8 +18,8 @@ limitations under the License.
 package monitoring
 
 import (
-	internalinterfaces "github.com/kubesphere/paodin-monitoring/pkg/client/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/kubesphere/paodin-monitoring/pkg/client/informers/externalversions/monitoring/v1alpha1"
+	internalinterfaces "github.com/kubesphere/paodin/pkg/client/informers/externalversions/internalinterfaces"
+	v1alpha1 "github.com/kubesphere/paodin/pkg/client/informers/externalversions/monitoring/v1alpha1"
 )
 
 // Interface provides access to each of this group's versions.

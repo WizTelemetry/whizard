@@ -109,5 +109,5 @@ bundle: manifests kustomize
 
 TYPE_GOES=$(shell find pkg/api -name *_types.go | tr '\n' ' ')
 docs/api.md: tools/docgen/docgen.go $(TYPE_GOES)
-	go run github.com/kubesphere/paodin-monitoring/tools/docgen $(TYPE_GOES) > docs/api.md
+	go run github.com/kubesphere/paodin/tools/docgen $(TYPE_GOES) > docs/api.md
 

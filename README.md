@@ -1,6 +1,6 @@
-# PaodinMonitoring
+# Paodin
 
-PaodinMonitoring provides an optimized multi-cluster monitoring solution based on prometheus(server/agent) and thanos.
+Paodin is an observability platform for Kubernetes infrastructure and applications, which brings your metrics, logs, events and so on into one place.
 
 ## Design
 

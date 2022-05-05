@@ -1,8 +1,8 @@
 domain: paodin.io
 layout:
 - go.kubebuilder.io/v3
-projectName: paodin-monitoring
-repo: github.com/kubesphere/paodin-monitoring
+projectName: paodin
+repo: github.com/kubesphere/paodin
 resources:
 - api:
     crdVersion: v1
@@ -11,7 +11,7 @@ resources:
   domain: paodin.io
   group: monitoring
   kind: Service
-  path: github.com/kubesphere/paodin-monitoring/pkg/api/monitoring/v1alpha1
+  path: github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
@@ -20,6 +20,6 @@ resources:
   domain: paodin.io
   group: monitoring
   kind: Agent
-  path: github.com/kubesphere/paodin-monitoring/pkg/api/monitoring/v1alpha1
+  path: github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1
   version: v1alpha1
 version: "3"

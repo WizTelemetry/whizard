@@ -18,8 +18,8 @@ limitations under the License.
 package v1alpha1
 
 import (
-	v1alpha1 "github.com/kubesphere/paodin-monitoring/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin-monitoring/pkg/client/clientset/versioned/scheme"
+	v1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/paodin/pkg/client/clientset/versioned/scheme"
 	rest "k8s.io/client-go/rest"
 )
 

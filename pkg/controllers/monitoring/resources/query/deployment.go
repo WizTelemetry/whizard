@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	"github.com/kubesphere/paodin-monitoring/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
 )
 
 func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
@@ -79,7 +79,7 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 		LivenessProbe: &corev1.Probe{
 			FailureThreshold: 4,
 			PeriodSeconds:    30,
-			Handler: corev1.Handler{
+			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Scheme: "HTTP",
 					Path:   "/-/healthy",
@@ -90,7 +90,7 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 		ReadinessProbe: &corev1.Probe{
 			FailureThreshold: 20,
 			PeriodSeconds:    5,
-			Handler: corev1.Handler{
+			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Scheme: "HTTP",
 					Path:   "/-/ready",

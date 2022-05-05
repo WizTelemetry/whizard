@@ -3,13 +3,13 @@ package app
 import (
 	"context"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	"github.com/kubesphere/paodin-monitoring/cmd/controller-manager/app/options"
-	"github.com/kubesphere/paodin-monitoring/pkg/client/k8s"
-	"github.com/kubesphere/paodin-monitoring/pkg/controllers/monitoring"
-	"github.com/kubesphere/paodin-monitoring/pkg/informers"
+	"github.com/kubesphere/paodin/cmd/controller-manager/app/options"
+	"github.com/kubesphere/paodin/pkg/client/k8s"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring"
+	"github.com/kubesphere/paodin/pkg/informers"
 )
 
 func addControllers(mgr manager.Manager, client k8s.Client, informerFactory informers.InformerFactory,

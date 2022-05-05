@@ -30,12 +30,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	monitoringv1alpha1 "github.com/kubesphere/paodin-monitoring/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin-monitoring/pkg/controllers/monitoring/options"
-	"github.com/kubesphere/paodin-monitoring/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/paodin-monitoring/pkg/controllers/monitoring/resources/gateway"
-	"github.com/kubesphere/paodin-monitoring/pkg/controllers/monitoring/resources/query"
-	"github.com/kubesphere/paodin-monitoring/pkg/controllers/monitoring/resources/receive_router"
+	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/options"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/gateway"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/query"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/receive_router"
 )
 
 // ServiceReconciler reconciles a Service object

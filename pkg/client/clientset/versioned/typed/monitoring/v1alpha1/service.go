@@ -21,8 +21,8 @@ import (
 	"context"
 	"time"
 
-	v1alpha1 "github.com/kubesphere/paodin-monitoring/pkg/api/monitoring/v1alpha1"
-	scheme "github.com/kubesphere/paodin-monitoring/pkg/client/clientset/versioned/scheme"
+	v1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
+	scheme "github.com/kubesphere/paodin/pkg/client/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"

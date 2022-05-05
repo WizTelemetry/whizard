@@ -8,7 +8,7 @@ import (
 	"github.com/thanos-io/thanos/pkg/logging"
 	thanos_tls "github.com/thanos-io/thanos/pkg/tls"
 
-	monitoringgateway "github.com/kubesphere/paodin-monitoring/pkg/monitoring-gateway"
+	monitoringgateway "github.com/kubesphere/paodin/pkg/monitoring-gateway"
 )
 
 var cli struct {

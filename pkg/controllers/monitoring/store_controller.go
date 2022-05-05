@@ -27,11 +27,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	monitoringv1alpha1 "github.com/kubesphere/paodin-monitoring/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin-monitoring/pkg/controllers/monitoring/options"
-	"github.com/kubesphere/paodin-monitoring/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/paodin-monitoring/pkg/controllers/monitoring/resources/compact"
-	"github.com/kubesphere/paodin-monitoring/pkg/controllers/monitoring/resources/storegateway"
+	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/options"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/compact"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/storegateway"
 )
 
 // StoreReconciler reconciles a Store object

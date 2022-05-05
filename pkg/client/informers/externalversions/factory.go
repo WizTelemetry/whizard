@@ -22,9 +22,9 @@ import (
 	sync "sync"
 	time "time"
 
-	versioned "github.com/kubesphere/paodin-monitoring/pkg/client/clientset/versioned"
-	internalinterfaces "github.com/kubesphere/paodin-monitoring/pkg/client/informers/externalversions/internalinterfaces"
-	monitoring "github.com/kubesphere/paodin-monitoring/pkg/client/informers/externalversions/monitoring"
+	versioned "github.com/kubesphere/paodin/pkg/client/clientset/versioned"
+	internalinterfaces "github.com/kubesphere/paodin/pkg/client/informers/externalversions/internalinterfaces"
+	monitoring "github.com/kubesphere/paodin/pkg/client/informers/externalversions/monitoring"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

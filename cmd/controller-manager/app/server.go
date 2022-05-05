@@ -10,18 +10,18 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	cliflag "k8s.io/component-base/cli/flag"
-	"k8s.io/klog"
-	"k8s.io/klog/klogr"
+	"k8s.io/klog/v2"
+	"k8s.io/klog/v2/klogr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
-	"github.com/kubesphere/paodin-monitoring/cmd/controller-manager/app/options"
-	"github.com/kubesphere/paodin-monitoring/pkg/apis"
-	"github.com/kubesphere/paodin-monitoring/pkg/client/k8s"
-	"github.com/kubesphere/paodin-monitoring/pkg/controllers/config"
-	"github.com/kubesphere/paodin-monitoring/pkg/informers"
+	"github.com/kubesphere/paodin/cmd/controller-manager/app/options"
+	"github.com/kubesphere/paodin/pkg/apis"
+	"github.com/kubesphere/paodin/pkg/client/k8s"
+	"github.com/kubesphere/paodin/pkg/controllers/config"
+	"github.com/kubesphere/paodin/pkg/informers"
 )
 
 func NewControllerManagerCommand() *cobra.Command {
