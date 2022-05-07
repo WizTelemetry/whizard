@@ -48,6 +48,7 @@ type ThanosReceiveIngestorReconciler struct {
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=thanosreceiveingestors,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=thanosreceiveingestors/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=thanosreceiveingestors/finalizers,verbs=update
+//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=services,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
 
@@ -126,7 +127,7 @@ func (r *ThanosReceiveIngestorReconciler) mapToIngestorFunc(o client.Object) []r
 	return reqs
 }
 
-type ThanosReceiveIngestorDefaulterValidator func(store *monitoringv1alpha1.ThanosReceiveIngestor) (*monitoringv1alpha1.ThanosReceiveIngestor, error)
+type ThanosReceiveIngestorDefaulterValidator func(ingestor *monitoringv1alpha1.ThanosReceiveIngestor) (*monitoringv1alpha1.ThanosReceiveIngestor, error)
 
 func CreateThanosReceiveIngestorDefaulterValidator(opt options.Options) ThanosReceiveIngestorDefaulterValidator {
 	var replicas int32 = 1

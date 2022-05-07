@@ -6,6 +6,12 @@ Refer to the following example for multi-cluster monitoring of KubeSphere platfo
 
 ## Scattered
 
+Each cluster stores its own metric data, and host cluster can query data from all clusters. The flow in this scenario is as follows: 
+
+<img src="./images/multi-cluster-scattered.png"> 
+
+Follow the following steps to deploy components:   
+
 1. On all clusters, configure Thanos Sidecar and external labels for Prometheus:
 
   ```shell
@@ -32,7 +38,13 @@ Refer to the following example for multi-cluster monitoring of KubeSphere platfo
 
 ## Central
 
+Each cluster writes metric data to host cluster, and then queries data from host cluster. The flow in this scenario is as follows: 
+
+<img src="./images/multi-cluster-central.png"> 
+
 > Use object storage for long term storage.
+
+Follow the following steps to deploy components:   
 
 1. On host cluster, create secret for object storage config: 
 

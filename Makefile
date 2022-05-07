@@ -107,7 +107,7 @@ bundle: manifests kustomize
 	cd config/default && $(KUSTOMIZE) edit set namespace kubesphere-monitoring-system
 	$(KUSTOMIZE) build config/default > config/bundle.yaml
 
-TYPE_GOES=$(shell find pkg/api -name *_types.go | tr '\n' ' ')
-docs/api.md: tools/docgen/docgen.go $(TYPE_GOES)
-	go run github.com/kubesphere/paodin/tools/docgen $(TYPE_GOES) > docs/api.md
+MONITORING_TYPE_GOES=$(shell find pkg/api/monitoring -name *_types.go | tr '\n' ' ')
+docs/monitoring/api.md: tools/docgen/docgen.go $(TYPE_GOES)
+	go run github.com/kubesphere/paodin/tools/docgen $(MONITORING_TYPE_GOES) > docs/monitoring/api.md
 

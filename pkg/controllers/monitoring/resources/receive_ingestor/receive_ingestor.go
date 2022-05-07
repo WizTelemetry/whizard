@@ -31,6 +31,7 @@ func New(reconciler resources.BaseReconciler, ingestor *monitoringv1alpha1.Thano
 func (r *ReceiveIngestor) labels() map[string]string {
 	labels := r.BaseLabels()
 	labels["app.kubernetes.io/name"] = "thanos-receive-ingestor"
+	labels["app.kubernetes.io/managed-by"] = r.ingestor.Name
 	return labels
 }
 

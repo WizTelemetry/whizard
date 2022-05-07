@@ -1,41 +1,27 @@
 # Paodin
 
-Paodin is an observability platform for Kubernetes infrastructure and applications, which brings your metrics, logs, events and so on into one place.
+Paodin is an observability platform for Kubernetes infrastructure and applications, which integrates your metrics, logs, events and so on accross kubernetes clusters.
 
-## Design
+## Status
 
-![design](./docs/images/design.png "Multi-Cluster Monitoring Architecture")
+| Component | Function | Status | Comment
+|--------|-----------|--------|--------|
+| *paodin-controller-manager*  | `Service` (CRD) |  | Define one Service instance, which contains *monitoring-gateway*, *Thanos Query* and *Thanos Receive Router* to handle and route metric read and write requests.
+|| `ThanosReceiveIngestor` (CRD) |  | Define one *Thanos Receive Ingestor* instance which lands metric data.
+|| `Store` (CRD) |  | Define one Store instace, which contains *Thanos Store Gateway* and *Thanos Compact* for long term storage.
+|| `ThanosRuler` (CRD) | | Define one *Thanos Ruler* instance.
+|| `AlertingRule` (CRD) | |
+|| `RuleGroup` (CRD) | |
+| *monitoring-gateway* | Auth/Proxy for monitoring service |  |
+| *monitoring-agent-proxy* | Proxy for prometheus agent
+| *paodin-apiserver* |
 
-The architecture diagram above covers a variety of scenarios for which PaodinMonitoring applies.
+## Install
 
-## CRDs
+- Install paodin-controller-manager:
 
-PaodinMonitoring contains an operator that acts on the following CRDs to deploy some key components: 
+    ```shell
+    kubectl apply -f https://raw.githubusercontent.com/kubesphere/paodin/master/config/bundle.yaml
+    ```
 
-- `Service`, which defines a desired monitoring service contains the following components:  
-    - `Thanos` for a Thanos cluster contains multiple thanos components: 
-        - `Query` for a Thanos Query instance, which can query from the Receive instances with ingestor mode and the Store Gateway instance in current thanos cluster, and other external thanos StoreAPI servers. It also will be with an envoy sidecar container to proxy query requests requiring auth to secure StoreAPI servers.  
-        - `Receive` for multiple Thanos Receive instances which contains one receive router to receive external remote write requests, and multiple ingestors for different tenants to land data from the router.  
-        - `StoreGateway` for a Thanos Store Gateway instance to provide query for metrics in a object storage as a StoreAPI server.
-        - `Compact` for a Thanos Compact instance to compact metrics block and manage metrics lifecycle. 
-
-To learn more about them have a look at the [api doc](docs/api.md).
-
-## QuickStart
-
-Firstly install paodin-controller-manager:
-
-```shell
-kubectl apply -f https://raw.githubusercontent.com/kubesphere/paodin-monitoring/master/config/bundle.yaml
-```
-
-Then see [here](./docs/examples.md) to deploy your monitoring service based on your scenario.
-
-## Roadmap
-
-- [x] Define CRDs to configure thanos components: query, receive, store gateway, compact.  
-- [x] Implement proper deployment for upper components.   
-- [x] Provide configuration for envoy sidecar which proxies query requests to the secure stores.
-- [x] Ensure that the receive router routes received remote write requests to the receive ingestors.  
-- [x] Ensure that the query component queries from the receive ingestors and the store gateway in its cluster.
-- [ ] Add more configurable items to CRDs for configuring individual components flexibly.  
+- See [here](./docs/monitoring/examples.md) to deploy your monitoring service accross clusters.
