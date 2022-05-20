@@ -141,7 +141,7 @@ func (r *ThanosRulerReconciler) mapRuleToThanosRulerFunc(o client.Object) []reco
 				Name:      ruler.Name,
 			},
 		}
-		if ruler.Namespace == ns.Namespace {
+		if ruler.Namespace == ns.Name {
 			reqs = append(reqs, req)
 			continue
 		}

@@ -155,6 +155,9 @@ func (r *Ruler) statefulSet(ruleConfigMapNames []string) (runtime.Object, resour
 	for _, lb := range r.ruler.Spec.AlertDropLabels {
 		container.Args = append(container.Args, fmt.Sprintf("--alert.label-drop=%s", lb))
 	}
+	if r.ruler.Spec.EvaluationInterval != "" {
+		container.Args = append(container.Args, fmt.Sprintf("--eval-interval=%s", r.ruler.Spec.EvaluationInterval))
+	}
 
 	namespacedName := monitoringv1alpha1.ServiceNamespacedName(r.ruler)
 

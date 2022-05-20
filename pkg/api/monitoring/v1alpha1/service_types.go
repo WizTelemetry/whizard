@@ -244,11 +244,11 @@ type KubernetesVolume struct {
 // Retention defines the config for retaining samples
 type Retention struct {
 	// RetentionRaw specifies how long to retain raw samples in bucket
-	RetentionRaw string `json:"retentionRaw,omitempty"`
+	RetentionRaw Duration `json:"retentionRaw,omitempty"`
 	// Retention5m specifies how long to retain samples of 5m resolution in bucket
-	Retention5m string `json:"retention5m,omitempty"`
+	Retention5m Duration `json:"retention5m,omitempty"`
 	// Retention1h specifies how long to retain samples of 1h resolution in bucket
-	Retention1h string `json:"retention1h,omitempty"`
+	Retention1h Duration `json:"retention1h,omitempty"`
 }
 
 // StoreSpec defines the desired state of a Store
@@ -407,6 +407,9 @@ type ThanosRulerSpec struct {
 	// Define configuration for connecting to alertmanager.  Only available with thanos v0.10.0
 	// and higher.  Maps to the `alertmanagers.config` arg.
 	AlertManagersConfig *corev1.SecretKeySelector `json:"alertmanagersConfig,omitempty"`
+	// Interval between consecutive evaluations. Default: `30s`
+	// +kubebuilder:default:="30s"
+	EvaluationInterval Duration `json:"evaluationInterval,omitempty"`
 
 	// DataVolume specifies how volume shall be used
 	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
@@ -509,6 +512,11 @@ type RuleGroupList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []RuleGroup `json:"items"`
 }
+
+// Duration is a valid time unit
+// Supported units: y, w, d, h, m, s, ms Examples: `30s`, `1m`, `1h20m15s`
+// +kubebuilder:validation:Pattern:="^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$"
+type Duration string
 
 func init() {
 	SchemeBuilder = SchemeBuilder.

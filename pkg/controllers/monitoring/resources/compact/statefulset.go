@@ -115,13 +115,13 @@ func (r *Compact) statefulSet() (runtime.Object, resources.Operation, error) {
 	container.Args = append(container.Args, "--objstore.config-file="+filepath.Join(secretsDir, osConfig.Name, osConfig.Key))
 	if retention := r.compact.Retention; retention != nil {
 		if retention.RetentionRaw != "" {
-			container.Args = append(container.Args, "--retention.resolution-raw="+retention.RetentionRaw)
+			container.Args = append(container.Args, fmt.Sprintf("--retention.resolution-raw=%s", retention.RetentionRaw))
 		}
 		if retention.Retention5m != "" {
-			container.Args = append(container.Args, "--retention.resolution-5m="+retention.Retention5m)
+			container.Args = append(container.Args, fmt.Sprintf("--retention.resolution-5m=%s", retention.Retention5m))
 		}
 		if retention.Retention5m != "" {
-			container.Args = append(container.Args, "--retention.resolution-1h="+retention.Retention5m)
+			container.Args = append(container.Args, fmt.Sprintf("--retention.resolution-1h=%s", retention.Retention5m))
 		}
 	}
 	container.Args = append(container.Args, "--deduplication.replica-label=receive_replica")

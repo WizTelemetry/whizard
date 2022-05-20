@@ -176,6 +176,7 @@ spec:
   alertingRuleSelector: {}
   alertmanagersUrl:
     - 'dnssrv+http://alertmanager-operated.kubesphere-monitoring-system.svc:9093'
+  evaluationInterval: 1m
   ruleSelector:
     matchLabels:
       role: record-rules
