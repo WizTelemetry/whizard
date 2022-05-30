@@ -94,6 +94,8 @@ Follow the following steps to deploy components:
         - thanos_ruler_replica
       receiveRouter: 
         replicationFactor: 2
+      queryFrontend:
+        maxSize: 500MB
   EOF
   ```
 

@@ -22,6 +22,7 @@ const (
 
 	AppNameGateway               = "paodin-monitoring-gateway"
 	AppNameThanosQuery           = "thanos-query"
+	AppNameThanosQueryFrontend   = "thanos-query-frontend"
 	AppNameThanosReceiveRouter   = "thanos-receive-router"
 	AppNameThanosReceiveIngestor = "thanos-receive-ingestor"
 	AppNameThanosRuler           = "thanos-ruler"
