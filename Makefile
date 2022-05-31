@@ -1,8 +1,9 @@
-REPO ?= kubespheredev
+REPO ?= kubesphere
 TAG ?= latest
 
 CONTROLLER_MANAGER_IMG=${REPO}/paodin-controller-manager:${TAG}
 MONITORING_GATEWAY_IMG=${REPO}/paodin-monitoring-gateway:${TAG}
+MONITORING_AGENT_PROXY_IMG=${REPO}/paodin-monitoring-agent-proxy:${TAG}
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
 
@@ -45,7 +46,7 @@ test: manifests generate fmt vet ## Run tests.
 
 ##@ Build
 
-build: controller-manager monitoring-gateway
+build: controller-manager monitoring-gateway monitoring-agent-proxy
 
 controller-manager: 
 	go build -o bin/controller-manager cmd/controller-manager/controller-manager.go
@@ -53,13 +54,19 @@ controller-manager:
 monitoring-gateway: 
 	go build -o bin/monitoring-gateway cmd/monitoring-gateway/monitoring-gateway.go
 
-docker-build: docker-build-controller-manager docker-build-monitoring-gateway
+monitoring-agent-proxy:
+	go build -o bin/monitoring-agent-proxy cmd/monitoring-agent-proxy/monitoring-agent-proxy.go
+
+docker-build: docker-build-controller-manager docker-build-monitoring-gateway docker-build-monitoring-agent-proxy
 
 docker-build-controller-manager: 
 	docker build -t $(CONTROLLER_MANAGER_IMG) -f build/controller-manager/Dockerfile .
 
 docker-build-monitoring-gateway:
 	docker build -t $(MONITORING_GATEWAY_IMG) -f build/monitoring-gateway/Dockerfile .
+
+docker-build-monitoring-agent-proxy:
+	docker build -t $(MONITORING_AGENT_PROXY_IMG) -f build/monitoring-agent-proxy/Dockerfile .
 
 ##@ Deployment
 
@@ -111,3 +118,12 @@ MONITORING_TYPE_GOES=$(shell find pkg/api/monitoring -name *_types.go | tr '\n' 
 docs/monitoring/api.md: tools/docgen/docgen.go $(TYPE_GOES)
 	go run github.com/kubesphere/paodin/tools/docgen $(MONITORING_TYPE_GOES) > docs/monitoring/api.md
 
+paodin.key:
+	openssl genrsa -des3 -passout pass:x -out paodin.pass.key 2048
+	openssl rsa -passin pass:x -in paodin.pass.key -out paodin.key
+	rm paodin.pass.key
+
+paodin.crt: paodin.key
+	openssl req -new -key paodin.key -out paodin.csr
+	openssl x509 -req -sha256 -days 365 -in paodin.csr -signkey paodin.key -out paodin.crt
+	rm paodin.csr
