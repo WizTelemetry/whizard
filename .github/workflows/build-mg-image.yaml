@@ -30,8 +30,7 @@ on:
       - 'go.sum'
 
 env:
-  REPO: kubespheredev
-  TAG: latest
+  REPO: kubesphere
 
 jobs:
   build:
@@ -62,5 +61,6 @@ jobs:
 
       - name: Build and Push Image for monitoring-gateway
         run: |
-          make docker-build-monitoring-gateway -e REPO=${{ env.REPO }} -e TAG=${{ env.TAG }}
-          docker push ${{ env.REPO }}/paodin-monitoring-gateway:${{ env.TAG }}
+          tag=$(cat VERSION | tr -d " \t\n\r")
+          make docker-build-monitoring-gateway -e REPO=${{ env.REPO }} -e TAG=$tag
+          docker push ${{ env.REPO }}/paodin-monitoring-gateway:$tag
