@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	"strings"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -171,13 +172,36 @@ type ThanosQueryFrontend struct {
 	LogLevel string `json:"logLevel,omitempty"`
 	// Log format to use. Possible options: logfmt or json
 	LogFormat string `json:"logFormat,omitempty"`
+	// Params is a list of key/value that could be used to set strategy parameters.
+	Params map[string]string `json:"params,omitempty"`
 
-	// MaxSizeInMemoryCacheConfig represents overall maximum number of bytes cache can contain. A unit suffix (KB, MB, GB) may be applied.
-	MaxSizeInMemoryCacheConfig string `json:"maxSize,omitempty"`
-	// MaxSizeItemsInMemoryCacheConfig represents the maximum number of entries in the cache.
-	MaxSizeItemsInMemoryCacheConfig int32 `json:"maxSizeItems,omitempty"`
-	// ValidityInMemoryCacheConfig represents the expiry duration for the cache.
-	ValidityInMemoryCacheConfig int64 `json:"validity,omitempty"`
+	// CacheProviderConfig ...
+	CacheConfig *CacheProviderConfig `json:"cacheConfig,omitempty"`
+}
+
+type ResponseCacheProvider string
+
+const (
+	INMEMORY  ResponseCacheProvider = "IN-MEMORY"
+	MEMCACHED ResponseCacheProvider = "MEMCACHED"
+	REDIS     ResponseCacheProvider = "REDIS"
+)
+
+// CacheProviderConfig is the initial CacheProviderConfig struct holder before parsing it into a specific cache provider.
+// Based on the config type the config is then parsed into a specific cache provider.
+type CacheProviderConfig struct {
+	Type                        ResponseCacheProvider        `json:"type"`
+	InMemoryResponseCacheConfig *InMemoryResponseCacheConfig `json:"inMemory,omitempty"`
+}
+
+// InMemoryResponseCacheConfig holds the configs for the in-memory cache provider.
+type InMemoryResponseCacheConfig struct {
+	// MaxSize represents overall maximum number of bytes cache can contain.
+	MaxSize string `json:"maxSize" yaml:"max_size"`
+	// MaxSizeItems represents the maximum number of entries in the cache.
+	MaxSizeItems int `json:"maxSizeItems" yaml:"max_size_items"`
+	// Validity represents the expiry duration for the cache.
+	Validity time.Duration `json:"validity" yaml:"validity"`
 }
 
 // ServiceStatus defines the observed state of Service

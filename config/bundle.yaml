@@ -1755,6 +1755,32 @@ spec:
                                 type: array
                             type: object
                         type: object
+                      cacheConfig:
+                        description: CacheProviderConfig ...
+                        properties:
+                          inMemory:
+                            description: InMemoryResponseCacheConfig holds the configs for the in-memory cache provider.
+                            properties:
+                              maxSize:
+                                description: MaxSize represents overall maximum number of bytes cache can contain.
+                                type: string
+                              maxSizeItems:
+                                description: MaxSizeItems represents the maximum number of entries in the cache.
+                                type: integer
+                              validity:
+                                description: Validity represents the expiry duration for the cache.
+                                format: int64
+                                type: integer
+                            required:
+                            - maxSize
+                            - maxSizeItems
+                            - validity
+                            type: object
+                          type:
+                            type: string
+                        required:
+                        - type
+                        type: object
                       image:
                         description: Image is the thanos image with tag/version
                         type: string
@@ -1764,17 +1790,15 @@ spec:
                       logLevel:
                         description: 'Log filtering level. Possible options: error, warn, info, debug'
                         type: string
-                      maxSize:
-                        description: MaxSizeInMemoryCacheConfig represents overall maximum number of bytes cache can contain. A unit suffix (KB, MB, GB) may be applied.
-                        type: string
-                      maxSizeItems:
-                        description: MaxSizeItemsInMemoryCacheConfig represents the maximum number of entries in the cache.
-                        format: int32
-                        type: integer
                       nodeSelector:
                         additionalProperties:
                           type: string
                         description: Define which Nodes the Pods are scheduled on.
+                        type: object
+                      params:
+                        additionalProperties:
+                          type: string
+                        description: Params is a list of key/value that could be used to set strategy parameters.
                         type: object
                       replicas:
                         description: Number of replicas for a thanos component
@@ -1825,10 +1849,6 @@ spec:
                               type: string
                           type: object
                         type: array
-                      validity:
-                        description: ValidityInMemoryCacheConfig represents the expiry duration for the cache.
-                        format: int64
-                        type: integer
                     type: object
                   receiveRouter:
                     description: Thanos Receive Router component routes to the backends such as Thanos Receive Ingestor by automated discovery.

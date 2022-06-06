@@ -3,6 +3,7 @@ package query_frontend
 import (
 	"time"
 
+	"github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
 
 	"gopkg.in/yaml.v3"
@@ -17,35 +18,37 @@ func (q *QueryFrontend) cacheConfigConfigMap() (runtime.Object, resources.Operat
 		return cm, resources.OperationDelete, nil
 	}
 
-	type Config struct {
-		MaxSize      string        `yaml:"max_size"`
-		MaxSizeItems int           `yaml:"max_size_items"`
-		Validity     time.Duration `yaml:"validity"`
+	type CacheProviderConfig struct {
+		Type   string      `yaml:"type"`
+		Config interface{} `yaml:"config"`
 	}
-	type CacheConfig struct {
-		Type   string `yaml:"type"`
-		Config Config `yaml:"config"`
-	}
+	var cacheConfig CacheProviderConfig
 
-	var cacheConfig = CacheConfig{
-		Type: "IN-MEMORY",
-		Config: Config{
+	var defaultINMEMORYCacheConfig = CacheProviderConfig{
+		Type: string(v1alpha1.INMEMORY),
+		Config: v1alpha1.InMemoryResponseCacheConfig{
 			MaxSize:      "",
 			MaxSizeItems: 0,
-			Validity:     time.Second * 0,
+			Validity:     time.Duration(0),
 		},
 	}
 
-	if q.queryFrontend.MaxSizeInMemoryCacheConfig != "" {
-		cacheConfig.Config.MaxSize = q.queryFrontend.MaxSizeInMemoryCacheConfig
-	}
+	if q.queryFrontend.CacheConfig != nil {
+		switch q.queryFrontend.CacheConfig.Type {
+		case v1alpha1.INMEMORY:
+			cacheConfig = CacheProviderConfig{
+				Type:   string(v1alpha1.INMEMORY),
+				Config: *q.queryFrontend.CacheConfig.InMemoryResponseCacheConfig,
+			}
+		// todo: support other cache.
+		// case v1alpha1.MEMCACHED:
+		// case v1alpha1.REDIS:
+		default:
+			cacheConfig = defaultINMEMORYCacheConfig
+		}
 
-	if q.queryFrontend.MaxSizeItemsInMemoryCacheConfig != 0 {
-		cacheConfig.Config.MaxSizeItems = int(q.queryFrontend.MaxSizeItemsInMemoryCacheConfig)
-	}
-
-	if q.queryFrontend.ValidityInMemoryCacheConfig != 0 {
-		cacheConfig.Config.Validity = time.Duration(q.queryFrontend.ValidityInMemoryCacheConfig) * time.Second
+	} else {
+		cacheConfig = defaultINMEMORYCacheConfig
 	}
 
 	cacheConfigBytes, err := yaml.Marshal(cacheConfig)

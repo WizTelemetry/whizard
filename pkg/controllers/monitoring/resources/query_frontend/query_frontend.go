@@ -27,7 +27,7 @@ func New(reconciler resources.ServiceBaseReconciler) *QueryFrontend {
 
 func (q *QueryFrontend) labels() map[string]string {
 	labels := q.BaseLabels()
-	labels[resources.LabelNameAppName] = resources.AppNameThanosQuery
+	labels[resources.LabelNameAppName] = resources.AppNameThanosQueryFrontend
 	labels[resources.LabelNameAppManagedBy] = q.Service.Name
 	return labels
 }
