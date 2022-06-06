@@ -173,7 +173,7 @@ type ThanosQueryFrontend struct {
 	// Log format to use. Possible options: logfmt or json
 	LogFormat string `json:"logFormat,omitempty"`
 	// Params is a list of key/value that could be used to set strategy parameters.
-	Params map[string]string `json:"params,omitempty"`
+	Flags map[string]string `json:"flags,omitempty"`
 
 	// CacheProviderConfig ...
 	CacheConfig *CacheProviderConfig `json:"cacheConfig,omitempty"`

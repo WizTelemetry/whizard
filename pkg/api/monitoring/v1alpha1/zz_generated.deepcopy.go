@@ -762,8 +762,8 @@ func (in *ThanosQueryFrontend) DeepCopyInto(out *ThanosQueryFrontend) {
 		*out = new(int32)
 		**out = **in
 	}
-	if in.Params != nil {
-		in, out := &in.Params, &out.Params
+	if in.Flags != nil {
+		in, out := &in.Flags, &out.Flags
 		*out = make(map[string]string, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val

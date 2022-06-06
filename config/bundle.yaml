@@ -1781,6 +1781,11 @@ spec:
                         required:
                         - type
                         type: object
+                      flags:
+                        additionalProperties:
+                          type: string
+                        description: Params is a list of key/value that could be used to set strategy parameters.
+                        type: object
                       image:
                         description: Image is the thanos image with tag/version
                         type: string
@@ -1794,11 +1799,6 @@ spec:
                         additionalProperties:
                           type: string
                         description: Define which Nodes the Pods are scheduled on.
-                        type: object
-                      params:
-                        additionalProperties:
-                          type: string
-                        description: Params is a list of key/value that could be used to set strategy parameters.
                         type: object
                       replicas:
                         description: Number of replicas for a thanos component
@@ -6045,7 +6045,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: kubespheredev/paodin-controller-manager:latest
+        image: kubesphere/paodin-controller-manager:latest
         livenessProbe:
           httpGet:
             path: /healthz

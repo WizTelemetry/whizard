@@ -73,7 +73,7 @@ func (q *QueryFrontend) deployment() (runtime.Object, resources.Operation, error
 	container.Args = append(container.Args, "--query-frontend.downstream-url="+query.HttpAddr())
 	container.Args = append(container.Args, "--labels.response-cache-config-file="+filepath.Join(configDir, cacheConfigFile))
 	container.Args = append(container.Args, "--query-range.response-cache-config-file="+filepath.Join(configDir, cacheConfigFile))
-	for param, value := range q.queryFrontend.Params {
+	for param, value := range q.queryFrontend.Flags {
 		container.Args = append(container.Args, fmt.Sprintf("--%s=%s", param, value))
 	}
 

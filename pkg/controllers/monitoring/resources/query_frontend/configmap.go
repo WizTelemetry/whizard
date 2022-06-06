@@ -36,10 +36,15 @@ func (q *QueryFrontend) cacheConfigConfigMap() (runtime.Object, resources.Operat
 	if q.queryFrontend.CacheConfig != nil {
 		switch q.queryFrontend.CacheConfig.Type {
 		case v1alpha1.INMEMORY:
-			cacheConfig = CacheProviderConfig{
-				Type:   string(v1alpha1.INMEMORY),
-				Config: *q.queryFrontend.CacheConfig.InMemoryResponseCacheConfig,
+			if q.queryFrontend.CacheConfig.InMemoryResponseCacheConfig == nil {
+				cacheConfig = defaultINMEMORYCacheConfig
+			} else {
+				cacheConfig = CacheProviderConfig{
+					Type:   string(v1alpha1.INMEMORY),
+					Config: *q.queryFrontend.CacheConfig.InMemoryResponseCacheConfig,
+				}
 			}
+
 		// todo: support other cache.
 		// case v1alpha1.MEMCACHED:
 		// case v1alpha1.REDIS:

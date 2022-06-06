@@ -95,7 +95,12 @@ Follow the following steps to deploy components:
       receiveRouter: 
         replicationFactor: 2
       queryFrontend:
-        maxSize: 500MB
+        cacheConfig:
+          type: IN-MEMORY
+          inMemory:
+            maxSize: 500M
+            maxSizeItems: 0
+            validity: 0
   EOF
   ```
 
