@@ -22,23 +22,23 @@ import (
 var maxConfigMapDataSize = int(float64(corev1.MaxSecretSize) * 0.5)
 
 func (r *Ruler) ruleConfigMaps() (createOrUpdates []corev1.ConfigMap, deletes []corev1.ConfigMap, uses []corev1.ConfigMap, err error) {
-	var rules = make(map[string]string)
-	rules, err = r.selectRules()
+	var prometheusRules = make(map[string]string)
+	prometheusRules, err = r.selectPrometheusRules()
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	var alertingRules = make(map[string]string)
-	alertingRules, err = r.selectAlertingRules()
+	var rules = make(map[string]string)
+	rules, err = r.selectRules()
 	if err != nil {
 		return
 	}
 
-	for k, v := range alertingRules {
-		rules[k] = v
+	for k, v := range rules {
+		prometheusRules[k] = v
 	}
 
-	uses, err = r.makeRulesConfigMaps(rules)
+	uses, err = r.makeRulesConfigMaps(prometheusRules)
 	if err != nil {
 		return
 	}
@@ -92,14 +92,15 @@ func (rw rulesWrapper) Less(i, j int) bool {
 	return rw.by(&rw.rules[i], &rw.rules[j])
 }
 
-func (r *Ruler) selectAlertingRules() (map[string]string, error) {
+// select rule resources and combine them to PrometheusRules (defined by prometheus-operator) struct
+func (r *Ruler) selectRules() (map[string]string, error) {
 	rules := make(map[string]string)
 
-	namespaces, err := r.selectNamespaces(r.ruler.Spec.AlertingRuleNamespaceSelector)
+	namespaces, err := r.selectNamespaces(r.ruler.Spec.RuleNamespaceSelector)
 	if err != nil {
 		return nil, err
 	}
-	ruleSelector, err := metav1.LabelSelectorAsSelector(r.ruler.Spec.AlertingRuleSelector)
+	ruleSelector, err := metav1.LabelSelectorAsSelector(r.ruler.Spec.RuleSelector)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +108,7 @@ func (r *Ruler) selectAlertingRules() (map[string]string, error) {
 	var defaultGroupName = "default"
 
 	for _, ns := range namespaces {
-		var ruleList monitoringv1alpha1.AlertingRuleList
+		var ruleList monitoringv1alpha1.RuleList
 		err = r.Client.List(r.Context, &ruleList,
 			client.MatchingLabelsSelector{Selector: ruleSelector}, client.InNamespace(ns))
 		if err != nil {
@@ -124,19 +125,23 @@ func (r *Ruler) selectAlertingRules() (map[string]string, error) {
 			groups[group.Name] = &group
 		}
 
-		// combine AlertingRules to the RuleGroups(defined by prometheus-operator)
+		// combine Rules to the RuleGroups(defined by prometheus-operator)
 		var promGroups = make(map[string]*promv1.RuleGroup)
 		var groupsChecked = make(map[string]struct{})
 		var groupNames []string
 		for _, rule := range ruleList.Items {
+			if rule.Spec.Alert == "" && rule.Spec.Record == "" {
+				r.Log.WithValues("rule", ns+"/"+rule.Name).V(2).Error(nil, "ignore the rule because both alert and record are empty")
+				continue
+			}
 			var groupName = defaultGroupName
 			if g := monitoringv1alpha1.RuleGroupName(&rule); g != "" {
 				groupName = g
 			}
 			if _, ok := promGroups[groupName]; !ok {
 				group, ok2 := groups[groupName]
-				if groupName != defaultGroupName && !ok2 {
-					if _, checked := groupsChecked[groupName]; !checked { // avoid to log not found err too many times for same groups
+				if groupName != defaultGroupName && !ok2 { // for the group does not exist
+					if _, checked := groupsChecked[groupName]; !checked { // avoid to log not found err too many times for a same group
 						groupsChecked[groupName] = struct{}{}
 						r.Log.WithValues("rulegroup", ns+"/"+groupName).Error(err, "not found")
 					}
@@ -152,17 +157,21 @@ func (r *Ruler) selectAlertingRules() (map[string]string, error) {
 
 			}
 			promGroups[groupName].Rules = append(promGroups[groupName].Rules, promv1.Rule{
-				Alert:       rule.Name,
+				Alert:       rule.Spec.Alert,
+				Record:      rule.Spec.Record,
 				Expr:        rule.Spec.Expr,
 				Labels:      rule.Spec.Labels,
 				Annotations: rule.Spec.Annotations,
-				For:         rule.Spec.For,
+				For:         string(rule.Spec.For),
 			})
 		}
 
 		// sort rules in each group by rule name asc
 		for _, groupName := range groupNames {
 			sort.Sort(rulesWrapper{promGroups[groupName].Rules, func(r1, r2 *promv1.Rule) bool {
+				if r1.Alert == r2.Alert { // for record rules
+					return r1.Record < r2.Record
+				}
 				return r1.Alert < r2.Alert
 			}})
 		}
@@ -201,7 +210,7 @@ func (r *Ruler) selectAlertingRules() (map[string]string, error) {
 				if err != nil {
 					return nil, errors.Wrap(err, "failed to marshal content")
 				}
-				rules[fmt.Sprintf("%s.alerting-rules.%d.yaml", ns, count)] = string(content)
+				rules[fmt.Sprintf("%s.rules.%d.yaml", ns, count)] = string(content)
 
 				promRule = promv1.PrometheusRuleSpec{}
 				size = 0
@@ -209,9 +218,6 @@ func (r *Ruler) selectAlertingRules() (map[string]string, error) {
 			}
 
 			promGroup := promGroups[groupName]
-			sort.Sort(rulesWrapper{promGroup.Rules, func(r1, r2 *promv1.Rule) bool {
-				return r1.Alert < r2.Alert
-			}})
 
 			content, err := yaml.Marshal(promGroup)
 			if err != nil {
@@ -228,7 +234,7 @@ func (r *Ruler) selectAlertingRules() (map[string]string, error) {
 			if err != nil {
 				return nil, errors.Wrap(err, "failed to marshal content")
 			}
-			rules[fmt.Sprintf("%s.alerting-rules.%d.yaml", ns, count)] = string(content)
+			rules[fmt.Sprintf("%s.rules.%d.yaml", ns, count)] = string(content)
 		}
 
 	}
@@ -244,7 +250,7 @@ func (r *Ruler) selectNamespaces(nsSelector *metav1.LabelSelector) ([]string, er
 	if nsSelector == nil {
 		namespaces = append(namespaces, r.ruler.Namespace)
 	} else {
-		selector, err := metav1.LabelSelectorAsSelector(r.ruler.Spec.RuleNamespaceSelector)
+		selector, err := metav1.LabelSelectorAsSelector(nsSelector)
 		if err != nil {
 			return namespaces, errors.Wrap(err, "convert rule namespace label selector to selector")
 		}
@@ -262,14 +268,14 @@ func (r *Ruler) selectNamespaces(nsSelector *metav1.LabelSelector) ([]string, er
 	return namespaces, nil
 }
 
-func (r *Ruler) selectRules() (map[string]string, error) {
+func (r *Ruler) selectPrometheusRules() (map[string]string, error) {
 	rules := make(map[string]string)
 
-	namespaces, err := r.selectNamespaces(r.ruler.Spec.RuleNamespaceSelector)
+	namespaces, err := r.selectNamespaces(r.ruler.Spec.PrometheusRuleNamespaceSelector)
 	if err != nil {
 		return nil, err
 	}
-	ruleSelector, err := metav1.LabelSelectorAsSelector(r.ruler.Spec.RuleSelector)
+	ruleSelector, err := metav1.LabelSelectorAsSelector(r.ruler.Spec.PrometheusRuleSelector)
 	if err != nil {
 		return nil, err
 	}

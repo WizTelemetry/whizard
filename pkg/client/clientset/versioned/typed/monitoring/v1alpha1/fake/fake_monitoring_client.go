@@ -27,8 +27,8 @@ type FakeMonitoringV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeMonitoringV1alpha1) AlertingRules(namespace string) v1alpha1.AlertingRuleInterface {
-	return &FakeAlertingRules{c, namespace}
+func (c *FakeMonitoringV1alpha1) Rules(namespace string) v1alpha1.RuleInterface {
+	return &FakeRules{c, namespace}
 }
 
 func (c *FakeMonitoringV1alpha1) RuleGroups(namespace string) v1alpha1.RuleGroupInterface {

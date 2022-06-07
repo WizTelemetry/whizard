@@ -6,7 +6,7 @@ resources:
 - bases/monitoring.paodin.io_stores.yaml
 - bases/monitoring.paodin.io_thanosreceiveingestors.yaml
 - bases/monitoring.paodin.io_thanosrulers.yaml
-- bases/monitoring.paodin.io_alertingrules.yaml
+- bases/monitoring.paodin.io_rules.yaml
 - bases/monitoring.paodin.io_rulegroups.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 

@@ -466,18 +466,18 @@ type ThanosRulerSpec struct {
 	// Log format to use. Possible options: logfmt or json
 	LogFormat string `json:"logFormat,omitempty"`
 
-	// AlertingRules to be selected for alerting.
-	AlertingRuleSelector *metav1.LabelSelector `json:"alertingRuleSelector,omitempty"`
-	// Namespaces to be selected for AlertingRules discovery. If nil, only
-	// check own namespace.
-	AlertingRuleNamespaceSelector *metav1.LabelSelector `json:"alertingRuleNamespaceSelector,omitempty"`
-
-	// A label selector to select which PrometheusRules to mount for alerting and
+	// A label selector to select which Rules to mount for alerting and
 	// recording.
 	RuleSelector *metav1.LabelSelector `json:"ruleSelector,omitempty"`
-	// Namespaces to be selected for Rules discovery. If unspecified, only
+	// Namespaces to be selected for Rules discovery. If nil, only
 	// the same namespace as the ThanosRuler object is in is used.
 	RuleNamespaceSelector *metav1.LabelSelector `json:"ruleNamespaceSelector,omitempty"`
+	// A label selector to select which PrometheusRules to mount for alerting and
+	// recording.
+	PrometheusRuleSelector *metav1.LabelSelector `json:"prometheusRuleSelector,omitempty"`
+	// Namespaces to be selected for PrometheusRules discovery. If unspecified, only
+	// the same namespace as the ThanosRuler object is in is used.
+	PrometheusRuleNamespaceSelector *metav1.LabelSelector `json:"prometheusRuleNamespaceSelector,omitempty"`
 
 	// Tenant if not empty indicates which tenant's data is evaluated for the selected rules;
 	// otherwise, it is for all tenants.
@@ -536,16 +536,18 @@ type ThanosRulerList struct {
 	Items           []ThanosRuler `json:"items"`
 }
 
-// AlertingRuleSpec defines the desired state of a AlertingRule
-type AlertingRuleSpec struct {
+// RuleSpec defines the desired state of a Rule
+type RuleSpec struct {
+	Alert       string             `json:"alert,omitempty"`
+	Record      string             `json:"record,omitempty"`
 	Expr        intstr.IntOrString `json:"expr"`
-	For         string             `json:"for,omitempty"`
+	For         Duration           `json:"for,omitempty"`
 	Labels      map[string]string  `json:"labels,omitempty"`
 	Annotations map[string]string  `json:"annotations,omitempty"`
 }
 
-// AlertingRuleStatus defines the observed state of AlertingRule
-type AlertingRuleStatus struct {
+// RuleStatus defines the observed state of Rule
+type RuleStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 }
@@ -554,22 +556,22 @@ type AlertingRuleStatus struct {
 //+kubebuilder:subresource:status
 // +genclient
 
-// AlertingRule is the Schema for the AlertingRule API
-type AlertingRule struct {
+// Rule is the Schema for the Rule API
+type Rule struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   AlertingRuleSpec   `json:"spec,omitempty"`
-	Status AlertingRuleStatus `json:"status,omitempty"`
+	Spec   RuleSpec   `json:"spec,omitempty"`
+	Status RuleStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// AlertingRuleList contains a list of AlertingRule
-type AlertingRuleList struct {
+// RuleList contains a list of Rule
+type RuleList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []AlertingRule `json:"items"`
+	Items           []Rule `json:"items"`
 }
 
 // RuleGroupSpec defines the desired state of a RuleGroup
@@ -617,7 +619,7 @@ func init() {
 		Register(&ThanosReceiveIngestor{}, &ThanosReceiveIngestorList{}).
 		Register(&Store{}, &StoreList{}).
 		Register(&ThanosRuler{}, &ThanosRulerList{}).
-		Register(&AlertingRule{}, &AlertingRuleList{}).
+		Register(&Rule{}, &RuleList{}).
 		Register(&RuleGroup{}, &RuleGroupList{})
 }
 

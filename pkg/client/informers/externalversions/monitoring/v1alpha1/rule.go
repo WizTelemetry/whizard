@@ -31,59 +31,59 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// AlertingRuleInformer provides access to a shared informer and lister for
-// AlertingRules.
-type AlertingRuleInformer interface {
+// RuleInformer provides access to a shared informer and lister for
+// Rules.
+type RuleInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.AlertingRuleLister
+	Lister() v1alpha1.RuleLister
 }
 
-type alertingRuleInformer struct {
+type ruleInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 	namespace        string
 }
 
-// NewAlertingRuleInformer constructs a new informer for AlertingRule type.
+// NewRuleInformer constructs a new informer for Rule type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewAlertingRuleInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredAlertingRuleInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewRuleInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredRuleInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredAlertingRuleInformer constructs a new informer for AlertingRule type.
+// NewFilteredRuleInformer constructs a new informer for Rule type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredAlertingRuleInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredRuleInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.MonitoringV1alpha1().AlertingRules(namespace).List(context.TODO(), options)
+				return client.MonitoringV1alpha1().Rules(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.MonitoringV1alpha1().AlertingRules(namespace).Watch(context.TODO(), options)
+				return client.MonitoringV1alpha1().Rules(namespace).Watch(context.TODO(), options)
 			},
 		},
-		&monitoringv1alpha1.AlertingRule{},
+		&monitoringv1alpha1.Rule{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func (f *alertingRuleInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredAlertingRuleInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+func (f *ruleInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredRuleInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *alertingRuleInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&monitoringv1alpha1.AlertingRule{}, f.defaultInformer)
+func (f *ruleInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&monitoringv1alpha1.Rule{}, f.defaultInformer)
 }
 
-func (f *alertingRuleInformer) Lister() v1alpha1.AlertingRuleLister {
-	return v1alpha1.NewAlertingRuleLister(f.Informer().GetIndexer())
+func (f *ruleInformer) Lister() v1alpha1.RuleLister {
+	return v1alpha1.NewRuleLister(f.Informer().GetIndexer())
 }
