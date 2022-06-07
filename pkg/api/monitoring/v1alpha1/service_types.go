@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	"strings"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -79,6 +80,8 @@ type Thanos struct {
 	Query *Query `json:"query,omitempty"`
 	// Thanos Receive Router component routes to the backends such as Thanos Receive Ingestor by automated discovery.
 	ReceiveRouter *ThanosReceiveRouter `json:"receiveRouter,omitempty"`
+	// Thanos Query frontend component implements a service deployed in front of queriers to improve query parallelization and caching.
+	QueryFrontend *ThanosQueryFrontend `json:"queryFrontend,omitempty"`
 }
 
 type Query struct {
@@ -149,6 +152,56 @@ type ThanosReceiveRouter struct {
 
 	// How many times to replicate incoming write requests
 	ReplicationFactor *uint64 `json:"replicationFactor,omitempty"`
+}
+
+type ThanosQueryFrontend struct {
+	// If specified, the pod's scheduling constraints.
+	Affinity *corev1.Affinity `json:"affinity,omitempty"`
+	// Define which Nodes the Pods are scheduled on.
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+	// If specified, the pod's tolerations.
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+	// Define resources requests and limits for main container.
+	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
+	// Number of replicas for a thanos component
+	Replicas *int32 `json:"replicas,omitempty"`
+
+	// Image is the thanos image with tag/version
+	Image string `json:"image,omitempty"`
+	// Log filtering level. Possible options: error, warn, info, debug
+	LogLevel string `json:"logLevel,omitempty"`
+	// Log format to use. Possible options: logfmt or json
+	LogFormat string `json:"logFormat,omitempty"`
+	// Params is a list of key/value that could be used to set strategy parameters.
+	Flags map[string]string `json:"flags,omitempty"`
+
+	// CacheProviderConfig ...
+	CacheConfig *CacheProviderConfig `json:"cacheConfig,omitempty"`
+}
+
+type ResponseCacheProvider string
+
+const (
+	INMEMORY  ResponseCacheProvider = "IN-MEMORY"
+	MEMCACHED ResponseCacheProvider = "MEMCACHED"
+	REDIS     ResponseCacheProvider = "REDIS"
+)
+
+// CacheProviderConfig is the initial CacheProviderConfig struct holder before parsing it into a specific cache provider.
+// Based on the config type the config is then parsed into a specific cache provider.
+type CacheProviderConfig struct {
+	Type                        ResponseCacheProvider        `json:"type"`
+	InMemoryResponseCacheConfig *InMemoryResponseCacheConfig `json:"inMemory,omitempty"`
+}
+
+// InMemoryResponseCacheConfig holds the configs for the in-memory cache provider.
+type InMemoryResponseCacheConfig struct {
+	// MaxSize represents overall maximum number of bytes cache can contain.
+	MaxSize string `json:"maxSize" yaml:"max_size"`
+	// MaxSizeItems represents the maximum number of entries in the cache.
+	MaxSizeItems int `json:"maxSizeItems" yaml:"max_size_items"`
+	// Validity represents the expiry duration for the cache.
+	Validity time.Duration `json:"validity" yaml:"validity"`
 }
 
 // ServiceStatus defines the observed state of Service

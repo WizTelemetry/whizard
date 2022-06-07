@@ -94,6 +94,13 @@ Follow the following steps to deploy components:
         - thanos_ruler_replica
       receiveRouter: 
         replicationFactor: 2
+      queryFrontend:
+        cacheConfig:
+          type: IN-MEMORY
+          inMemory:
+            maxSize: 500M
+            maxSizeItems: 0
+            validity: 0
   EOF
   ```
 

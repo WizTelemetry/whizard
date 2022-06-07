@@ -11,6 +11,7 @@ import (
 
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/query"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/query_frontend"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/receive_router"
 )
 
@@ -124,7 +125,10 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 	}
 
 	if thanos := g.Service.Spec.Thanos; thanos != nil {
-		if thanos.Query != nil {
+		if thanos.QueryFrontend != nil {
+			qf := query_frontend.New(g.ServiceBaseReconciler)
+			container.Args = append(container.Args, fmt.Sprintf("--query.address=%s", qf.HttpAddr()))
+		} else if thanos.Query != nil {
 			q := query.New(g.ServiceBaseReconciler)
 			container.Args = append(container.Args, fmt.Sprintf("--query.address=%s", q.HttpAddr()))
 		}

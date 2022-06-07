@@ -35,6 +35,7 @@ import (
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/gateway"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/query"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/query_frontend"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/receive_router"
 )
 
@@ -97,6 +98,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		serviceBaseReconciler.Service.Spec.Thanos = &monitoringv1alpha1.Thanos{}
 	}
 	reconciles = append(reconciles, receive_router.New(serviceBaseReconciler).Reconcile)
+	reconciles = append(reconciles, query_frontend.New(serviceBaseReconciler).Reconcile)
 	reconciles = append(reconciles, query.New(serviceBaseReconciler).Reconcile)
 	reconciles = append(reconciles, gateway.New(serviceBaseReconciler).Reconcile)
 	for _, reconcile := range reconciles {
@@ -180,6 +182,14 @@ func CreateServiceDefaulterValidator(opt options.Options) ServiceDefaulterValida
 			}
 			if thanos.ReceiveRouter.Image == "" {
 				thanos.ReceiveRouter.Image = opt.ThanosImage
+			}
+		}
+		if thanos.QueryFrontend != nil {
+			if thanos.QueryFrontend.Replicas == nil || *thanos.QueryFrontend.Replicas < 0 {
+				thanos.QueryFrontend.Replicas = &replicas
+			}
+			if thanos.QueryFrontend.Image == "" {
+				thanos.QueryFrontend.Image = opt.ThanosImage
 			}
 		}
 
