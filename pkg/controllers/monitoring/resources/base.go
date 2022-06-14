@@ -2,10 +2,13 @@ package resources
 
 import (
 	"context"
+	"strings"
 
+	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -57,6 +60,25 @@ func (r *BaseReconciler) ReconcileResources(resources []Resource) error {
 					return util.CreateOrUpdateService(r.Context, r.Client, desired)
 				case *corev1.ServiceAccount:
 					return util.CreateOrUpdateServiceAccount(r.Context, r.Client, desired)
+				case *appsv1.StatefulSet:
+					err = util.CreateOrUpdateStatefulSet(r.Context, r.Client, desired)
+					sErr, ok := err.(*apierrors.StatusError)
+					if ok && sErr.ErrStatus.Code == 422 && sErr.ErrStatus.Reason == metav1.StatusReasonInvalid {
+						// Gather only reason for failed update
+						failMsg := make([]string, len(sErr.ErrStatus.Details.Causes))
+						for i, cause := range sErr.ErrStatus.Details.Causes {
+							failMsg[i] = cause.Message
+						}
+						r.Log.Info("recreating StatefulSet because the update operation wasn't possible", "reason", strings.Join(failMsg, ", "))
+						if err = r.Client.Delete(r.Context, obj.(client.Object), client.PropagationPolicy(metav1.DeletePropagationForeground)); err != nil {
+							return errors.Wrap(err, "failed to delete StatefulSet to avoid forbidden action")
+						}
+						return nil
+					}
+					if err != nil {
+						return errors.Wrap(err, "updating StatefulSet failed")
+					}
+					return nil
 				default:
 					return util.CreateOrUpdate(r.Context, r.Client, desired.(client.Object))
 				}

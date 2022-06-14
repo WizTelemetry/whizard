@@ -14,6 +14,23 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+func CreateOrUpdateStatefulSet(ctx context.Context, cli client.Client, desired *appsv1.StatefulSet) error {
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		var current = &appsv1.StatefulSet{}
+		err := cli.Get(ctx, client.ObjectKeyFromObject(desired), current)
+		if err != nil {
+			if !apierrors.IsNotFound(err) {
+				return err
+			}
+			return cli.Create(ctx, desired)
+		}
+
+		mergeMetadata(&desired.ObjectMeta, &current.ObjectMeta)
+
+		return cli.Update(ctx, desired)
+	})
+}
+
 func CreateOrUpdateDeployment(ctx context.Context, cli client.Client, desired *appsv1.Deployment) error {
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		var current = &appsv1.Deployment{}
