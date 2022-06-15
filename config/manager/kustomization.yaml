@@ -12,7 +12,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 images:
 - name: controller
-  newName: kubespheredev/paodin-controller-manager
+  newName: kubesphere/paodin-controller-manager
   newTag: latest
 
 vars:

@@ -112,6 +112,10 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 		queryContainer.Args = append(queryContainer.Args, "--endpoint="+endpoint)
 	}
 
+	for name, value := range q.query.Flags {
+		queryContainer.Args = append(queryContainer.Args, fmt.Sprintf("--%s=%s", name, value))
+	}
+
 	var envoyContainer = corev1.Container{
 		Name:  "proxy",
 		Image: q.query.Envoy.Image,

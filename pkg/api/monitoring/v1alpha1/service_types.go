@@ -111,6 +111,9 @@ type Query struct {
 	// Labels to treat as a replica indicator along which data is deduplicated.
 	ReplicaLabelNames []string `json:"replicaLabelNames,omitempty"`
 
+	// Flags is a list of key/value that could be used to set strategy parameters.
+	Flags map[string]string `json:"flags,omitempty"`
+
 	// Envoy is used to config sidecar which proxies requests requiring auth to the secure stores
 	Envoy EnvoySpec `json:"envoy,omitempty"`
 }
@@ -152,6 +155,9 @@ type ThanosReceiveRouter struct {
 
 	// How many times to replicate incoming write requests
 	ReplicationFactor *uint64 `json:"replicationFactor,omitempty"`
+
+	// Flags is a list of key/value that could be used to set strategy parameters.
+	Flags map[string]string `json:"flags,omitempty"`
 }
 
 type ThanosQueryFrontend struct {
@@ -172,7 +178,7 @@ type ThanosQueryFrontend struct {
 	LogLevel string `json:"logLevel,omitempty"`
 	// Log format to use. Possible options: logfmt or json
 	LogFormat string `json:"logFormat,omitempty"`
-	// Params is a list of key/value that could be used to set strategy parameters.
+	// Flags is a list of key/value that could be used to set strategy parameters.
 	Flags map[string]string `json:"flags,omitempty"`
 
 	// CacheProviderConfig ...
@@ -256,6 +262,9 @@ type ThanosStoreGateway struct {
 	// MaxTime specifies end of time range limit to serve
 	MaxTime string `json:"maxTime,omitempty"`
 
+	// Flags is a list of key/value that could be used to set strategy parameters.
+	Flags map[string]string `json:"flags,omitempty"`
+
 	// DataVolume specifies how volume shall be used
 	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
 }
@@ -283,6 +292,9 @@ type ThanosCompact struct {
 	DownsamplingDisable *bool `json:"downsamplingDisable,omitempty"`
 	// Retention configs how long to retain samples
 	Retention *Retention `json:"retention,omitempty"`
+
+	// Flags is a list of key/value that could be used to set strategy parameters.
+	Flags map[string]string `json:"flags,omitempty"`
 
 	// DataVolume specifies how volume shall be used
 	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
@@ -372,6 +384,9 @@ type ThanosReceiveIngestorSpec struct {
 
 	// LocalTsdbRetention configs how long to retain raw samples on local storage.
 	LocalTsdbRetention string `json:"localTsdbRetention,omitempty"`
+
+	// Flags is a list of key/value that could be used to set strategy parameters.
+	Flags map[string]string `json:"flags,omitempty"`
 
 	// If specified, the object key of Store for long term storage.
 	LongTermStore *ObjectReference `json:"longTermStore,omitempty"`
@@ -463,6 +478,9 @@ type ThanosRulerSpec struct {
 	// Interval between consecutive evaluations. Default: `30s`
 	// +kubebuilder:default:="30s"
 	EvaluationInterval Duration `json:"evaluationInterval,omitempty"`
+
+	// Flags is a list of key/value that could be used to set strategy parameters.
+	Flags map[string]string `json:"flags,omitempty"`
 
 	// DataVolume specifies how volume shall be used
 	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`

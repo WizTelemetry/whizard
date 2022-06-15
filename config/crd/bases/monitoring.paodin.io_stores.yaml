@@ -1305,6 +1305,12 @@ spec:
                         description: DownsamplingDisable specifies whether to disable
                           downsampling
                         type: boolean
+                      flags:
+                        additionalProperties:
+                          type: string
+                        description: Flags is a list of key/value that could be used
+                          to set strategy parameters.
+                        type: object
                       image:
                         description: Image is the thanos image with tag/version
                         type: string
@@ -2658,6 +2664,12 @@ spec:
                                     type: string
                                 type: object
                             type: object
+                        type: object
+                      flags:
+                        additionalProperties:
+                          type: string
+                        description: Flags is a list of key/value that could be used
+                          to set strategy parameters.
                         type: object
                       image:
                         description: Image is the thanos image with tag/version

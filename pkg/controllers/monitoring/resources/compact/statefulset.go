@@ -126,6 +126,10 @@ func (r *Compact) statefulSet() (runtime.Object, resources.Operation, error) {
 	}
 	container.Args = append(container.Args, "--deduplication.replica-label=receive_replica")
 
+	for name, value := range r.compact.Flags {
+		container.Args = append(container.Args, fmt.Sprintf("--%s=%s", name, value))
+	}
+
 	sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, container)
 
 	return sts, resources.OperationCreateOrUpdate, nil
