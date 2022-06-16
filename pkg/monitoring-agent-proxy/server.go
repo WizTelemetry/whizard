@@ -17,15 +17,16 @@ const (
 	series      = "/api/v1/series"
 	labels      = "/api/v1/labels"
 	labelValues = "/api/v1/label/*path"
-	targetsMeta = "/api/v1/targets/meta"
+	targetsMeta = "/api/v1/targets/metadata"
 	receive     = "/api/v1/receive"
 )
 
 type Options struct {
-	ListenAddress        string
-	TLSConfig            *tls.Config
-	Tenant               string
-	GatewayProxyEndpoint *url.URL
+	ListenAddress               string
+	TLSConfig                   *tls.Config
+	Tenant                      string
+	GatewayProxyEndpoint        *url.URL
+	GatewayProxyClientTLSConfig *tls.Config
 }
 
 type Server struct {
@@ -63,7 +64,7 @@ func (s *Server) wrap(path string) http.HandlerFunc {
 	oldDirector := proxy.Director
 	if s.options.GatewayProxyEndpoint.Scheme == "https" {
 		proxy.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			TLSClientConfig: s.options.GatewayProxyClientTLSConfig,
 		}
 	}
 

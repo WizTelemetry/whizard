@@ -22,8 +22,13 @@ var cli struct {
 	ServerTlsClientCa string `default:"" help:"TLS CA to verify clients against. If no client CA is specified, there is no client verification on server side. (tls.NoClientCert)"`
 
 	MonitorGateway struct {
-		Address string `default:"" help:"Address to connect paodin monitor-gateway"`
-	} `embed:"" prefix:"monitorgaetway."`
+		Address            string `default:"" help:"Address to connect paodin monitor-gateway"`
+		ClientTlsKey       string `default:"" help:"TLS Key for HTTP client, leave blank to skip verify."`
+		ClientTlsCert      string `default:"" help:"TLS Certificate for HTTP client, leave blank to skip verify."`
+		ServerTlsClientCa  string `default:"" help:"TLS CA to verify clients against. If no client CA is specified, there is no client verification on server side. (tls.NoClientCert)"`
+		ServerName         string `default:"" help:"TLS ServerName used to verify the hostname"`
+		InsecureSkipVerify bool   `default:"true" help:"Disable certificate validation."`
+	} `embed:"" prefix:"gateway."`
 
 	Tenant string `default:"" help:"unique. clusterID"`
 }
@@ -41,6 +46,8 @@ func main() {
 		ListenAddress:        cli.HttpAddress,
 		GatewayProxyEndpoint: rawUrl,
 	}
+	options.GatewayProxyClientTLSConfig, err = thanos_tls.NewClientConfig(logger, cli.MonitorGateway.ClientTlsCert, cli.MonitorGateway.ClientTlsKey, cli.MonitorGateway.ServerTlsClientCa, cli.MonitorGateway.ServerName, cli.MonitorGateway.InsecureSkipVerify)
+	ctx.FatalIfErrorf(err)
 
 	options.TLSConfig, err = thanos_tls.NewServerConfig(logger, cli.ServerTlsCert, cli.ServerTlsKey, cli.ServerTlsClientCa)
 	ctx.FatalIfErrorf(err)
