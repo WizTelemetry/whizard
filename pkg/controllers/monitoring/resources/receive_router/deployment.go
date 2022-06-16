@@ -110,6 +110,15 @@ func (r *ReceiveRouter) deployment() (runtime.Object, resources.Operation, error
 		container.Args = append(container.Args, "--receive.default-tenant-id="+r.Service.Spec.DefaultTenantId)
 	}
 
+	for name, value := range r.router.Flags {
+		if name == "receive.local-endpoint" {
+			// ignoring these flags to make receiver run with router mode
+			// refer to https://github.com/thanos-io/thanos/blob/release-0.26/cmd/thanos/receive.go#L816
+			continue
+		}
+		container.Args = append(container.Args, fmt.Sprintf("--%s=%s", name, value))
+	}
+
 	d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, container)
 
 	return d, resources.OperationCreateOrUpdate, nil

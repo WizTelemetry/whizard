@@ -309,6 +309,13 @@ func (in *Query) DeepCopyInto(out *Query) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.Flags != nil {
+		in, out := &in.Flags, &out.Flags
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	in.Envoy.DeepCopyInto(&out.Envoy)
 }
 
@@ -717,6 +724,13 @@ func (in *ThanosCompact) DeepCopyInto(out *ThanosCompact) {
 		*out = new(Retention)
 		**out = **in
 	}
+	if in.Flags != nil {
+		in, out := &in.Flags, &out.Flags
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.DataVolume != nil {
 		in, out := &in.DataVolume, &out.DataVolume
 		*out = new(KubernetesVolume)
@@ -878,6 +892,13 @@ func (in *ThanosReceiveIngestorSpec) DeepCopyInto(out *ThanosReceiveIngestorSpec
 		*out = new(int32)
 		**out = **in
 	}
+	if in.Flags != nil {
+		in, out := &in.Flags, &out.Flags
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.LongTermStore != nil {
 		in, out := &in.LongTermStore, &out.LongTermStore
 		*out = new(ObjectReference)
@@ -947,6 +968,13 @@ func (in *ThanosReceiveRouter) DeepCopyInto(out *ThanosReceiveRouter) {
 		in, out := &in.ReplicationFactor, &out.ReplicationFactor
 		*out = new(uint64)
 		**out = **in
+	}
+	if in.Flags != nil {
+		in, out := &in.Flags, &out.Flags
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
 	}
 }
 
@@ -1089,6 +1117,13 @@ func (in *ThanosRulerSpec) DeepCopyInto(out *ThanosRulerSpec) {
 		*out = new(v1.SecretKeySelector)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.Flags != nil {
+		in, out := &in.Flags, &out.Flags
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.DataVolume != nil {
 		in, out := &in.DataVolume, &out.DataVolume
 		*out = new(KubernetesVolume)
@@ -1173,6 +1208,13 @@ func (in *ThanosStoreGateway) DeepCopyInto(out *ThanosStoreGateway) {
 		in, out := &in.Replicas, &out.Replicas
 		*out = new(int32)
 		**out = **in
+	}
+	if in.Flags != nil {
+		in, out := &in.Flags, &out.Flags
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
 	}
 	if in.DataVolume != nil {
 		in, out := &in.DataVolume, &out.DataVolume

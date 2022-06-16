@@ -203,6 +203,15 @@ func (r *ReceiveIngestor) statefulSet() (runtime.Object, resources.Operation, er
 		}
 	}
 
+	for name, value := range r.ingestor.Spec.Flags {
+		if name == "receive.hashrings" || name == "receive.hashrings-file" {
+			// ignoring these flags to make receiver run with ingestor mode
+			// refer to https://github.com/thanos-io/thanos/blob/release-0.26/cmd/thanos/receive.go#L816
+			continue
+		}
+		container.Args = append(container.Args, fmt.Sprintf("--%s=%s", name, value))
+	}
+
 	sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, container)
 
 	return sts, resources.OperationCreateOrUpdate, nil

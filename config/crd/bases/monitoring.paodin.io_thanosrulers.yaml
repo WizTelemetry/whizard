@@ -1295,6 +1295,12 @@ spec:
                 description: 'Interval between consecutive evaluations. Default: `30s`'
                 pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
                 type: string
+              flags:
+                additionalProperties:
+                  type: string
+                description: Flags is a list of key/value that could be used to set
+                  strategy parameters.
+                type: object
               image:
                 description: Image is the thanos image with tag/version
                 type: string

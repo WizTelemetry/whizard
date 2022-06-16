@@ -159,6 +159,10 @@ func (r *Ruler) statefulSet(ruleConfigMapNames []string) (runtime.Object, resour
 		container.Args = append(container.Args, fmt.Sprintf("--eval-interval=%s", r.ruler.Spec.EvaluationInterval))
 	}
 
+	for name, value := range r.ruler.Spec.Flags {
+		container.Args = append(container.Args, fmt.Sprintf("--%s=%s", name, value))
+	}
+
 	namespacedName := monitoringv1alpha1.ServiceNamespacedName(r.ruler)
 
 	if namespacedName != nil {

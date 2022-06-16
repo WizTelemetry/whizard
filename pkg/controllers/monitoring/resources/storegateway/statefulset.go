@@ -123,6 +123,10 @@ func (r *StoreGateway) statefulSet() (runtime.Object, resources.Operation, error
 	}
 	container.Args = append(container.Args, "--objstore.config-file="+filepath.Join(secretsDir, osConfig.Name, osConfig.Key))
 
+	for name, value := range r.store.Flags {
+		container.Args = append(container.Args, fmt.Sprintf("--%s=%s", name, value))
+	}
+
 	sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, container)
 
 	return sts, resources.OperationCreateOrUpdate, nil
