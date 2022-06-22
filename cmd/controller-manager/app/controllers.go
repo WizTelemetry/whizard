@@ -46,11 +46,12 @@ func addControllers(mgr manager.Manager, client k8s.Client, informerFactory info
 	}
 
 	if err := (&monitoring.ThanosRulerReconciler{
-		DefaulterValidator: monitoring.CreateThanosRulerDefaulterValidator(*cmOptions.MonitoringOptions),
-		ReloaderConfig:     cmOptions.MonitoringOptions.PrometheusConfigReloader,
-		Client:             mgr.GetClient(),
-		Scheme:             mgr.GetScheme(),
-		Context:            ctx,
+		DefaulterValidator:    monitoring.CreateThanosRulerDefaulterValidator(*cmOptions.MonitoringOptions),
+		ReloaderConfig:        cmOptions.MonitoringOptions.PrometheusConfigReloader,
+		RulerQueryProxyConfig: cmOptions.MonitoringOptions.RulerQueryProxy,
+		Client:                mgr.GetClient(),
+		Scheme:                mgr.GetScheme(),
+		Context:               ctx,
 	}).SetupWithManager(mgr); err != nil {
 		klog.Errorf("Unable to create ThanosRuler controller: %v", err)
 		return err

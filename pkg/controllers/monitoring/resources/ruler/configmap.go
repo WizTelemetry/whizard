@@ -2,7 +2,6 @@ package ruler
 
 import (
 	"fmt"
-	"net/url"
 	"reflect"
 	"sort"
 	"strconv"
@@ -13,67 +12,14 @@ import (
 	"github.com/pkg/errors"
 	promv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/prometheus-operator/prometheus-operator/pkg/prometheus"
-	promcommonconfig "github.com/prometheus/common/config"
-	promconfig "github.com/prometheus/prometheus/config"
-	yamlv3 "gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/receive_router"
 )
 
 var maxConfigMapDataSize = int(float64(corev1.MaxSecretSize) * 0.5)
-
-func (r *Ruler) remoteWriteConfigMap() (runtime.Object, resources.Operation, error) {
-	var cm = &corev1.ConfigMap{ObjectMeta: r.meta(r.name("remote-write-config"))}
-
-	namespacedName := monitoringv1alpha1.ServiceNamespacedName(r.ruler)
-
-	if namespacedName != nil {
-		var service monitoringv1alpha1.Service
-		if err := r.Client.Get(r.Context, *namespacedName, &service); err != nil {
-			return nil, resources.OperationCreateOrUpdate, err
-		}
-
-		receiveRouter := receive_router.New(resources.ServiceBaseReconciler{
-			BaseReconciler: r.BaseReconciler,
-			Service:        &service,
-		})
-
-		writeUrl, err := url.Parse(receiveRouter.RemoteWriteAddr() + "/api/v1/receive")
-		if err != nil {
-			return nil, resources.OperationCreateOrUpdate, err
-		}
-
-		var rwCfg = &promconfig.RemoteWriteConfig{}
-		*rwCfg = promconfig.DefaultRemoteWriteConfig
-		if rwCfg.Headers == nil {
-			rwCfg.Headers = make(map[string]string)
-		}
-		rwCfg.Headers[service.Spec.TenantHeader] = resources.PseudoTenantDefaultId
-
-		rwCfg.URL = &promcommonconfig.URL{URL: writeUrl}
-
-		var cfgs struct {
-			RemoteWriteConfigs []*promconfig.RemoteWriteConfig `yaml:"remote_write,omitempty"`
-		}
-		cfgs.RemoteWriteConfigs = append(cfgs.RemoteWriteConfigs, rwCfg)
-
-		content, err := yamlv3.Marshal(&cfgs)
-		if err != nil {
-			return nil, resources.OperationCreateOrUpdate, err
-		}
-		cm.Data = map[string]string{
-			remoteWriteFile: string(content),
-		}
-	}
-
-	return cm, resources.OperationCreateOrUpdate, nil
-}
 
 func (r *Ruler) ruleConfigMaps() (createOrUpdates []corev1.ConfigMap, deletes []corev1.ConfigMap, uses []corev1.ConfigMap, err error) {
 	var rules = make(map[string]string)

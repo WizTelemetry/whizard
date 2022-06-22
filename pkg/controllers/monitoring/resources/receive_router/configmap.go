@@ -30,11 +30,6 @@ func (r *ReceiveRouter) hashringsConfigMap() (runtime.Object, resources.Operatio
 		Hashring:  "softs",
 		Endpoints: []string{},
 	}
-	var pseudoHashring = HashringConfig{
-		Hashring:  "pseudo",
-		Tenants:   []string{resources.PseudoTenantDefaultId},
-		Endpoints: []string{},
-	}
 
 	var ingestorList monitoringv1alpha1.ThanosReceiveIngestorList
 	if err := r.Client.List(r.Context, &ingestorList,
@@ -46,12 +41,6 @@ func (r *ReceiveRouter) hashringsConfigMap() (runtime.Object, resources.Operatio
 
 	for _, item := range ingestorList.Items {
 		ingestor := receive_ingestor.New(r.BaseReconciler, &item)
-		if item.Labels != nil {
-			if _, ok := item.Labels[resources.LabelNamePaodinPreprocessedDataIngestor]; ok {
-				pseudoHashring.Endpoints = append(pseudoHashring.Endpoints, ingestor.GrpcAddrs()...)
-				continue
-			}
-		}
 		if len(item.Spec.Tenants) == 0 {
 			softHashring.Endpoints = append(softHashring.Endpoints, ingestor.GrpcAddrs()...)
 			continue
@@ -62,8 +51,7 @@ func (r *ReceiveRouter) hashringsConfigMap() (runtime.Object, resources.Operatio
 			Endpoints: ingestor.GrpcAddrs(),
 		})
 	}
-	hashrings = append(hashrings, pseudoHashring) // put
-	hashrings = append(hashrings, softHashring)   // put soft tenants at the end
+	hashrings = append(hashrings, softHashring) // put soft tenants at the end
 
 	hashringBytes, err := json.MarshalIndent(hashrings, "", "\t")
 	if err != nil {

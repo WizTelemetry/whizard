@@ -7,14 +7,20 @@ import (
 	"path/filepath"
 
 	promoperator "github.com/prometheus-operator/prometheus-operator/pkg/operator"
+	promcommonconfig "github.com/prometheus/common/config"
+	promconfig "github.com/prometheus/prometheus/config"
+	"github.com/prometheus/prometheus/model/relabel"
+	yamlv3 "gopkg.in/yaml.v3"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/query"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/receive_router"
 )
 
 func (r *Ruler) statefulSet(ruleConfigMapNames []string) (runtime.Object, resources.Operation, error) {
@@ -163,6 +169,8 @@ func (r *Ruler) statefulSet(ruleConfigMapNames []string) (runtime.Object, resour
 		container.Args = append(container.Args, fmt.Sprintf("--%s=%s", name, value))
 	}
 
+	var queryProxyContainer *corev1.Container
+
 	namespacedName := monitoringv1alpha1.ServiceNamespacedName(r.ruler)
 
 	if namespacedName != nil {
@@ -174,20 +182,71 @@ func (r *Ruler) statefulSet(ruleConfigMapNames []string) (runtime.Object, resour
 			BaseReconciler: r.BaseReconciler,
 			Service:        &service,
 		})
-		container.Args = append(container.Args, "--query="+query.HttpAddr())
 
-		container.Args = append(container.Args, "--remote-write.config=$(REMOTE_WRITE_CONFIG)")
-		container.Env = append(container.Env, corev1.EnvVar{
-			Name: "REMOTE_WRITE_CONFIG",
-			ValueFrom: &corev1.EnvVarSource{
-				ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: r.name("remote-write-config"),
-					},
-					Key: remoteWriteFile,
-				},
-			},
+		// remote write config
+		receiveRouter := receive_router.New(resources.ServiceBaseReconciler{
+			BaseReconciler: r.BaseReconciler,
+			Service:        &service,
 		})
+		writeUrl, err := url.Parse(receiveRouter.RemoteWriteAddr() + "/api/v1/receive")
+		if err != nil {
+			return nil, resources.OperationCreateOrUpdate, err
+		}
+		var rwCfg = &promconfig.RemoteWriteConfig{}
+		*rwCfg = promconfig.DefaultRemoteWriteConfig
+		if rwCfg.Headers == nil {
+			rwCfg.Headers = make(map[string]string)
+		}
+		rwCfg.Headers[service.Spec.TenantHeader] = r.ruler.Spec.Tenant
+		rwCfg.URL = &promcommonconfig.URL{URL: writeUrl}
+		var cfgs struct {
+			RemoteWriteConfigs []*promconfig.RemoteWriteConfig `yaml:"remote_write,omitempty"`
+		}
+		rwCfg.WriteRelabelConfigs = append(rwCfg.WriteRelabelConfigs, &relabel.Config{
+			Regex:  relabel.MustNewRegexp(service.Spec.TenantLabelName),
+			Action: relabel.LabelDrop,
+		})
+		cfgs.RemoteWriteConfigs = append(cfgs.RemoteWriteConfigs, rwCfg)
+		content, err := yamlv3.Marshal(&cfgs)
+		if err != nil {
+			return nil, resources.OperationCreateOrUpdate, err
+		}
+		container.Args = append(container.Args, "--remote-write.config="+string(content))
+
+		// query config
+		if r.ruler.Spec.Tenant == "" {
+			container.Args = append(container.Args, "--query="+query.HttpAddr())
+		} else {
+			proxyResources := corev1.ResourceRequirements{
+				Limits:   corev1.ResourceList{},
+				Requests: corev1.ResourceList{},
+			}
+			if r.rulerQueryProxyConfig.CPURequest != "0" {
+				proxyResources.Requests[corev1.ResourceCPU] = resource.MustParse(r.rulerQueryProxyConfig.CPURequest)
+			}
+			if r.rulerQueryProxyConfig.MemoryRequest != "0" {
+				proxyResources.Requests[corev1.ResourceMemory] = resource.MustParse(r.rulerQueryProxyConfig.MemoryRequest)
+			}
+			if r.rulerQueryProxyConfig.CPULimit != "0" {
+				proxyResources.Requests[corev1.ResourceCPU] = resource.MustParse(r.rulerQueryProxyConfig.CPULimit)
+			}
+			if r.rulerQueryProxyConfig.MemoryLimit != "0" {
+				proxyResources.Requests[corev1.ResourceMemory] = resource.MustParse(r.rulerQueryProxyConfig.CPURequest)
+			}
+			queryProxyContainer = &corev1.Container{
+				Name:  "query-proxy",
+				Image: r.rulerQueryProxyConfig.Image,
+				Args: []string{
+					"--http-address=127.0.0.1:9080",
+				},
+				Resources: proxyResources,
+			}
+			queryProxyContainer.Args = append(queryProxyContainer.Args, "--tenant.label-name="+service.Spec.TenantLabelName)
+			queryProxyContainer.Args = append(queryProxyContainer.Args, "--query.address="+query.HttpAddr())
+
+			container.Args = append(container.Args,
+				fmt.Sprintf("--query=http://127.0.0.1:9080/%s", r.ruler.Spec.Tenant))
+		}
 	}
 
 	var reloaderConfig = promoperator.ReloaderConfig{Image: r.reloaderConfig.Image}
@@ -221,6 +280,9 @@ func (r *Ruler) statefulSet(ruleConfigMapNames []string) (runtime.Object, resour
 		promoperator.Shard(-1),
 	)
 
+	if queryProxyContainer != nil {
+		sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, *queryProxyContainer)
+	}
 	sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, container, reloadContainer)
 
 	return sts, resources.OperationCreateOrUpdate, nil
