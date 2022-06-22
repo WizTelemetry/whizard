@@ -97,7 +97,6 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 	for _, labelName := range q.query.ReplicaLabelNames {
 		queryContainer.Args = append(queryContainer.Args, "--query.replica-label="+labelName)
 	}
-	queryContainer.Args = append(queryContainer.Args, "--query.replica-label="+resources.PseudoTenantLabelName(q.Service.Spec.TenantLabelName))
 
 	var rulerList monitoringv1alpha1.ThanosRulerList
 	if err := q.Client.List(q.Context, &rulerList,

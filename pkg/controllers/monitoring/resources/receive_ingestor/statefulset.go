@@ -187,15 +187,7 @@ func (r *ReceiveIngestor) statefulSet() (runtime.Object, resources.Operation, er
 				container.Args = append(container.Args, "--receive.tenant-header="+service.Spec.TenantHeader)
 			}
 			if service.Spec.TenantLabelName != "" {
-				var setPseudo bool
-				if r.ingestor.Labels != nil {
-					_, setPseudo = r.ingestor.Labels[resources.LabelNamePaodinPreprocessedDataIngestor]
-				}
-				if setPseudo {
-					container.Args = append(container.Args, "--receive.tenant-label-name="+resources.PseudoTenantLabelName(service.Spec.TenantLabelName))
-				} else {
-					container.Args = append(container.Args, "--receive.tenant-label-name="+service.Spec.TenantLabelName)
-				}
+				container.Args = append(container.Args, "--receive.tenant-label-name="+service.Spec.TenantLabelName)
 			}
 			if service.Spec.DefaultTenantId != "" {
 				container.Args = append(container.Args, "--receive.default-tenant-id="+service.Spec.DefaultTenantId)

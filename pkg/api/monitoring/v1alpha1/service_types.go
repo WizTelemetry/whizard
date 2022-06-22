@@ -461,6 +461,10 @@ type ThanosRulerSpec struct {
 	// the same namespace as the ThanosRuler object is in is used.
 	RuleNamespaceSelector *metav1.LabelSelector `json:"ruleNamespaceSelector,omitempty"`
 
+	// Tenant if not empty indicates which tenant's data is evaluated for the selected rules;
+	// otherwise, it is for all tenants.
+	Tenant string `json:"tenant,omitempty"`
+
 	// Labels configure the external label pairs to ThanosRuler. A default replica label
 	// `thanos_ruler_replica` will be always added  as a label with the value of the pod's name and it will be dropped in the alerts.
 	Labels map[string]string `json:"labels,omitempty"`

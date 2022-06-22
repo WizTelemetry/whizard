@@ -21,16 +21,19 @@ const (
 
 type Ruler struct {
 	resources.BaseReconciler
-	ruler          *monitoringv1alpha1.ThanosRuler
-	reloaderConfig options.PrometheusConfigReloaderConfig
+	ruler                 *monitoringv1alpha1.ThanosRuler
+	reloaderConfig        options.PrometheusConfigReloaderConfig
+	rulerQueryProxyConfig options.RulerQueryProxyConfig
 }
 
 func New(reconciler resources.BaseReconciler, ruler *monitoringv1alpha1.ThanosRuler,
-	reloaderConfig options.PrometheusConfigReloaderConfig) *Ruler {
+	reloaderConfig options.PrometheusConfigReloaderConfig, rulerQueryProxyConfig options.RulerQueryProxyConfig) *Ruler {
+
 	return &Ruler{
-		BaseReconciler: reconciler,
-		ruler:          ruler,
-		reloaderConfig: reloaderConfig,
+		BaseReconciler:        reconciler,
+		ruler:                 ruler,
+		reloaderConfig:        reloaderConfig,
+		rulerQueryProxyConfig: rulerQueryProxyConfig,
 	}
 }
 
@@ -96,7 +99,6 @@ func (r *Ruler) Reconcile() error {
 		ruleConfigMapNames = append(ruleConfigMapNames, cm.Name)
 	}
 
-	ress = append(ress, r.remoteWriteConfigMap)
 	ress = append(ress, func() (runtime.Object, resources.Operation, error) {
 		return r.statefulSet(ruleConfigMapNames)
 	})

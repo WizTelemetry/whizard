@@ -42,8 +42,9 @@ import (
 
 // ThanosRulerReconciler reconciles a ThanosRuler object
 type ThanosRulerReconciler struct {
-	DefaulterValidator ThanosRulerDefaulterValidator
-	ReloaderConfig     options.PrometheusConfigReloaderConfig
+	DefaulterValidator   ThanosRulerDefaulterValidator
+	ReloaderConfig       options.PrometheusConfigReloaderConfig
+	RulerQueryProxyConfig options.RulerQueryProxyConfig
 	client.Client
 	Scheme  *runtime.Scheme
 	Context context.Context
@@ -94,7 +95,7 @@ func (r *ThanosRulerReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		Context: ctx,
 	}
 
-	if err := ruler.New(baseReconciler, instance, r.ReloaderConfig).Reconcile(); err != nil {
+	if err := ruler.New(baseReconciler, instance, r.ReloaderConfig, r.RulerQueryProxyConfig).Reconcile(); err != nil {
 		return ctrl.Result{}, err
 	}
 

@@ -36,10 +36,6 @@ const (
 	LableNameAppInstance  = "app.kubernetes.io/instance"
 	LabelNameAppManagedBy = "app.kubernetes.io/managed-by"
 	LabelNameAppPartOf    = "app.kubernetes.io/part-of"
-
-	LabelNamePaodinPreprocessedDataIngestor = "monitoring.paodin.io/preprocessed-data-ingestor"
-
-	PseudoTenantDefaultId = "__pseudo_id"
 )
 
 func QualifiedName(appName, instanceName string, suffix ...string) string {
@@ -48,10 +44,6 @@ func QualifiedName(appName, instanceName string, suffix ...string) string {
 		name += "-" + strings.Join(suffix, "-")
 	}
 	return name
-}
-
-func PseudoTenantLabelName(tenantLabelName string) string {
-	return "__pseudo_" + tenantLabelName
 }
 
 func ThanosDefaultLivenessProbe() *corev1.Probe {

@@ -1444,6 +1444,10 @@ spec:
                       are ANDed.
                     type: object
                 type: object
+              tenant:
+                description: Tenant if not empty indicates which tenant's data is
+                  evaluated for the selected rules; otherwise, it is for all tenants.
+                type: string
               tolerations:
                 description: If specified, the pod's tolerations.
                 items:
