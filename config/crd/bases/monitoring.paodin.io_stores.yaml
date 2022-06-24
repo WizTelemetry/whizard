@@ -2674,6 +2674,27 @@ spec:
                       image:
                         description: Image is the thanos image with tag/version
                         type: string
+                      indexCacheConfig:
+                        description: IndexCacheConfig contains index cache configuration.
+                        properties:
+                          inMemory:
+                            description: InMemoryIndexCacheConfig holds the in-memory
+                              index cache config.
+                            properties:
+                              max_item_size:
+                                description: MaxItemSize represents maximum size of
+                                  single item. ie. 125MB
+                                type: string
+                              max_size:
+                                description: MaxSize represents overall maximum number
+                                  of bytes cache can contain. ie. 250MB
+                                type: string
+                            type: object
+                          type:
+                            type: string
+                        required:
+                        - type
+                        type: object
                       logFormat:
                         description: 'Log format to use. Possible options: logfmt
                           or json'
