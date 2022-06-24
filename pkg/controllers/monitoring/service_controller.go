@@ -50,6 +50,9 @@ type ServiceReconciler struct {
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=services,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=services/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=services/finalizers,verbs=update
+//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=thanosreceiveingestors,verbs=get;list;watch
+//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=stores,verbs=get;list;watch
+//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=thanosrulers,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=services;configmaps;serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=deployments;statefulsets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings,verbs=get;list;watch;create;update;patch;delete
@@ -117,6 +120,8 @@ func (r *ServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&source.Kind{Type: &monitoringv1alpha1.ThanosReceiveIngestor{}},
 			handler.EnqueueRequestsFromMapFunc(r.mapToServiceFunc)).
 		Watches(&source.Kind{Type: &monitoringv1alpha1.Store{}},
+			handler.EnqueueRequestsFromMapFunc(r.mapToServiceFunc)).
+		Watches(&source.Kind{Type: &monitoringv1alpha1.ThanosRuler{}},
 			handler.EnqueueRequestsFromMapFunc(r.mapToServiceFunc)).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
