@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"path/filepath"
 
+	storecache "github.com/thanos-io/thanos/pkg/store/cache"
+	"gopkg.in/yaml.v2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	"github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
 )
 
@@ -107,6 +110,36 @@ func (r *StoreGateway) statefulSet() (runtime.Object, resources.Operation, error
 		Name:      osVol.Name,
 		MountPath: filepath.Join(secretsDir, osConfig.Name),
 	})
+
+	// index cache config
+	if cacheConfig := r.store.IndexCacheConfig; cacheConfig != nil {
+		var c *storecache.IndexCacheConfig
+
+		switch cacheConfig.Type {
+		case v1alpha1.INMEMORY:
+			if inMemory := cacheConfig.InMemoryIndexCacheConfig; inMemory != nil {
+				c = &storecache.IndexCacheConfig{
+					Type:   storecache.INMEMORY,
+					Config: inMemory,
+				}
+			}
+		case v1alpha1.MEMCACHED:
+			// TODO
+			fallthrough
+		case v1alpha1.REDIS:
+			// TODO
+			fallthrough
+		default:
+			return nil, resources.OperationCreateOrUpdate, fmt.Errorf("unsupported cache type: %s", cacheConfig.Type)
+		}
+		if c != nil {
+			content, err := yaml.Marshal(c)
+			if err != nil {
+				return nil, resources.OperationCreateOrUpdate, err
+			}
+			container.Args = append(container.Args, "--index-cache.config="+string(content))
+		}
+	}
 
 	container.Args = append(container.Args, fmt.Sprintf("--data-dir=%s", storageDir))
 	if r.store.LogLevel != "" {

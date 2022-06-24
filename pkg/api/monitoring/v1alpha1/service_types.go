@@ -182,21 +182,21 @@ type ThanosQueryFrontend struct {
 	Flags map[string]string `json:"flags,omitempty"`
 
 	// CacheProviderConfig ...
-	CacheConfig *CacheProviderConfig `json:"cacheConfig,omitempty"`
+	CacheConfig *ResponseCacheProviderConfig `json:"cacheConfig,omitempty"`
 }
 
-type ResponseCacheProvider string
+type CacheProvider string
 
 const (
-	INMEMORY  ResponseCacheProvider = "IN-MEMORY"
-	MEMCACHED ResponseCacheProvider = "MEMCACHED"
-	REDIS     ResponseCacheProvider = "REDIS"
+	INMEMORY  CacheProvider = "IN-MEMORY"
+	MEMCACHED CacheProvider = "MEMCACHED"
+	REDIS     CacheProvider = "REDIS"
 )
 
-// CacheProviderConfig is the initial CacheProviderConfig struct holder before parsing it into a specific cache provider.
+// ResponseCacheProviderConfig is the initial ResponseCacheProviderConfig struct holder before parsing it into a specific cache provider.
 // Based on the config type the config is then parsed into a specific cache provider.
-type CacheProviderConfig struct {
-	Type                        ResponseCacheProvider        `json:"type"`
+type ResponseCacheProviderConfig struct {
+	Type                        CacheProvider                `json:"type"`
 	InMemoryResponseCacheConfig *InMemoryResponseCacheConfig `json:"inMemory,omitempty"`
 }
 
@@ -262,11 +262,29 @@ type ThanosStoreGateway struct {
 	// MaxTime specifies end of time range limit to serve
 	MaxTime string `json:"maxTime,omitempty"`
 
+	// IndexCacheConfig contains index cache configuration.
+	IndexCacheConfig *IndexCacheConfig `json:"indexCacheConfig,omitempty"`
+
 	// Flags is a list of key/value that could be used to set strategy parameters.
 	Flags map[string]string `json:"flags,omitempty"`
 
 	// DataVolume specifies how volume shall be used
 	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
+}
+
+// IndexCacheConfig specifies the index cache config.
+type IndexCacheConfig struct {
+	Type CacheProvider `json:"type"`
+
+	InMemoryIndexCacheConfig *InMemoryIndexCacheConfig `json:"inMemory,omitempty"`
+}
+
+// InMemoryIndexCacheConfig holds the in-memory index cache config.
+type InMemoryIndexCacheConfig struct {
+	// MaxSize represents overall maximum number of bytes cache can contain. ie. 250MB
+	MaxSize string `json:"max_size,omitempty" yaml:"max_size,omitempty"`
+	// MaxItemSize represents maximum size of single item. ie. 125MB
+	MaxItemSize string `json:"max_item_size,omitempty" yaml:"max_item_size,omitempty"`
 }
 
 type ThanosCompact struct {
