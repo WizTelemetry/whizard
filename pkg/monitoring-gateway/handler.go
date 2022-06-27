@@ -24,6 +24,8 @@ const (
 	epLabels      = apiPrefix + "/labels"
 	epLabelValues = apiPrefix + "/label/*path"
 	epReceive     = apiPrefix + "/receive"
+	epRules       = apiPrefix + "/rules"
+	epAlerts      = apiPrefix + "/alerts"
 )
 
 type Options struct {
@@ -68,6 +70,10 @@ func NewHandler(logger log.Logger, o *Options) *Handler {
 	h.router.Get(epSeries, h.wrap(h.matcher(matchersParam)))
 	h.router.Get(epLabels, h.wrap(h.matcher(matchersParam)))
 	h.router.Get(epLabelValues, h.wrap(h.matcher(matchersParam)))
+	h.router.Get(epRules, h.wrap(h.matcher(matchersParam)))
+	// do provide /api/v1/alerts because thanos does not support alerts filtering as of v0.28.0
+	// please filtering alerts by /api/v1/rules
+	// h.router.Get(epAlerts, h.wrap(h.matcher(matchersParam)))
 
 	h.router.Post(epReceive, h.wrap(h.remoteWrite))
 
