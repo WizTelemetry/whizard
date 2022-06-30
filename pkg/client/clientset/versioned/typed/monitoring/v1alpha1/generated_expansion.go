@@ -17,7 +17,7 @@ limitations under the License.
 
 package v1alpha1
 
-type AlertingRuleExpansion interface{}
+type RuleExpansion interface{}
 
 type RuleGroupExpansion interface{}
 

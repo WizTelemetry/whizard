@@ -17,13 +17,13 @@ limitations under the License.
 
 package v1alpha1
 
-// AlertingRuleListerExpansion allows custom methods to be added to
-// AlertingRuleLister.
-type AlertingRuleListerExpansion interface{}
+// RuleListerExpansion allows custom methods to be added to
+// RuleLister.
+type RuleListerExpansion interface{}
 
-// AlertingRuleNamespaceListerExpansion allows custom methods to be added to
-// AlertingRuleNamespaceLister.
-type AlertingRuleNamespaceListerExpansion interface{}
+// RuleNamespaceListerExpansion allows custom methods to be added to
+// RuleNamespaceLister.
+type RuleNamespaceListerExpansion interface{}
 
 // RuleGroupListerExpansion allows custom methods to be added to
 // RuleGroupLister.

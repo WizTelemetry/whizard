@@ -27,7 +27,7 @@ import (
 
 type MonitoringV1alpha1Interface interface {
 	RESTClient() rest.Interface
-	AlertingRulesGetter
+	RulesGetter
 	RuleGroupsGetter
 	ServicesGetter
 	StoresGetter
@@ -40,8 +40,8 @@ type MonitoringV1alpha1Client struct {
 	restClient rest.Interface
 }
 
-func (c *MonitoringV1alpha1Client) AlertingRules(namespace string) AlertingRuleInterface {
-	return newAlertingRules(c, namespace)
+func (c *MonitoringV1alpha1Client) Rules(namespace string) RuleInterface {
+	return newRules(c, namespace)
 }
 
 func (c *MonitoringV1alpha1Client) RuleGroups(namespace string) RuleGroupInterface {

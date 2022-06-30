@@ -23,8 +23,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
-	// AlertingRules returns a AlertingRuleInformer.
-	AlertingRules() AlertingRuleInformer
+	// Rules returns a RuleInformer.
+	Rules() RuleInformer
 	// RuleGroups returns a RuleGroupInformer.
 	RuleGroups() RuleGroupInformer
 	// Services returns a ServiceInformer.
@@ -48,9 +48,9 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// AlertingRules returns a AlertingRuleInformer.
-func (v *version) AlertingRules() AlertingRuleInformer {
-	return &alertingRuleInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+// Rules returns a RuleInformer.
+func (v *version) Rules() RuleInformer {
+	return &ruleInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // RuleGroups returns a RuleGroupInformer.

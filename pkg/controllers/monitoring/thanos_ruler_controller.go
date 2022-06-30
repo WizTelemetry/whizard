@@ -42,8 +42,8 @@ import (
 
 // ThanosRulerReconciler reconciles a ThanosRuler object
 type ThanosRulerReconciler struct {
-	DefaulterValidator   ThanosRulerDefaulterValidator
-	ReloaderConfig       options.PrometheusConfigReloaderConfig
+	DefaulterValidator    ThanosRulerDefaulterValidator
+	ReloaderConfig        options.PrometheusConfigReloaderConfig
 	RulerQueryProxyConfig options.RulerQueryProxyConfig
 	client.Client
 	Scheme  *runtime.Scheme
@@ -108,7 +108,7 @@ func (r *ThanosRulerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&monitoringv1alpha1.ThanosRuler{}).
 		Watches(&source.Kind{Type: &promv1.PrometheusRule{}},
 			handler.EnqueueRequestsFromMapFunc(r.mapRuleToThanosRulerFunc)).
-		Watches(&source.Kind{Type: &monitoringv1alpha1.AlertingRule{}},
+		Watches(&source.Kind{Type: &monitoringv1alpha1.Rule{}},
 			handler.EnqueueRequestsFromMapFunc(r.mapRuleToThanosRulerFunc)).
 		Watches(&source.Kind{Type: &monitoringv1alpha1.RuleGroup{}},
 			handler.EnqueueRequestsFromMapFunc(r.mapRuleGroupToThanosRulerFunc)).
@@ -147,6 +147,17 @@ func (r *ThanosRulerReconciler) mapRuleToThanosRulerFunc(o client.Object) []reco
 			continue
 		}
 
+		prometheusRuleNsSelector, err := metav1.LabelSelectorAsSelector(ruler.Spec.PrometheusRuleNamespaceSelector)
+		if err != nil {
+			log.FromContext(r.Context).WithValues("thanosruler", req.NamespacedName).Error(
+				err, "failed to convert PrometheusRuleNamespaceSelector")
+			continue
+		}
+		if prometheusRuleNsSelector.Matches(labels.Set(ns.Labels)) {
+			reqs = append(reqs, req)
+			continue
+		}
+
 		ruleNsSelector, err := metav1.LabelSelectorAsSelector(ruler.Spec.RuleNamespaceSelector)
 		if err != nil {
 			log.FromContext(r.Context).WithValues("thanosruler", req.NamespacedName).Error(
@@ -155,17 +166,6 @@ func (r *ThanosRulerReconciler) mapRuleToThanosRulerFunc(o client.Object) []reco
 		}
 		if ruleNsSelector.Matches(labels.Set(ns.Labels)) {
 			reqs = append(reqs, req)
-			continue
-		}
-
-		alertingRuleNsSelector, err := metav1.LabelSelectorAsSelector(ruler.Spec.AlertingRuleNamespaceSelector)
-		if err != nil {
-			log.FromContext(r.Context).WithValues("thanosruler", req.NamespacedName).Error(
-				err, "failed to convert AlertingRuleNamespaceSelector")
-			continue
-		}
-		if alertingRuleNsSelector.Matches(labels.Set(ns.Labels)) {
-			reqs = append(reqs, req)
 		}
 	}
 
@@ -173,8 +173,8 @@ func (r *ThanosRulerReconciler) mapRuleToThanosRulerFunc(o client.Object) []reco
 }
 
 func (r *ThanosRulerReconciler) mapRuleGroupToThanosRulerFunc(o client.Object) []reconcile.Request {
-	var alertingRuleList monitoringv1alpha1.AlertingRuleList
-	if err := r.Client.List(r.Context, &alertingRuleList,
+	var ruleList monitoringv1alpha1.RuleList
+	if err := r.Client.List(r.Context, &ruleList,
 		client.InNamespace(o.GetNamespace()),
 		client.MatchingLabels(monitoringv1alpha1.ManagedLabelByRuleGroup(o))); err != nil {
 		log.FromContext(r.Context).WithValues("thanosrulerlist", "").Error(err, "")
@@ -182,7 +182,7 @@ func (r *ThanosRulerReconciler) mapRuleGroupToThanosRulerFunc(o client.Object) [
 	}
 
 	var reqs []reconcile.Request
-	for _, rule := range alertingRuleList.Items {
+	for _, rule := range ruleList.Items {
 		reqs = append(reqs, r.mapRuleToThanosRulerFunc(&rule)...)
 	}
 	return reqs
