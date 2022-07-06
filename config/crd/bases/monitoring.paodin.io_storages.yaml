@@ -1,0 +1,113 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.4.1
+  creationTimestamp: null
+  name: storages.monitoring.paodin.io
+spec:
+  group: monitoring.paodin.io
+  names:
+    kind: Storage
+    listKind: StorageList
+    plural: storages
+    singular: storage
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              thanos:
+                properties:
+                  S3:
+                    properties:
+                      access_key:
+                        type: string
+                      bucket:
+                        type: string
+                      endpoint:
+                        type: string
+                      param:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      region:
+                        type: string
+                      secret_key:
+                        type: string
+                    required:
+                    - access_key
+                    - bucket
+                    - endpoint
+                    - secret_key
+                    type: object
+                  omitempty:
+                    type: string
+                required:
+                - omitempty
+                type: object
+            required:
+            - thanos
+            type: object
+          status:
+            properties:
+              thanos:
+                properties:
+                  thanosCompact:
+                    properties:
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                    type: object
+                  thanosReceiveIngestor:
+                    properties:
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                    type: object
+                  thanosRuler:
+                    properties:
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                    type: object
+                  thanosStore:
+                    properties:
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                    type: object
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

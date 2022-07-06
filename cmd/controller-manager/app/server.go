@@ -23,6 +23,7 @@ import (
 	"github.com/kubesphere/paodin/pkg/client/k8s"
 	"github.com/kubesphere/paodin/pkg/controllers/config"
 	"github.com/kubesphere/paodin/pkg/informers"
+	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 )
 
 func NewControllerManagerCommand() *cobra.Command {
@@ -154,6 +155,7 @@ func run(s *options.PaodinControllerManagerOptions, ctx context.Context) error {
 		klog.Fatalf("unable to set up overall controller manager: %v", err)
 	}
 	apis.AddToScheme(mgr.GetScheme())
+	clusterv1alpha1.AddToScheme(mgr.GetScheme())
 	_ = apiextensions.AddToScheme(mgr.GetScheme())
 
 	promv1.AddToScheme(mgr.GetScheme())

@@ -29,8 +29,12 @@ type Interface interface {
 	RuleGroups() RuleGroupInformer
 	// Services returns a ServiceInformer.
 	Services() ServiceInformer
+	// Storages returns a StorageInformer.
+	Storages() StorageInformer
 	// Stores returns a StoreInformer.
 	Stores() StoreInformer
+	// Tenants returns a TenantInformer.
+	Tenants() TenantInformer
 	// ThanosReceiveIngestors returns a ThanosReceiveIngestorInformer.
 	ThanosReceiveIngestors() ThanosReceiveIngestorInformer
 	// ThanosRulers returns a ThanosRulerInformer.
@@ -63,9 +67,19 @@ func (v *version) Services() ServiceInformer {
 	return &serviceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
+// Storages returns a StorageInformer.
+func (v *version) Storages() StorageInformer {
+	return &storageInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
 // Stores returns a StoreInformer.
 func (v *version) Stores() StoreInformer {
 	return &storeInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// Tenants returns a TenantInformer.
+func (v *version) Tenants() TenantInformer {
+	return &tenantInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // ThanosReceiveIngestors returns a ThanosReceiveIngestorInformer.

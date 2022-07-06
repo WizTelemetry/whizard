@@ -10,6 +10,7 @@ const (
 	ThanosDefaultImage                  = "thanosio/thanos:v0.26.0"
 	EnvoyDefaultImage                   = "envoyproxy/envoy:v1.20.2"
 	PaodinMonitoringGatewayDefaultImage = "kubesphere/paodin-monitoring-gateway:latest"
+	PaodinDefaultService                = "kubesphere-monitoring-system.central"
 )
 
 var PrometheusConfigReloaderDefaultConfig = PrometheusConfigReloaderConfig{
@@ -94,6 +95,8 @@ type Options struct {
 	ThanosImage                  string `json:"thanosImage,omitempty" yaml:"thanosImage,omitempty"`
 	EnvoyImage                   string `json:"envoyImage,omitempty" yaml:"envoyImage,omitempty"`
 	PaodinMonitoringGatewayImage string `json:"paodinMonitoringGatewayImage,omitempty" yaml:"paodinMonitoringGatewayImage,omitempty"`
+	PaodinService                string `json:"paodinService,omitempty" yaml:"paodinService,omitempty"`
+	WatchKSClusterEnable         bool   `json:"watchKubeSphereClusterEnable,omitempty" yaml:"watchKubeSphereClusterEnable,omitempty"`
 
 	PrometheusConfigReloader PrometheusConfigReloaderConfig `json:"prometheusConfigReloader,omitempty" yaml:"prometheusConfigReloader,omitempty"`
 	RulerQueryProxy          RulerQueryProxyConfig          `json:"rulerQueryProxy,omitempty" yaml:"rulerQueryProxy,omitempty"`
@@ -125,6 +128,12 @@ func (o *Options) ApplyTo(options *Options) {
 	if o.PaodinMonitoringGatewayImage != "" {
 		options.PaodinMonitoringGatewayImage = o.PaodinMonitoringGatewayImage
 	}
+	if o.PaodinService != "" {
+		options.PaodinService = o.PaodinService
+	}
+
+	options.WatchKSClusterEnable = o.WatchKSClusterEnable
+
 	o.PrometheusConfigReloader.ApplyTo(&options.PrometheusConfigReloader)
 }
 
@@ -132,6 +141,8 @@ func (o *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
 	flag.StringVar(&c.ThanosImage, "thanos-image", ThanosDefaultImage, "Thanos image with tag/version")
 	flag.StringVar(&c.EnvoyImage, "envoy-image", EnvoyDefaultImage, "Envoy image with tag/version")
 	flag.StringVar(&c.PaodinMonitoringGatewayImage, "paodin-monitoring-gateway-image", PaodinMonitoringGatewayDefaultImage, "Paodin monitoring gateway image with tag/version")
+	flag.StringVar(&c.PaodinService, "paodinService", PaodinDefaultService, "Paodin tenent default service with namespace.name")
+	flag.BoolVar(&c.WatchKSClusterEnable, "watchKsClusterEnable", true, "watch KubeSphere Cluster Enable, default true")
 
 	flag.StringVar(&c.PrometheusConfigReloader.Image, "prometheus-config-reloader-image",
 		PrometheusConfigReloaderDefaultConfig.Image, "Prometheus Config Reloader image with tag/version")

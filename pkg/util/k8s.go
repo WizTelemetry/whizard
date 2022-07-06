@@ -126,6 +126,15 @@ func CreateOrUpdate(ctx context.Context, cli client.Client, desired client.Objec
 			return cli.Create(ctx, desired)
 		}
 
+		desired.SetResourceVersion(current.GetResourceVersion())
+		annotation := labels.Merge(current.GetAnnotations(), desired.GetAnnotations())
+		desired.SetAnnotations(annotation)
+		ls := labels.Merge(current.GetLabels(), desired.GetLabels())
+		desired.SetLabels(ls)
+
+		if apiequality.Semantic.DeepEqual(current, desired) {
+			return nil
+		}
 		return cli.Update(ctx, desired)
 	})
 }

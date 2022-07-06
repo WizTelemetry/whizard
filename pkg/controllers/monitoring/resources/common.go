@@ -36,6 +36,9 @@ const (
 	LableNameAppInstance  = "app.kubernetes.io/instance"
 	LabelNameAppManagedBy = "app.kubernetes.io/managed-by"
 	LabelNameAppPartOf    = "app.kubernetes.io/part-of"
+
+	LabelNameReceiveIngestorState        = "monitoring.paodin.io/ingestor-state"
+	LabelNameReceiveIngestorDeletingTime = "monitoring.paodin.io/ingestor-deleting-time"
 )
 
 func QualifiedName(appName, instanceName string, suffix ...string) string {

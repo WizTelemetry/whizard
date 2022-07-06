@@ -30,7 +30,9 @@ type MonitoringV1alpha1Interface interface {
 	RulesGetter
 	RuleGroupsGetter
 	ServicesGetter
+	StoragesGetter
 	StoresGetter
+	TenantsGetter
 	ThanosReceiveIngestorsGetter
 	ThanosRulersGetter
 }
@@ -52,8 +54,16 @@ func (c *MonitoringV1alpha1Client) Services(namespace string) ServiceInterface {
 	return newServices(c, namespace)
 }
 
+func (c *MonitoringV1alpha1Client) Storages(namespace string) StorageInterface {
+	return newStorages(c, namespace)
+}
+
 func (c *MonitoringV1alpha1Client) Stores(namespace string) StoreInterface {
 	return newStores(c, namespace)
+}
+
+func (c *MonitoringV1alpha1Client) Tenants(namespace string) TenantInterface {
+	return newTenants(c, namespace)
 }
 
 func (c *MonitoringV1alpha1Client) ThanosReceiveIngestors(namespace string) ThanosReceiveIngestorInterface {
