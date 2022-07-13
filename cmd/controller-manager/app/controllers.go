@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"time"
 
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -58,22 +59,25 @@ func addControllers(mgr manager.Manager, client k8s.Client, informerFactory info
 	}
 
 	if err := (&monitoring.TenantReconciler{
-		DefaulterValidator: monitoring.CreateTenantDefaulterValidator(*cmOptions.MonitoringOptions),
-		Client:             mgr.GetClient(),
-		Scheme:             mgr.GetScheme(),
-		Context:            ctx,
+		DefaulterValidator:             monitoring.CreateTenantDefaulterValidator(*cmOptions.MonitoringOptions),
+		Client:                         mgr.GetClient(),
+		Scheme:                         mgr.GetScheme(),
+		Context:                        ctx,
+		DefaultTenantCountPerIngestor:  cmOptions.MonitoringOptions.DefaultTenantCountPerIngestor,
+		DefaultIngestorRetentionPeriod: time.Duration(cmOptions.MonitoringOptions.DefaultIngestorRetentionPeriod) * time.Minute,
 	}).SetupWithManager(mgr); err != nil {
 		klog.Errorf("Unable to create Tenant controller: %v", err)
 		return err
 	}
 
-	if cmOptions.MonitoringOptions.WatchKSClusterEnable {
+	if cmOptions.MonitoringOptions.EnableKubeSphereAdapter {
 		if err := (&monitoring.ClusterReconciler{
-			Client:  mgr.GetClient(),
-			Scheme:  mgr.GetScheme(),
-			Context: ctx,
+			Client:                          mgr.GetClient(),
+			Scheme:                          mgr.GetScheme(),
+			Context:                         ctx,
+			KubesphereAdapterDefaultService: cmOptions.MonitoringOptions.KubeSphereAdapterService,
 		}).SetupWithManager(mgr); err != nil {
-			klog.Errorf("Unable to create Tenant controller: %v", err)
+			klog.Errorf("Unable to create Cluster controller: %v", err)
 			return err
 		}
 	}

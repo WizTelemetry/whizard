@@ -32,25 +32,24 @@ const (
 )
 
 type StorageSpec struct {
-	ThanosStorage *ThanosStorage `json:"thanos"`
+	Thanos *ThanosStorage `json:"thanos"`
 }
 
 type ThanosStorage struct {
-	S3Storage S3Storage `json:"S3,omitempty"`
-	Prefix    string    `json:"omitempty"`
+	S3     S3     `json:"S3,omitempty"`
+	Prefix string `json:"omitempty"`
 }
 
-type S3Storage struct {
+type S3 struct {
 	Bucket    string            `json:"bucket"`
 	Endpoint  string            `json:"endpoint"`
 	AccessKey string            `json:"access_key"`
 	SecretKey string            `json:"secret_key"`
 	Region    string            `json:"region,omitempty"`
-	Params    map[string]string `json:"param,omitempty"`
+	Params    map[string]string `json:"params,omitempty"`
 }
 
 type StorageStatus struct {
-	ThanosResource ThanosResource `json:"thanos,omitempty"`
 }
 
 //+genclient

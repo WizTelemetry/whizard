@@ -44,7 +44,7 @@ spec:
                         type: string
                       endpoint:
                         type: string
-                      param:
+                      params:
                         additionalProperties:
                           type: string
                         type: object
@@ -67,38 +67,6 @@ spec:
             - thanos
             type: object
           status:
-            properties:
-              thanos:
-                properties:
-                  thanosCompact:
-                    properties:
-                      name:
-                        type: string
-                      namespace:
-                        type: string
-                    type: object
-                  thanosReceiveIngestor:
-                    properties:
-                      name:
-                        type: string
-                      namespace:
-                        type: string
-                    type: object
-                  thanosRuler:
-                    properties:
-                      name:
-                        type: string
-                      namespace:
-                        type: string
-                    type: object
-                  thanosStore:
-                    properties:
-                      name:
-                        type: string
-                      namespace:
-                        type: string
-                    type: object
-                type: object
             type: object
         type: object
     served: true

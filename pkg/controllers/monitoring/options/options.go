@@ -1,16 +1,14 @@
 package options
 
-import (
-	"flag"
-
-	"github.com/spf13/pflag"
-)
+import "github.com/spf13/pflag"
 
 const (
-	ThanosDefaultImage                  = "thanosio/thanos:v0.26.0"
-	EnvoyDefaultImage                   = "envoyproxy/envoy:v1.20.2"
-	PaodinMonitoringGatewayDefaultImage = "kubesphere/paodin-monitoring-gateway:latest"
-	PaodinDefaultService                = "kubesphere-monitoring-system.central"
+	ThanosDefaultImage                   = "thanosio/thanos:v0.26.0"
+	EnvoyDefaultImage                    = "envoyproxy/envoy:v1.20.2"
+	PaodinMonitoringGatewayDefaultImage  = "kubesphere/paodin-monitoring-gateway:latest"
+	PaodinDefaultService                 = "kubesphere-monitoring-system.central"
+	PaodinDefaultTenantCountPerIngestor  = 3
+	PaodinDefaultIngestorRetentionPeriod = 120
 )
 
 var PrometheusConfigReloaderDefaultConfig = PrometheusConfigReloaderConfig{
@@ -95,8 +93,11 @@ type Options struct {
 	ThanosImage                  string `json:"thanosImage,omitempty" yaml:"thanosImage,omitempty"`
 	EnvoyImage                   string `json:"envoyImage,omitempty" yaml:"envoyImage,omitempty"`
 	PaodinMonitoringGatewayImage string `json:"paodinMonitoringGatewayImage,omitempty" yaml:"paodinMonitoringGatewayImage,omitempty"`
-	PaodinService                string `json:"paodinService,omitempty" yaml:"paodinService,omitempty"`
-	WatchKSClusterEnable         bool   `json:"watchKubeSphereClusterEnable,omitempty" yaml:"watchKubeSphereClusterEnable,omitempty"`
+
+	EnableKubeSphereAdapter        bool   `json:"enableKubeSphereAdapter,omitempty" yaml:"enableKubeSphereAdapter,omitempty"`
+	KubeSphereAdapterService       string `json:"KubeSphereAdapterService,omitempty" yaml:"KubeSphereAdapterService,omitempty"`
+	DefaultTenantCountPerIngestor  int    `json:"DefaultTenantCountPerIngestor,omitempty" yaml:"DefaultTenantCountPerIngestor,omitempty"`
+	DefaultIngestorRetentionPeriod int    `json:"defaultIngestorRetentionPeriod,omitempty" yaml:"defaultIngestorRetentionPeriod,omitempty"`
 
 	PrometheusConfigReloader PrometheusConfigReloaderConfig `json:"prometheusConfigReloader,omitempty" yaml:"prometheusConfigReloader,omitempty"`
 	RulerQueryProxy          RulerQueryProxyConfig          `json:"rulerQueryProxy,omitempty" yaml:"rulerQueryProxy,omitempty"`
@@ -104,11 +105,15 @@ type Options struct {
 
 func NewOptions() *Options {
 	return &Options{
-		ThanosImage:                  ThanosDefaultImage,
-		EnvoyImage:                   EnvoyDefaultImage,
-		PaodinMonitoringGatewayImage: PaodinMonitoringGatewayDefaultImage,
-		PrometheusConfigReloader:     PrometheusConfigReloaderDefaultConfig,
-		RulerQueryProxy:              RulerQueryProxyDefaultConfig,
+		ThanosImage:                    ThanosDefaultImage,
+		EnvoyImage:                     EnvoyDefaultImage,
+		PaodinMonitoringGatewayImage:   PaodinMonitoringGatewayDefaultImage,
+		DefaultTenantCountPerIngestor:  PaodinDefaultTenantCountPerIngestor,
+		DefaultIngestorRetentionPeriod: PaodinDefaultIngestorRetentionPeriod,
+		EnableKubeSphereAdapter:        true,
+		KubeSphereAdapterService:       PaodinDefaultService,
+		PrometheusConfigReloader:       PrometheusConfigReloaderDefaultConfig,
+		RulerQueryProxy:                RulerQueryProxyDefaultConfig,
 	}
 }
 
@@ -128,41 +133,48 @@ func (o *Options) ApplyTo(options *Options) {
 	if o.PaodinMonitoringGatewayImage != "" {
 		options.PaodinMonitoringGatewayImage = o.PaodinMonitoringGatewayImage
 	}
-	if o.PaodinService != "" {
-		options.PaodinService = o.PaodinService
+	if o.DefaultTenantCountPerIngestor != 0 {
+		options.DefaultTenantCountPerIngestor = o.DefaultTenantCountPerIngestor
 	}
-
-	options.WatchKSClusterEnable = o.WatchKSClusterEnable
+	if o.DefaultIngestorRetentionPeriod != 0 {
+		options.DefaultIngestorRetentionPeriod = o.DefaultIngestorRetentionPeriod
+	}
+	if o.KubeSphereAdapterService != "" {
+		options.KubeSphereAdapterService = o.KubeSphereAdapterService
+	}
+	options.EnableKubeSphereAdapter = o.EnableKubeSphereAdapter
 
 	o.PrometheusConfigReloader.ApplyTo(&options.PrometheusConfigReloader)
 }
 
 func (o *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
-	flag.StringVar(&c.ThanosImage, "thanos-image", ThanosDefaultImage, "Thanos image with tag/version")
-	flag.StringVar(&c.EnvoyImage, "envoy-image", EnvoyDefaultImage, "Envoy image with tag/version")
-	flag.StringVar(&c.PaodinMonitoringGatewayImage, "paodin-monitoring-gateway-image", PaodinMonitoringGatewayDefaultImage, "Paodin monitoring gateway image with tag/version")
-	flag.StringVar(&c.PaodinService, "paodinService", PaodinDefaultService, "Paodin tenent default service with namespace.name")
-	flag.BoolVar(&c.WatchKSClusterEnable, "watchKsClusterEnable", true, "watch KubeSphere Cluster Enable, default true")
+	fs.StringVar(&c.ThanosImage, "thanos-image", ThanosDefaultImage, "Thanos image with tag/version")
+	fs.StringVar(&c.EnvoyImage, "envoy-image", EnvoyDefaultImage, "Envoy image with tag/version")
+	fs.StringVar(&c.PaodinMonitoringGatewayImage, "paodin-monitoring-gateway-image", PaodinMonitoringGatewayDefaultImage, "Paodin monitoring gateway image with tag/version")
+	fs.IntVar(&c.DefaultTenantCountPerIngestor, "defaultTenantCountPerIngestor", PaodinDefaultTenantCountPerIngestor, "Paodin default tenant count per ingestor. (default 3)")
+	fs.IntVar(&c.DefaultIngestorRetentionPeriod, "defaultIngestorRetentionPeriod", PaodinDefaultIngestorRetentionPeriod, "Paodin default ingestor retention period, the unit is minutes. (default 120)")
+	fs.BoolVar(&c.EnableKubeSphereAdapter, "enableKubeSphereAdapter", true, "Enable KubeSphere adapter. (default true)")
+	fs.StringVar(&c.KubeSphereAdapterService, "kubeSphereAdapterService", PaodinDefaultService, "Default service for tenants generated by kubesphere adapter, format is namespace.name")
 
-	flag.StringVar(&c.PrometheusConfigReloader.Image, "prometheus-config-reloader-image",
+	fs.StringVar(&c.PrometheusConfigReloader.Image, "prometheus-config-reloader-image",
 		PrometheusConfigReloaderDefaultConfig.Image, "Prometheus Config Reloader image with tag/version")
-	flag.StringVar(&c.PrometheusConfigReloader.CPURequest, "prometheus-config-reloader-cpu-request",
+	fs.StringVar(&c.PrometheusConfigReloader.CPURequest, "prometheus-config-reloader-cpu-request",
 		PrometheusConfigReloaderDefaultConfig.CPURequest, "Prometheus Config Reloader CPU request. Value \"0\" disables it and causes no request to be configured.")
-	flag.StringVar(&c.PrometheusConfigReloader.CPULimit, "prometheus-config-reloader-cpu-limit",
+	fs.StringVar(&c.PrometheusConfigReloader.CPULimit, "prometheus-config-reloader-cpu-limit",
 		PrometheusConfigReloaderDefaultConfig.CPULimit, "Prometheus Config Reloader CPU limit. Value \"0\" disables it and causes no limit to be configured.")
-	flag.StringVar(&c.PrometheusConfigReloader.MemoryRequest, "prometheus-config-reloader-memory-request",
+	fs.StringVar(&c.PrometheusConfigReloader.MemoryRequest, "prometheus-config-reloader-memory-request",
 		PrometheusConfigReloaderDefaultConfig.MemoryRequest, "Prometheus Config Reloader Memory request. Value \"0\" disables it and causes no request to be configured.")
-	flag.StringVar(&c.PrometheusConfigReloader.MemoryLimit, "prometheus-config-reloader-memory-limit",
+	fs.StringVar(&c.PrometheusConfigReloader.MemoryLimit, "prometheus-config-reloader-memory-limit",
 		PrometheusConfigReloaderDefaultConfig.MemoryLimit, "Prometheus Config Reloader Memory limit. Value \"0\" disables it and causes no limit to be configured.")
 
-	flag.StringVar(&c.RulerQueryProxy.Image, "ruler-query-proxy-image",
+	fs.StringVar(&c.RulerQueryProxy.Image, "ruler-query-proxy-image",
 		RulerQueryProxyDefaultConfig.Image, "Ruler Query Proxy image with tag/version")
-	flag.StringVar(&c.RulerQueryProxy.CPURequest, "ruler-query-proxy-cpu-request",
+	fs.StringVar(&c.RulerQueryProxy.CPURequest, "ruler-query-proxy-cpu-request",
 		RulerQueryProxyDefaultConfig.CPURequest, "Ruler Query Proxy CPU request. Value \"0\" disables it and causes no request to be configured.")
-	flag.StringVar(&c.RulerQueryProxy.CPULimit, "ruler-query-proxy-cpu-limit",
+	fs.StringVar(&c.RulerQueryProxy.CPULimit, "ruler-query-proxy-cpu-limit",
 		RulerQueryProxyDefaultConfig.CPULimit, "Ruler Query Proxy CPU limit. Value \"0\" disables it and causes no limit to be configured.")
-	flag.StringVar(&c.RulerQueryProxy.MemoryRequest, "ruler-query-proxy-memory-request",
+	fs.StringVar(&c.RulerQueryProxy.MemoryRequest, "ruler-query-proxy-memory-request",
 		RulerQueryProxyDefaultConfig.MemoryRequest, "Ruler Query Proxy Memory request. Value \"0\" disables it and causes no request to be configured.")
-	flag.StringVar(&c.RulerQueryProxy.MemoryLimit, "ruler-query-proxy-memory-limit",
+	fs.StringVar(&c.RulerQueryProxy.MemoryLimit, "ruler-query-proxy-memory-limit",
 		RulerQueryProxyDefaultConfig.MemoryLimit, "Ruler Query Proxy Memory limit. Value \"0\" disables it and causes no limit to be configured.")
 }

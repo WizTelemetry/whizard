@@ -19,6 +19,7 @@ package monitoring
 import (
 	"context"
 	"strings"
+	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -42,6 +43,9 @@ type TenantReconciler struct {
 	client.Client
 	Scheme  *runtime.Scheme
 	Context context.Context
+
+	DefaultTenantCountPerIngestor  int
+	DefaultIngestorRetentionPeriod time.Duration
 }
 
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=tenants,verbs=get;list;watch;create;update;patch;delete
@@ -80,44 +84,13 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, err
 	}
 
-	// check LabelNameStorage
-	if v, ok := instance.Labels[monitoringv1alpha1.MonitoringPaodinStorage]; ok {
-		if instance.Spec.Storage != nil && v != instance.Spec.Storage.Namespace+"."+instance.Spec.Storage.Namespace {
-			instance.Labels[monitoringv1alpha1.MonitoringPaodinStorage] = instance.Spec.Storage.Namespace + "." + instance.Spec.Storage.Namespace
-			err := r.Update(ctx, instance)
-			return ctrl.Result{}, err
-		}
-		// check service.Spec.Storage update ?
-
-	} else {
-		if instance.Spec.Storage != nil {
-			instance.Labels[monitoringv1alpha1.MonitoringPaodinStorage] = instance.Spec.Storage.Namespace + "." + instance.Spec.Storage.Namespace
-			err := r.Update(ctx, instance)
-			return ctrl.Result{}, err
-		} else {
-			service := &monitoringv1alpha1.Service{}
-			serviceNamespacedName := strings.Split(instance.Labels[monitoringv1alpha1.MonitoringPaodinService], ".")
-
-			if err := r.Get(ctx, types.NamespacedName{
-				Namespace: serviceNamespacedName[0],
-				Name:      serviceNamespacedName[1],
-			}, service); err == nil {
-				if service.Spec.Storage != nil {
-					instance.Labels[monitoringv1alpha1.MonitoringPaodinStorage] = service.Spec.Storage.Namespace + "." + service.Spec.Storage.Name
-					err := r.Update(ctx, instance)
-					return ctrl.Result{}, err
-				}
-			}
-		}
-	}
-
 	baseReconciler := resources.BaseReconciler{
 		Client:  r.Client,
 		Log:     l,
 		Scheme:  r.Scheme,
 		Context: ctx,
 	}
-	if err := tenant.New(baseReconciler, instance).Reconcile(); err != nil {
+	if err := tenant.New(baseReconciler, instance, r.DefaultTenantCountPerIngestor, r.DefaultIngestorRetentionPeriod).Reconcile(); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -128,8 +101,6 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&monitoringv1alpha1.Tenant{}).
-		Watches(&source.Kind{Type: &monitoringv1alpha1.ThanosRuler{}},
-			handler.EnqueueRequestsFromMapFunc(r.mapToTenantbyLabelFunc)).
 		Watches(&source.Kind{Type: &monitoringv1alpha1.ThanosReceiveIngestor{}},
 			handler.EnqueueRequestsFromMapFunc(r.mapToTenantbyLabelFunc)).
 		Watches(&source.Kind{Type: &monitoringv1alpha1.Service{}},
@@ -207,16 +178,6 @@ func CreateTenantDefaulterValidator(opt options.Options) TenantDefaulterValidato
 		if tenant.Spec.Tanant == "" {
 			tenant.Spec.Tanant = tenant.Name
 		}
-
-		labels := tenant.GetLabels()
-		if labels == nil {
-			labels = make(map[string]string)
-		}
-		if _, ok := labels[monitoringv1alpha1.MonitoringPaodinService]; !ok {
-			labels[monitoringv1alpha1.MonitoringPaodinService] = opt.PaodinService
-		}
-		tenant.SetLabels(labels)
-
 		return tenant, nil
 	}
 }

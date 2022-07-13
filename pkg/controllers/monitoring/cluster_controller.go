@@ -27,22 +27,21 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/paodin/pkg/util"
 	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 )
 
-// ServiceReconciler reconciles a Service object
+// ClusterReconciler reconciles a Service object
 type ClusterReconciler struct {
 	client.Client
-	Scheme  *runtime.Scheme
-	Context context.Context
+	Scheme                          *runtime.Scheme
+	Context                         context.Context
+	KubesphereAdapterDefaultService string
 }
 
 //+kubebuilder:rbac:groups=clusters.kubesphere.io,resources=clusters,verbs=get;list;watch
@@ -88,11 +87,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 // SetupWithManager sets up the controller with the Manager.
 func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&clusterv1alpha1.Cluster{}).
-		Watches(&source.Kind{Type: &clusterv1alpha1.Cluster{}},
-			handler.EnqueueRequestsFromMapFunc(r.mapToTenantFunc)).
-		Watches(&source.Kind{Type: &monitoringv1alpha1.Tenant{}},
-			handler.EnqueueRequestsFromMapFunc(r.mapToTenantFunc)).WithEventFilter(&ResourceCustomPredicate{}).
+		For(&clusterv1alpha1.Cluster{}).WithEventFilter(&ResourceCustomPredicate{}).
 		Owns(&monitoringv1alpha1.Tenant{}).
 		Complete(r)
 }
@@ -109,9 +104,12 @@ func (r *ClusterReconciler) mapToTenantFunc(o client.Object) []reconcile.Request
 
 func (r *ClusterReconciler) createTenantInstance(cluster *clusterv1alpha1.Cluster) *monitoringv1alpha1.Tenant {
 
+	label := make(map[string]string, 1)
+	label[monitoringv1alpha1.MonitoringPaodinService] = r.KubesphereAdapterDefaultService
 	return &monitoringv1alpha1.Tenant{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: cluster.Name,
+			Name:   cluster.Name,
+			Labels: label,
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					APIVersion: cluster.APIVersion,

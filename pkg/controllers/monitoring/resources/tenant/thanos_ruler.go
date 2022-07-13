@@ -5,16 +5,15 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 
 	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/paodin/pkg/util"
 )
 
-func (t *Tenant) ruler() (runtime.Object, resources.Operation, error) {
+func (t *Tenant) ruler() error {
 
 	ruler := &monitoringv1alpha1.ThanosRuler{}
 	if t.tenant.Status.ThanosResource != nil && t.tenant.Status.ThanosResource.ThanosRuler != nil {
@@ -24,29 +23,38 @@ func (t *Tenant) ruler() (runtime.Object, resources.Operation, error) {
 		}, ruler)
 		if err != nil {
 			if apierrors.IsNotFound(err) {
-				klog.V(3).Infof("Tenant %s not found mapping ruler %s, need to create.", t.tenant.Name, t.tenant.Status.ThanosResource.ThanosRuler)
+				klog.V(3).Infof("Cannot find ruler [%s] for tenant [%s], create one", t.tenant.Status.ThanosResource.ThanosRuler, t.tenant.Name)
 			} else {
-				klog.Errorf("Client Get ThanosRuler error: %v", err)
-				return nil, "", err
+				return err
 			}
 		} else {
 			var needResetRuler bool = false
-			// todo ruler check
+			// todo: more ruler check
+			if v, ok := ruler.Labels[monitoringv1alpha1.MonitoringPaodinService]; !ok || v != t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService] {
+				klog.V(3).Infof("Tenant [%s] and ruler [%s]'s Service mismatch, need to reset ingestor", t.tenant.Name, ruler.Name)
+				needResetRuler = true
+			}
 
 			if !needResetRuler {
-				return nil, "", nil
+				return nil
 			} else {
-				klog.V(3).Infof("Tenant %s mapping ruler %s need reset", t.tenant.Name, ruler.Name)
-				t.tenant.Status.ThanosResource.ThanosRuler = nil
-				if err := t.Client.Status().Update(t.Context, t.tenant); err != nil {
-					klog.Error(err)
-				}
-				return ruler, resources.OperationCreateOrUpdate, nil
+				klog.V(3).Infof("Ruler [%s] is already assigned to tenant [%s],  reset ruler for this tenant", ruler.Name, t.tenant.Name)
 			}
 		}
 	}
 
-	klog.V(3).Infof("Tenant %s ruler need to create or reset.", t.tenant.Name)
+	// when tenant.Labels don't contain Service, remove the bindings to ingestor and ruler
+	if v, ok := t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService]; !ok || v == "" {
+		klog.V(3).Infof("Tenant [%s]'s Service is empty. ruler does not need to be created", t.tenant.Name)
+		if t.tenant.Status.ThanosResource != nil && t.tenant.Status.ThanosResource.ThanosRuler != nil && ruler != nil {
+			if err := t.Client.Delete(t.Context, ruler); err != nil {
+				return err
+			}
+			t.tenant.Status.ThanosResource.ThanosRuler = nil
+			return t.Client.Status().Update(t.Context, t.tenant)
+		}
+		return nil
+	}
 	ruler = t.createOrUpdateRulerinstance()
 	if t.tenant.Status.ThanosResource == nil {
 		t.tenant.Status.ThanosResource = &monitoringv1alpha1.ThanosResource{}
@@ -55,11 +63,11 @@ func (t *Tenant) ruler() (runtime.Object, resources.Operation, error) {
 		Namespace: ruler.Namespace,
 		Name:      ruler.Name,
 	}
-	if err := t.Client.Status().Update(t.Context, t.tenant); err != nil {
-		klog.Error(err)
+	err := util.CreateOrUpdate(t.Context, t.Client, ruler)
+	if err != nil {
+		return err
 	}
-
-	return ruler, resources.OperationCreateOrUpdate, nil
+	return t.Client.Status().Update(t.Context, t.tenant)
 }
 
 func (t *Tenant) createOrUpdateRulerinstance() *monitoringv1alpha1.ThanosRuler {
