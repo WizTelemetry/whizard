@@ -39,6 +39,8 @@ const (
 
 	LabelNameReceiveIngestorState        = "monitoring.paodin.io/ingestor-state"
 	LabelNameReceiveIngestorDeletingTime = "monitoring.paodin.io/ingestor-deleting-time"
+
+	SecretThanosBucketKey = "bucket.yml"
 )
 
 func QualifiedName(appName, instanceName string, suffix ...string) string {

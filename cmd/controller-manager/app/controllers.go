@@ -78,6 +78,15 @@ func addControllers(mgr manager.Manager, client k8s.Client, informerFactory info
 		return err
 	}
 
+	if err := (&monitoring.StorageReconciler{
+		Client:  mgr.GetClient(),
+		Scheme:  mgr.GetScheme(),
+		Context: ctx,
+	}).SetupWithManager(mgr); err != nil {
+		klog.Errorf("Unable to create Storage controller: %v", err)
+		return err
+	}
+
 	if cmOptions.MonitoringOptions.EnableKubeSphereAdapter {
 		if err := (&monitoring.ClusterReconciler{
 			Client:                          mgr.GetClient(),
