@@ -13,14 +13,16 @@ type Tenant struct {
 
 	DefaultTenantCountPerIngestor  int
 	DefaultIngestorRetentionPeriod time.Duration
+	DeleteIngestorEventChan        chan DeleteIngestorEvent
 }
 
-func New(reconciler resources.BaseReconciler, tenant *monitoringv1alpha1.Tenant, defaultTenantCountPerIngestor int, defaultIngestorRetentionPeriod time.Duration) *Tenant {
+func New(reconciler resources.BaseReconciler, tenant *monitoringv1alpha1.Tenant, defaultTenantCountPerIngestor int, defaultIngestorRetentionPeriod time.Duration, deleteIngestorEventChan chan DeleteIngestorEvent) *Tenant {
 	return &Tenant{
 		tenant:                         tenant,
 		BaseReconciler:                 reconciler,
 		DefaultTenantCountPerIngestor:  defaultTenantCountPerIngestor,
 		DefaultIngestorRetentionPeriod: defaultIngestorRetentionPeriod,
+		DeleteIngestorEventChan:        deleteIngestorEventChan,
 	}
 }
 

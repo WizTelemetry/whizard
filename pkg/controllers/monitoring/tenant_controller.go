@@ -46,6 +46,7 @@ type TenantReconciler struct {
 
 	DefaultTenantCountPerIngestor  int
 	DefaultIngestorRetentionPeriod time.Duration
+	DeleteIngestorEventChan        chan tenant.DeleteIngestorEvent
 }
 
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=tenants,verbs=get;list;watch;create;update;patch;delete
@@ -90,7 +91,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		Scheme:  r.Scheme,
 		Context: ctx,
 	}
-	if err := tenant.New(baseReconciler, instance, r.DefaultTenantCountPerIngestor, r.DefaultIngestorRetentionPeriod).Reconcile(); err != nil {
+	if err := tenant.New(baseReconciler, instance, r.DefaultTenantCountPerIngestor, r.DefaultIngestorRetentionPeriod, r.DeleteIngestorEventChan).Reconcile(); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -109,6 +110,10 @@ func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			handler.EnqueueRequestsFromMapFunc(r.mapToTenantbyStorage)).
 		Owns(&monitoringv1alpha1.ThanosRuler{}).
 		Complete(r)
+}
+
+func (r *TenantReconciler) Recycle() error {
+	return tenant.NewIngestorRecycleController(r.Client, r.Scheme, r.Context, r.DeleteIngestorEventChan).Recycle()
 }
 
 func (r *TenantReconciler) mapToTenantbyLabelFunc(o client.Object) []reconcile.Request {

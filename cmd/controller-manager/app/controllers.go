@@ -10,6 +10,7 @@ import (
 	"github.com/kubesphere/paodin/cmd/controller-manager/app/options"
 	"github.com/kubesphere/paodin/pkg/client/k8s"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/tenant"
 	"github.com/kubesphere/paodin/pkg/informers"
 )
 
@@ -58,15 +59,22 @@ func addControllers(mgr manager.Manager, client k8s.Client, informerFactory info
 		return err
 	}
 
-	if err := (&monitoring.TenantReconciler{
+	d, _ := time.ParseDuration(cmOptions.MonitoringOptions.DefaultIngestorRetentionPeriod)
+	tr := &monitoring.TenantReconciler{
 		DefaulterValidator:             monitoring.CreateTenantDefaulterValidator(*cmOptions.MonitoringOptions),
 		Client:                         mgr.GetClient(),
 		Scheme:                         mgr.GetScheme(),
 		Context:                        ctx,
 		DefaultTenantCountPerIngestor:  cmOptions.MonitoringOptions.DefaultTenantCountPerIngestor,
-		DefaultIngestorRetentionPeriod: time.Duration(cmOptions.MonitoringOptions.DefaultIngestorRetentionPeriod) * time.Minute,
-	}).SetupWithManager(mgr); err != nil {
+		DefaultIngestorRetentionPeriod: d,
+		DeleteIngestorEventChan:        make(chan tenant.DeleteIngestorEvent, 100),
+	}
+	if err := tr.SetupWithManager(mgr); err != nil {
 		klog.Errorf("Unable to create Tenant controller: %v", err)
+		return err
+	}
+	if err := tr.Recycle(); err != nil {
+		klog.Errorf("Tenant controller Recycle error: %v", err)
 		return err
 	}
 
