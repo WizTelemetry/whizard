@@ -22,8 +22,8 @@ limitations under the License.
 package v1alpha1
 
 import (
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -48,7 +48,7 @@ func (in *Gateway) DeepCopyInto(out *Gateway) {
 	*out = *in
 	if in.Affinity != nil {
 		in, out := &in.Affinity, &out.Affinity
-		*out = new(corev1.Affinity)
+		*out = new(v1.Affinity)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.NodeSelector != nil {
@@ -60,7 +60,7 @@ func (in *Gateway) DeepCopyInto(out *Gateway) {
 	}
 	if in.Tolerations != nil {
 		in, out := &in.Tolerations, &out.Tolerations
-		*out = make([]corev1.Toleration, len(*in))
+		*out = make([]v1.Toleration, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -138,12 +138,12 @@ func (in *KubernetesVolume) DeepCopyInto(out *KubernetesVolume) {
 	*out = *in
 	if in.EmptyDir != nil {
 		in, out := &in.EmptyDir, &out.EmptyDir
-		*out = new(corev1.EmptyDirVolumeSource)
+		*out = new(v1.EmptyDirVolumeSource)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.PersistentVolumeClaim != nil {
 		in, out := &in.PersistentVolumeClaim, &out.PersistentVolumeClaim
-		*out = new(corev1.PersistentVolumeClaim)
+		*out = new(v1.PersistentVolumeClaim)
 		(*in).DeepCopyInto(*out)
 	}
 }
@@ -178,7 +178,7 @@ func (in *Query) DeepCopyInto(out *Query) {
 	*out = *in
 	if in.Affinity != nil {
 		in, out := &in.Affinity, &out.Affinity
-		*out = new(corev1.Affinity)
+		*out = new(v1.Affinity)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.NodeSelector != nil {
@@ -190,7 +190,7 @@ func (in *Query) DeepCopyInto(out *Query) {
 	}
 	if in.Tolerations != nil {
 		in, out := &in.Tolerations, &out.Tolerations
-		*out = make([]corev1.Toleration, len(*in))
+		*out = make([]v1.Toleration, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -250,7 +250,7 @@ func (in *QueryStores) DeepCopyInto(out *QueryStores) {
 	}
 	if in.CASecret != nil {
 		in, out := &in.CASecret, &out.CASecret
-		*out = new(corev1.SecretKeySelector)
+		*out = new(v1.SecretKeySelector)
 		(*in).DeepCopyInto(*out)
 	}
 }
@@ -579,8 +579,8 @@ func (in *ServiceSpec) DeepCopyInto(out *ServiceSpec) {
 	*out = *in
 	if in.Storage != nil {
 		in, out := &in.Storage, &out.Storage
-		*out = new(v1.LabelSelector)
-		(*in).DeepCopyInto(*out)
+		*out = new(ObjectReference)
+		**out = **in
 	}
 	if in.Gateway != nil {
 		in, out := &in.Gateway, &out.Gateway
@@ -777,7 +777,7 @@ func (in *StoreSpec) DeepCopyInto(out *StoreSpec) {
 	*out = *in
 	if in.ObjectStorageConfig != nil {
 		in, out := &in.ObjectStorageConfig, &out.ObjectStorageConfig
-		*out = new(corev1.SecretKeySelector)
+		*out = new(v1.SecretKeySelector)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.Thanos != nil {
@@ -876,8 +876,8 @@ func (in *TenantSpec) DeepCopyInto(out *TenantSpec) {
 	*out = *in
 	if in.Storage != nil {
 		in, out := &in.Storage, &out.Storage
-		*out = new(v1.LabelSelector)
-		(*in).DeepCopyInto(*out)
+		*out = new(ObjectReference)
+		**out = **in
 	}
 }
 
@@ -946,7 +946,7 @@ func (in *ThanosCompact) DeepCopyInto(out *ThanosCompact) {
 	*out = *in
 	if in.Affinity != nil {
 		in, out := &in.Affinity, &out.Affinity
-		*out = new(corev1.Affinity)
+		*out = new(v1.Affinity)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.NodeSelector != nil {
@@ -958,7 +958,7 @@ func (in *ThanosCompact) DeepCopyInto(out *ThanosCompact) {
 	}
 	if in.Tolerations != nil {
 		in, out := &in.Tolerations, &out.Tolerations
-		*out = make([]corev1.Toleration, len(*in))
+		*out = make([]v1.Toleration, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -1008,7 +1008,7 @@ func (in *ThanosQueryFrontend) DeepCopyInto(out *ThanosQueryFrontend) {
 	*out = *in
 	if in.Affinity != nil {
 		in, out := &in.Affinity, &out.Affinity
-		*out = new(corev1.Affinity)
+		*out = new(v1.Affinity)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.NodeSelector != nil {
@@ -1020,7 +1020,7 @@ func (in *ThanosQueryFrontend) DeepCopyInto(out *ThanosQueryFrontend) {
 	}
 	if in.Tolerations != nil {
 		in, out := &in.Tolerations, &out.Tolerations
-		*out = make([]corev1.Toleration, len(*in))
+		*out = make([]v1.Toleration, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -1124,7 +1124,7 @@ func (in *ThanosReceiveIngestorSpec) DeepCopyInto(out *ThanosReceiveIngestorSpec
 	}
 	if in.Affinity != nil {
 		in, out := &in.Affinity, &out.Affinity
-		*out = new(corev1.Affinity)
+		*out = new(v1.Affinity)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.NodeSelector != nil {
@@ -1136,7 +1136,7 @@ func (in *ThanosReceiveIngestorSpec) DeepCopyInto(out *ThanosReceiveIngestorSpec
 	}
 	if in.Tolerations != nil {
 		in, out := &in.Tolerations, &out.Tolerations
-		*out = make([]corev1.Toleration, len(*in))
+		*out = make([]v1.Toleration, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -1196,7 +1196,7 @@ func (in *ThanosReceiveRouter) DeepCopyInto(out *ThanosReceiveRouter) {
 	*out = *in
 	if in.Affinity != nil {
 		in, out := &in.Affinity, &out.Affinity
-		*out = new(corev1.Affinity)
+		*out = new(v1.Affinity)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.NodeSelector != nil {
@@ -1208,7 +1208,7 @@ func (in *ThanosReceiveRouter) DeepCopyInto(out *ThanosReceiveRouter) {
 	}
 	if in.Tolerations != nil {
 		in, out := &in.Tolerations, &out.Tolerations
-		*out = make([]corev1.Toleration, len(*in))
+		*out = make([]v1.Toleration, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -1342,7 +1342,7 @@ func (in *ThanosRulerSpec) DeepCopyInto(out *ThanosRulerSpec) {
 	*out = *in
 	if in.Affinity != nil {
 		in, out := &in.Affinity, &out.Affinity
-		*out = new(corev1.Affinity)
+		*out = new(v1.Affinity)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.NodeSelector != nil {
@@ -1354,7 +1354,7 @@ func (in *ThanosRulerSpec) DeepCopyInto(out *ThanosRulerSpec) {
 	}
 	if in.Tolerations != nil {
 		in, out := &in.Tolerations, &out.Tolerations
-		*out = make([]corev1.Toleration, len(*in))
+		*out = make([]v1.Toleration, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -1367,22 +1367,22 @@ func (in *ThanosRulerSpec) DeepCopyInto(out *ThanosRulerSpec) {
 	}
 	if in.RuleSelector != nil {
 		in, out := &in.RuleSelector, &out.RuleSelector
-		*out = new(v1.LabelSelector)
+		*out = new(metav1.LabelSelector)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.RuleNamespaceSelector != nil {
 		in, out := &in.RuleNamespaceSelector, &out.RuleNamespaceSelector
-		*out = new(v1.LabelSelector)
+		*out = new(metav1.LabelSelector)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.PrometheusRuleSelector != nil {
 		in, out := &in.PrometheusRuleSelector, &out.PrometheusRuleSelector
-		*out = new(v1.LabelSelector)
+		*out = new(metav1.LabelSelector)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.PrometheusRuleNamespaceSelector != nil {
 		in, out := &in.PrometheusRuleNamespaceSelector, &out.PrometheusRuleNamespaceSelector
-		*out = new(v1.LabelSelector)
+		*out = new(metav1.LabelSelector)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.Labels != nil {
@@ -1404,7 +1404,7 @@ func (in *ThanosRulerSpec) DeepCopyInto(out *ThanosRulerSpec) {
 	}
 	if in.AlertManagersConfig != nil {
 		in, out := &in.AlertManagersConfig, &out.AlertManagersConfig
-		*out = new(corev1.SecretKeySelector)
+		*out = new(v1.SecretKeySelector)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.Flags != nil {
@@ -1492,7 +1492,7 @@ func (in *ThanosStoreGateway) DeepCopyInto(out *ThanosStoreGateway) {
 	*out = *in
 	if in.Affinity != nil {
 		in, out := &in.Affinity, &out.Affinity
-		*out = new(corev1.Affinity)
+		*out = new(v1.Affinity)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.NodeSelector != nil {
@@ -1504,7 +1504,7 @@ func (in *ThanosStoreGateway) DeepCopyInto(out *ThanosStoreGateway) {
 	}
 	if in.Tolerations != nil {
 		in, out := &in.Tolerations, &out.Tolerations
-		*out = make([]corev1.Toleration, len(*in))
+		*out = make([]v1.Toleration, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}

@@ -21,8 +21,8 @@ import (
 )
 
 type TenantSpec struct {
-	Tanant  string                `json:"tenant,omitempty"`
-	Storage *metav1.LabelSelector `json:"storage,omitempty"`
+	Tenant  string           `json:"tenant,omitempty"`
+	Storage *ObjectReference `json:"storage,omitempty"`
 }
 
 type TenantStatus struct {

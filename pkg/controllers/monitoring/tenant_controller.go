@@ -44,7 +44,7 @@ type TenantReconciler struct {
 	Scheme  *runtime.Scheme
 	Context context.Context
 
-	DefaultTenantCountPerIngestor  int
+	DefaultTenantPerIngestor       int
 	DefaultIngestorRetentionPeriod time.Duration
 	DeleteIngestorEventChan        chan tenant.DeleteIngestorEvent
 }
@@ -91,7 +91,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		Scheme:  r.Scheme,
 		Context: ctx,
 	}
-	if err := tenant.New(baseReconciler, instance, r.DefaultTenantCountPerIngestor, r.DefaultIngestorRetentionPeriod, r.DeleteIngestorEventChan).Reconcile(); err != nil {
+	if err := tenant.New(baseReconciler, instance, r.DefaultTenantPerIngestor, r.DefaultIngestorRetentionPeriod, r.DeleteIngestorEventChan).Reconcile(); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -180,8 +180,8 @@ type TenantDefaulterValidator func(tenant *monitoringv1alpha1.Tenant) (*monitori
 
 func CreateTenantDefaulterValidator(opt options.Options) TenantDefaulterValidator {
 	return func(tenant *monitoringv1alpha1.Tenant) (*monitoringv1alpha1.Tenant, error) {
-		if tenant.Spec.Tanant == "" {
-			tenant.Spec.Tanant = tenant.Name
+		if tenant.Spec.Tenant == "" {
+			tenant.Spec.Tenant = tenant.Name
 		}
 		return tenant, nil
 	}

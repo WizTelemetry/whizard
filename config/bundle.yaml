@@ -695,6 +695,13 @@ spec:
                       type: object
                     type: array
                 type: object
+              storage:
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                type: object
               tenantHeader:
                 description: HTTP header to determine tenant for remote write requests.
                 type: string
@@ -5775,6 +5782,14 @@ rules:
   - update
   - watch
 - apiGroups:
+  - clusters.kubesphere.io
+  resources:
+  - clusters
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - ""
   resources:
   - configmaps
@@ -5882,6 +5897,14 @@ rules:
 - apiGroups:
   - monitoring.paodin.io
   resources:
+  - storage
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
   - stores
   verbs:
   - create
@@ -5916,6 +5939,7 @@ rules:
   - list
   - patch
   - update
+  - verbs=get
   - watch
 - apiGroups:
   - monitoring.paodin.io

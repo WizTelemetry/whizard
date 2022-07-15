@@ -121,7 +121,7 @@ func (r *ClusterReconciler) createTenantInstance(cluster *clusterv1alpha1.Cluste
 			},
 		},
 		Spec: monitoringv1alpha1.TenantSpec{
-			Tanant: cluster.Name,
+			Tenant: cluster.Name,
 		},
 	}
 }

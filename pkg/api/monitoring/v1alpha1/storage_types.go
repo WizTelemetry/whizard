@@ -36,8 +36,7 @@ type StorageSpec struct {
 }
 
 type ThanosStorage struct {
-	S3     S3     `json:"S3,omitempty"`
-	Prefix string `json:"omitempty"`
+	S3 S3 `json:"S3,omitempty"`
 }
 
 type S3 struct {

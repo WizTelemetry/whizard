@@ -57,7 +57,7 @@ func (t *Tenant) receiveIngestor() error {
 			}
 		} else {
 			var needResetIngestor bool = false
-			if ok := containsString(ingestor.Spec.Tenants, t.tenant.Spec.Tanant); !ok {
+			if ok := containsString(ingestor.Spec.Tenants, t.tenant.Spec.Tenant); !ok {
 				klog.V(3).Infof("Tenant [%s] and ingestor [%s] mismatch, need to reset ingestor", t.tenant.Name, ingestor.Name)
 				needResetIngestor = true
 			}
@@ -77,44 +77,26 @@ func (t *Tenant) receiveIngestor() error {
 			if _, ok := t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService]; ok && len(strings.Split(t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage], ".")) != 2 {
 				return fmt.Errorf("Tenant [%s]'s Storage field [%s] is invalid", t.tenant.Name, t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage])
 			}
-			// Storage deep check, skip check default_storage.local
+			// Storage check if tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] and tenant.Spec.Storage / tenant.Labels[monitoringv1alpha1.MonitoringPaodinService].Spec.Storage match, skip check default_storage.local
 			if t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService] != "default_storage.local" {
-				if t.tenant.Spec.Storage != nil && t.tenant.Spec.Storage.MatchLabels != nil {
+				if t.tenant.Spec.Storage != nil {
 					// check if tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] and tenant.Spec.Storage match
-					storageNamespacedName := strings.Split(t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage], ".")
-					if ok, err := t.isStorageContainLabel(storageNamespacedName[0], storageNamespacedName[1], t.tenant.Spec.Storage.MatchLabels); err == nil && !ok {
-						storage, err := t.selectStoragebyMatchLabels(t.tenant.Spec.Storage.MatchLabels)
-						if err != nil {
-							return err
-						}
+					if t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] != fmt.Sprintf("%s.%s", t.tenant.Spec.Storage.Namespace, t.tenant.Spec.Storage.Name) {
 						klog.V(3).Infof("Tenant [%s]'s Storage update, need to reset ingestor", t.tenant.Name)
 						needResetIngestor = true
-						t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] = fmt.Sprintf("%s.%s", storage.Namespace, storage.Name)
-						if err := t.Client.Update(t.Context, t.tenant); err != nil {
-							return err
-						}
 					}
 				} else {
 					// check if tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] and t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService].Spec.Storage match
 					service := &monitoringv1alpha1.Service{}
 					serviceNamespacedName := strings.Split(t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService], ".")
-					storageNamespacedName := strings.Split(t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage], ".")
 					if err := t.Client.Get(t.Context, types.NamespacedName{
 						Namespace: serviceNamespacedName[0],
 						Name:      serviceNamespacedName[1],
 					}, service); err == nil {
-						if service.Spec.Storage != nil && service.Spec.Storage.MatchLabels != nil {
-							if ok, err := t.isStorageContainLabel(storageNamespacedName[0], storageNamespacedName[1], service.Spec.Storage.MatchLabels); err == nil && !ok {
-								storage, err := t.selectStoragebyMatchLabels(service.Spec.Storage.MatchLabels)
-								if err != nil {
-									return err
-								}
-								klog.V(3).Infof("Tenant [%s]'s Storage update, need to reset ingestor", t.tenant.Name)
+						if service.Spec.Storage != nil {
+							if t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] != fmt.Sprintf("%s.%s", service.Spec.Storage.Namespace, service.Spec.Storage.Name) {
 								needResetIngestor = true
-								t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] = fmt.Sprintf("%s.%s", storage.Namespace, storage.Name)
-								if err := t.Client.Update(t.Context, t.tenant); err != nil {
-									return err
-								}
+								klog.V(3).Infof("Tenant [%s]'s Storage update, need to reset ingestor", t.tenant.Name)
 							}
 						}
 					}
@@ -124,7 +106,7 @@ func (t *Tenant) receiveIngestor() error {
 			if !needResetIngestor {
 				return nil
 			} else {
-				klog.V(3).Infof("Reset ingestor [%s] for tenant [%s]", t.tenant.Name, ingestor.Name)
+				klog.V(3).Infof("Reset ingestor [%s] for tenant [%s]", ingestor.Name, t.tenant.Name)
 				err := t.removeTenantFromIngestorbyName(ingestor.Namespace, ingestor.Name)
 				if err != nil {
 					return err
@@ -154,12 +136,8 @@ func (t *Tenant) receiveIngestor() error {
 
 	// append Storage label
 	if v, ok := t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage]; !ok || v == "" {
-		if t.tenant.Spec.Storage != nil && t.tenant.Spec.Storage.MatchLabels != nil {
-			storage, err := t.selectStoragebyMatchLabels(t.tenant.Spec.Storage.MatchLabels)
-			if err != nil {
-				return err
-			}
-			t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] = fmt.Sprintf("%s.%s", storage.Namespace, storage.Name)
+		if t.tenant.Spec.Storage != nil {
+			t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] = fmt.Sprintf("%s.%s", t.tenant.Spec.Storage.Namespace, t.tenant.Spec.Storage.Name)
 			if err := t.Client.Update(t.Context, t.tenant); err != nil {
 				return err
 			}
@@ -172,12 +150,8 @@ func (t *Tenant) receiveIngestor() error {
 			}, service); err != nil {
 				return err
 			}
-			if service.Spec.Storage != nil && service.Spec.Storage.MatchLabels != nil {
-				storage, err := t.selectStoragebyMatchLabels(service.Spec.Storage.MatchLabels)
-				if err != nil {
-					return err
-				}
-				t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] = fmt.Sprintf("%s.%s", storage.Namespace, storage.Name)
+			if service.Spec.Storage != nil {
+				t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] = fmt.Sprintf("%s.%s", service.Spec.Storage.Namespace, service.Spec.Storage.Name)
 				if err := t.Client.Update(t.Context, t.tenant); err != nil {
 					return err
 				}
@@ -221,7 +195,7 @@ func (t *Tenant) receiveIngestor() error {
 
 	// Check duplicates
 	for _, ingestorItem := range ingestorMapping {
-		if containsString(ingestorItem.Spec.Tenants, t.tenant.Spec.Tanant) {
+		if containsString(ingestorItem.Spec.Tenants, t.tenant.Spec.Tenant) {
 			klog.V(3).Infof("Ingestor [%s] has tenant [%s] ,update status ", ingestorItem.Name, t.tenant.Name)
 			if t.tenant.Status.ThanosResource == nil {
 				t.tenant.Status.ThanosResource = &monitoringv1alpha1.ThanosResource{}
@@ -237,11 +211,11 @@ func (t *Tenant) receiveIngestor() error {
 
 	// create or update ingestor instance.
 	// traverse ingestorMapping according to the index, if it is currently empty, create a new instance,
-	// otherwise check len(ingestorItem.Spec.Tenants) < t.DefaultTenantCountPerIngestor，if so, select the instance.
+	// otherwise check len(ingestorItem.Spec.Tenants) < t.DefaultTenantPerIngestor，if so, select the instance.
 	for i := 0; i < len(ingestorMapping)+1; i++ {
 		name := createIngestorInstanceName(t.tenant, strconv.Itoa(i))
 		if ingestorItem, ok := ingestorMapping[name]; ok {
-			if len(ingestorItem.Spec.Tenants) < t.DefaultTenantCountPerIngestor {
+			if len(ingestorItem.Spec.Tenants) < t.DefaultTenantPerIngestor {
 				ingestor = ingestorItem
 				addTenantToIngestorInstance(t.tenant, ingestor)
 				break
@@ -280,9 +254,9 @@ func (t *Tenant) removeTenantFromIngestorbyName(namespace, name string) error {
 			return err
 		}
 	} else {
-		if ok := containsString(ingestor.Spec.Tenants, t.tenant.Spec.Tanant); ok {
+		if ok := containsString(ingestor.Spec.Tenants, t.tenant.Spec.Tenant); ok {
 			klog.V(3).Infof("ingestor %s update, remove tenant %s", ingestor.Name, t.tenant.Name)
-			ingestor.Spec.Tenants = removeString(ingestor.Spec.Tenants, t.tenant.Spec.Tanant)
+			ingestor.Spec.Tenants = removeString(ingestor.Spec.Tenants, t.tenant.Spec.Tenant)
 			ingestor.Labels[monitoringv1alpha1.MonitoringPaodinTenant] = strings.Join(ingestor.Spec.Tenants, "_")
 
 			if len(ingestor.Spec.Tenants) == 0 {
@@ -401,7 +375,7 @@ func createIngestorInstance(name string, tenant *monitoringv1alpha1.Tenant) *mon
 			Labels:    label,
 		},
 		Spec: monitoringv1alpha1.ThanosReceiveIngestorSpec{
-			Tenants: []string{tenant.Spec.Tanant},
+			Tenants: []string{tenant.Spec.Tenant},
 		},
 	}
 }
@@ -409,7 +383,7 @@ func createIngestorInstance(name string, tenant *monitoringv1alpha1.Tenant) *mon
 func addTenantToIngestorInstance(tenant *monitoringv1alpha1.Tenant, ingestor *monitoringv1alpha1.ThanosReceiveIngestor) {
 	klog.V(3).Infof("Ingestor %s update, add tenant %s", ingestor.Name, tenant.Name)
 
-	ingestor.Spec.Tenants = append(ingestor.Spec.Tenants, tenant.Spec.Tanant)
+	ingestor.Spec.Tenants = append(ingestor.Spec.Tenants, tenant.Spec.Tenant)
 
 	label := ingestor.GetLabels()
 	if v, ok := label[monitoringv1alpha1.MonitoringPaodinTenant]; !ok || len(v) == 0 {

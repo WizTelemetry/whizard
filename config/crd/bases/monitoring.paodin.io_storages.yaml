@@ -58,10 +58,6 @@ spec:
                     - endpoint
                     - secret_key
                     type: object
-                  omitempty:
-                    type: string
-                required:
-                - omitempty
                 type: object
             required:
             - thanos
