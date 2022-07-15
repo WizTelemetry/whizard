@@ -32,6 +32,14 @@ rules:
   - update
   - watch
 - apiGroups:
+  - clusters.kubesphere.io
+  resources:
+  - clusters
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - ""
   resources:
   - configmaps
@@ -105,6 +113,14 @@ rules:
 - apiGroups:
   - monitoring.paodin.io
   resources:
+  - service
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
   - services
   verbs:
   - create
@@ -131,6 +147,14 @@ rules:
 - apiGroups:
   - monitoring.paodin.io
   resources:
+  - storage
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
   - stores
   verbs:
   - create
@@ -150,6 +174,33 @@ rules:
   - monitoring.paodin.io
   resources:
   - stores/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - tenants
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - verbs=get
+  - watch
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - tenants/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - tenants/status
   verbs:
   - get
   - patch

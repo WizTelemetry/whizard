@@ -39,8 +39,16 @@ func (c *FakeMonitoringV1alpha1) Services(namespace string) v1alpha1.ServiceInte
 	return &FakeServices{c, namespace}
 }
 
+func (c *FakeMonitoringV1alpha1) Storages(namespace string) v1alpha1.StorageInterface {
+	return &FakeStorages{c, namespace}
+}
+
 func (c *FakeMonitoringV1alpha1) Stores(namespace string) v1alpha1.StoreInterface {
 	return &FakeStores{c, namespace}
+}
+
+func (c *FakeMonitoringV1alpha1) Tenants(namespace string) v1alpha1.TenantInterface {
+	return &FakeTenants{c, namespace}
 }
 
 func (c *FakeMonitoringV1alpha1) ThanosReceiveIngestors(namespace string) v1alpha1.ThanosReceiveIngestorInterface {

@@ -41,6 +41,14 @@ type ServiceListerExpansion interface{}
 // ServiceNamespaceLister.
 type ServiceNamespaceListerExpansion interface{}
 
+// StorageListerExpansion allows custom methods to be added to
+// StorageLister.
+type StorageListerExpansion interface{}
+
+// StorageNamespaceListerExpansion allows custom methods to be added to
+// StorageNamespaceLister.
+type StorageNamespaceListerExpansion interface{}
+
 // StoreListerExpansion allows custom methods to be added to
 // StoreLister.
 type StoreListerExpansion interface{}
@@ -48,6 +56,14 @@ type StoreListerExpansion interface{}
 // StoreNamespaceListerExpansion allows custom methods to be added to
 // StoreNamespaceLister.
 type StoreNamespaceListerExpansion interface{}
+
+// TenantListerExpansion allows custom methods to be added to
+// TenantLister.
+type TenantListerExpansion interface{}
+
+// TenantNamespaceListerExpansion allows custom methods to be added to
+// TenantNamespaceLister.
+type TenantNamespaceListerExpansion interface{}
 
 // ThanosReceiveIngestorListerExpansion allows custom methods to be added to
 // ThanosReceiveIngestorLister.

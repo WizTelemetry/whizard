@@ -41,6 +41,8 @@ type ServiceSpec struct {
 	// Label name through which the tenant will be announced.
 	TenantLabelName string `json:"tenantLabelName,omitempty"`
 
+	Storage *ObjectReference `json:"storage,omitempty"`
+
 	// Gateway to proxy and auth requests to Thanos Query and Thanos Receive Router defined in Thanos.
 	Gateway *Gateway `json:"gateway,omitempty"`
 

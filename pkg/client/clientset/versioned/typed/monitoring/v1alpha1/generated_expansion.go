@@ -23,7 +23,11 @@ type RuleGroupExpansion interface{}
 
 type ServiceExpansion interface{}
 
+type StorageExpansion interface{}
+
 type StoreExpansion interface{}
+
+type TenantExpansion interface{}
 
 type ThanosReceiveIngestorExpansion interface{}
 

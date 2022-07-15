@@ -1004,6 +1004,13 @@ spec:
                       type: object
                     type: array
                 type: object
+              storage:
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                type: object
               tenantHeader:
                 description: HTTP header to determine tenant for remote write requests.
                 type: string
