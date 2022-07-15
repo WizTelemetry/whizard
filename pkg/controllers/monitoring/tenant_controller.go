@@ -44,7 +44,7 @@ type TenantReconciler struct {
 	Scheme  *runtime.Scheme
 	Context context.Context
 
-	DefaultTenantPerIngestor       int
+	DefaultTenantsPerIngestor      int
 	DefaultIngestorRetentionPeriod time.Duration
 	DeleteIngestorEventChan        chan tenant.DeleteIngestorEvent
 }
@@ -91,7 +91,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		Scheme:  r.Scheme,
 		Context: ctx,
 	}
-	if err := tenant.New(baseReconciler, instance, r.DefaultTenantPerIngestor, r.DefaultIngestorRetentionPeriod, r.DeleteIngestorEventChan).Reconcile(); err != nil {
+	if err := tenant.New(baseReconciler, instance, r.DefaultTenantsPerIngestor, r.DefaultIngestorRetentionPeriod, r.DeleteIngestorEventChan).Reconcile(); err != nil {
 		return ctrl.Result{}, err
 	}
 

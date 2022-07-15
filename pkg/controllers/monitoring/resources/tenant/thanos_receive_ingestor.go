@@ -211,11 +211,11 @@ func (t *Tenant) receiveIngestor() error {
 
 	// create or update ingestor instance.
 	// traverse ingestorMapping according to the index, if it is currently empty, create a new instance,
-	// otherwise check len(ingestorItem.Spec.Tenants) < t.DefaultTenantPerIngestor，if so, select the instance.
+	// otherwise check len(ingestorItem.Spec.Tenants) < t.DefaultTenantsPerIngestor，if so, select the instance.
 	for i := 0; i < len(ingestorMapping)+1; i++ {
 		name := createIngestorInstanceName(t.tenant, strconv.Itoa(i))
 		if ingestorItem, ok := ingestorMapping[name]; ok {
-			if len(ingestorItem.Spec.Tenants) < t.DefaultTenantPerIngestor {
+			if len(ingestorItem.Spec.Tenants) < t.DefaultTenantsPerIngestor {
 				ingestor = ingestorItem
 				addTenantToIngestorInstance(t.tenant, ingestor)
 				break

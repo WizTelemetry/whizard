@@ -65,7 +65,7 @@ func addControllers(mgr manager.Manager, client k8s.Client, informerFactory info
 		Client:                         mgr.GetClient(),
 		Scheme:                         mgr.GetScheme(),
 		Context:                        ctx,
-		DefaultTenantPerIngestor:       cmOptions.MonitoringOptions.DefaultTenantPerIngestor,
+		DefaultTenantsPerIngestor:      cmOptions.MonitoringOptions.DefaultTenantsPerIngestor,
 		DefaultIngestorRetentionPeriod: d,
 		DeleteIngestorEventChan:        make(chan tenant.DeleteIngestorEvent, 100),
 	}
