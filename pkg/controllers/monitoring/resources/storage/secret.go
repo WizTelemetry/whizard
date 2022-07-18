@@ -53,20 +53,20 @@ func parseObjStorageConfig(thanosStorageConfig *monitoringv1alpha1.ThanosStorage
 	return yaml.Marshal(bucket)
 }
 
-type ObjProvider string
+type ObjectStorageProvider string
 
 const (
-	FILESYSTEM ObjProvider = "FILESYSTEM"
-	GCS        ObjProvider = "GCS"
-	S3         ObjProvider = "S3"
-	AZURE      ObjProvider = "AZURE"
-	SWIFT      ObjProvider = "SWIFT"
-	COS        ObjProvider = "COS"
-	ALIYUNOSS  ObjProvider = "ALIYUNOSS"
-	BOS        ObjProvider = "BOS"
+	FILESYSTEM ObjectStorageProvider = "FILESYSTEM"
+	GCS        ObjectStorageProvider = "GCS"
+	S3         ObjectStorageProvider = "S3"
+	AZURE      ObjectStorageProvider = "AZURE"
+	SWIFT      ObjectStorageProvider = "SWIFT"
+	COS        ObjectStorageProvider = "COS"
+	ALIYUNOSS  ObjectStorageProvider = "ALIYUNOSS"
+	BOS        ObjectStorageProvider = "BOS"
 )
 
 type BucketConfig struct {
-	Type   ObjProvider `yaml:"type"`
-	Config interface{} `yaml:"config"`
+	Type   ObjectStorageProvider `yaml:"type"`
+	Config interface{}           `yaml:"config"`
 }
