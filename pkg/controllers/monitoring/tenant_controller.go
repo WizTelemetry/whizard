@@ -18,6 +18,7 @@ package monitoring
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -46,7 +47,6 @@ type TenantReconciler struct {
 
 	DefaultTenantsPerIngestor      int
 	DefaultIngestorRetentionPeriod time.Duration
-	DeleteIngestorEventChan        chan tenant.DeleteIngestorEvent
 }
 
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=tenants,verbs=get;list;watch;create;update;patch;delete
@@ -80,7 +80,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, err
 	}
 
-	instance, err = r.DefaulterValidator(instance)
+	instance, err = r.tenantValidator(instance)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -91,7 +91,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		Scheme:  r.Scheme,
 		Context: ctx,
 	}
-	if err := tenant.New(baseReconciler, instance, r.DefaultTenantsPerIngestor, r.DefaultIngestorRetentionPeriod, r.DeleteIngestorEventChan).Reconcile(); err != nil {
+	if err := tenant.New(baseReconciler, instance, r.DefaultTenantsPerIngestor, r.DefaultIngestorRetentionPeriod).Reconcile(); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -110,10 +110,6 @@ func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			handler.EnqueueRequestsFromMapFunc(r.mapToTenantbyStorage)).
 		Owns(&monitoringv1alpha1.ThanosRuler{}).
 		Complete(r)
-}
-
-func (r *TenantReconciler) Recycle() error {
-	return tenant.NewIngestorRecycleController(r.Client, r.Scheme, r.Context, r.DeleteIngestorEventChan).Recycle()
 }
 
 func (r *TenantReconciler) mapToTenantbyLabelFunc(o client.Object) []reconcile.Request {
@@ -180,9 +176,72 @@ type TenantDefaulterValidator func(tenant *monitoringv1alpha1.Tenant) (*monitori
 
 func CreateTenantDefaulterValidator(opt options.Options) TenantDefaulterValidator {
 	return func(tenant *monitoringv1alpha1.Tenant) (*monitoringv1alpha1.Tenant, error) {
-		if tenant.Spec.Tenant == "" {
-			tenant.Spec.Tenant = tenant.Name
-		}
 		return tenant, nil
 	}
+}
+
+func (r *TenantReconciler) tenantValidator(tenant *monitoringv1alpha1.Tenant) (*monitoringv1alpha1.Tenant, error) {
+	if tenant.Labels == nil {
+		tenant.Labels = make(map[string]string, 2)
+	}
+
+	if v, ok := tenant.Labels[monitoringv1alpha1.MonitoringPaodinService]; !ok || v == "" {
+		return tenant, nil
+	}
+
+	if _, ok := tenant.Labels[monitoringv1alpha1.MonitoringPaodinService]; ok && len(strings.Split(tenant.Labels[monitoringv1alpha1.MonitoringPaodinService], ".")) != 2 {
+		return nil, fmt.Errorf("tenant [%s]'s Service field [%s] is invalid", tenant.Name, tenant.Labels[monitoringv1alpha1.MonitoringPaodinService])
+	}
+	if _, ok := tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage]; ok && len(strings.Split(tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage], ".")) != 2 {
+		return nil, fmt.Errorf("tenant [%s]'s Storage field [%s] is invalid", tenant.Name, tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage])
+	}
+
+	if tenant.Spec.Tenant == "" {
+		tenant.Spec.Tenant = tenant.Name
+	}
+
+	if v, ok := tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage]; !ok || v == "" {
+		// Fill in tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] field
+		if tenant.Spec.Storage != nil {
+			tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] = fmt.Sprintf("%s.%s", tenant.Spec.Storage.Namespace, tenant.Spec.Storage.Name)
+		} else {
+			service := &monitoringv1alpha1.Service{}
+			serviceNamespacedName := strings.Split(tenant.Labels[monitoringv1alpha1.MonitoringPaodinService], ".")
+			if err := r.Client.Get(r.Context, types.NamespacedName{
+				Namespace: serviceNamespacedName[0],
+				Name:      serviceNamespacedName[1],
+			}, service); err != nil {
+				return nil, err
+			}
+			if service.Spec.Storage != nil {
+				tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] = fmt.Sprintf("%s.%s", service.Spec.Storage.Namespace, service.Spec.Storage.Name)
+			}
+		}
+
+		// The associated Storage CR could not be found, use local storage
+		if v, ok := tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage]; !ok || v == "" {
+			tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] = "default_storage.local"
+		}
+	} else {
+		// check tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] field
+		if tenant.Spec.Storage != nil {
+			if v != fmt.Sprintf("%s.%s", tenant.Spec.Storage.Namespace, tenant.Spec.Storage.Name) {
+				tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] = fmt.Sprintf("%s.%s", tenant.Spec.Storage.Namespace, tenant.Spec.Storage.Name)
+			}
+		} else {
+			service := &monitoringv1alpha1.Service{}
+			serviceNamespacedName := strings.Split(tenant.Labels[monitoringv1alpha1.MonitoringPaodinService], ".")
+			if err := r.Client.Get(r.Context, types.NamespacedName{
+				Namespace: serviceNamespacedName[0],
+				Name:      serviceNamespacedName[1],
+			}, service); err != nil {
+				return nil, err
+			}
+			if service.Spec.Storage != nil && v != fmt.Sprintf("%s.%s", service.Spec.Storage.Namespace, service.Spec.Storage.Name) {
+				tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] = fmt.Sprintf("%s.%s", service.Spec.Storage.Namespace, service.Spec.Storage.Name)
+			}
+		}
+	}
+
+	return tenant, nil
 }

@@ -44,7 +44,7 @@ type ClusterReconciler struct {
 	KubesphereAdapterDefaultService string
 }
 
-//+kubebuilder:rbac:groups=clusters.kubesphere.io,resources=clusters,verbs=get;list;watch
+//+kubebuilder:rbac:groups=cluster.kubesphere.io,resources=clusters,verbs=get;list;watch
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=tenants,verbs=verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
