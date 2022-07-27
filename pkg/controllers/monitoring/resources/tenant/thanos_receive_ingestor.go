@@ -25,9 +25,7 @@ func (t *Tenant) receiveIngestor() error {
 	if t.tenant.ObjectMeta.GetDeletionTimestamp().IsZero() {
 		if !containsString(t.tenant.ObjectMeta.Finalizers, monitoringv1alpha1.FinalizerMonitoringPaodin) {
 			t.tenant.ObjectMeta.Finalizers = append(t.tenant.ObjectMeta.Finalizers, monitoringv1alpha1.FinalizerMonitoringPaodin)
-			if err := t.Client.Update(t.Context, t.tenant); err != nil {
-				return err
-			}
+			return t.Client.Update(t.Context, t.tenant)
 		}
 	} else {
 		if containsString(t.tenant.ObjectMeta.Finalizers, monitoringv1alpha1.FinalizerMonitoringPaodin) {
@@ -66,41 +64,10 @@ func (t *Tenant) receiveIngestor() error {
 				klog.V(3).Infof("Tenant [%s] and ingestor [%s]'s Service mismatch, need to reset ingestor", t.tenant.Name, ingestor.Name)
 				needResetIngestor = true
 			}
-			if _, ok := t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService]; ok && len(strings.Split(t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService], ".")) < 2 {
-				return fmt.Errorf("Tenant [%s]'s Service field [%s] is invalid", t.tenant.Name, t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService])
-			}
 
 			if v, ok := ingestor.Labels[monitoringv1alpha1.MonitoringPaodinStorage]; !ok || v != t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] {
 				klog.V(3).Infof("Tenant [%s] and ingestor [%s]'s Storage mismatch, need to reset ingestor", t.tenant.Name, ingestor.Name)
 				needResetIngestor = true
-			}
-			if _, ok := t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService]; ok && len(strings.Split(t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage], ".")) != 2 {
-				return fmt.Errorf("Tenant [%s]'s Storage field [%s] is invalid", t.tenant.Name, t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage])
-			}
-			// Storage check if tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] and tenant.Spec.Storage / tenant.Labels[monitoringv1alpha1.MonitoringPaodinService].Spec.Storage match, skip check default_storage.local
-			if t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService] != "default_storage.local" {
-				if t.tenant.Spec.Storage != nil {
-					// check if tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] and tenant.Spec.Storage match
-					if t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] != fmt.Sprintf("%s.%s", t.tenant.Spec.Storage.Namespace, t.tenant.Spec.Storage.Name) {
-						klog.V(3).Infof("Tenant [%s]'s Storage update, need to reset ingestor", t.tenant.Name)
-						needResetIngestor = true
-					}
-				} else {
-					// check if tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] and t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService].Spec.Storage match
-					service := &monitoringv1alpha1.Service{}
-					serviceNamespacedName := strings.Split(t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService], ".")
-					if err := t.Client.Get(t.Context, types.NamespacedName{
-						Namespace: serviceNamespacedName[0],
-						Name:      serviceNamespacedName[1],
-					}, service); err == nil {
-						if service.Spec.Storage != nil {
-							if t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] != fmt.Sprintf("%s.%s", service.Spec.Storage.Namespace, service.Spec.Storage.Name) {
-								needResetIngestor = true
-								klog.V(3).Infof("Tenant [%s]'s Storage update, need to reset ingestor", t.tenant.Name)
-							}
-						}
-					}
-				}
 			}
 
 			if !needResetIngestor {
@@ -119,7 +86,7 @@ func (t *Tenant) receiveIngestor() error {
 
 	// when tenant.Labels don't contain Service, remove the bindings to ingestor and ruler
 	if v, ok := t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService]; !ok || v == "" {
-		klog.V(3).Infof("Tenant [%s]'s Service is empty. thanosReceiveIngestor does not need to be created", t.tenant.Name)
+		klog.V(3).Infof("Tenant [%s]'s Service is empty. ingestor does not need to be created", t.tenant.Name)
 		if t.tenant.Status.ThanosResource != nil && t.tenant.Status.ThanosResource.ThanosReceiveIngestor != nil {
 			err := t.removeTenantFromIngestorbyName(t.tenant.Status.ThanosResource.ThanosReceiveIngestor.Namespace, t.tenant.Status.ThanosResource.ThanosReceiveIngestor.Name)
 			if err != nil {
@@ -128,49 +95,6 @@ func (t *Tenant) receiveIngestor() error {
 			return t.Client.Status().Update(t.Context, t.tenant)
 		}
 		return nil
-	}
-
-	if len(strings.Split(t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService], ".")) != 2 {
-		return fmt.Errorf("Tenant [%s]'s Service field [%s] is invalid", t.tenant.Name, t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService])
-	}
-
-	// append Storage label
-	if v, ok := t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage]; !ok || v == "" {
-		if t.tenant.Spec.Storage != nil {
-			t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] = fmt.Sprintf("%s.%s", t.tenant.Spec.Storage.Namespace, t.tenant.Spec.Storage.Name)
-			if err := t.Client.Update(t.Context, t.tenant); err != nil {
-				return err
-			}
-		} else {
-			service := &monitoringv1alpha1.Service{}
-			serviceNamespacedName := strings.Split(t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService], ".")
-			if err := t.Client.Get(t.Context, types.NamespacedName{
-				Namespace: serviceNamespacedName[0],
-				Name:      serviceNamespacedName[1],
-			}, service); err != nil {
-				return err
-			}
-			if service.Spec.Storage != nil {
-				t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] = fmt.Sprintf("%s.%s", service.Spec.Storage.Namespace, service.Spec.Storage.Name)
-				if err := t.Client.Update(t.Context, t.tenant); err != nil {
-					return err
-				}
-			}
-		}
-
-	}
-
-	// can't find storage, Tenant's Storage label will add  "default_storage.local"
-	if v, ok := t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage]; !ok || v == "" {
-		klog.V(3).Infof("Tenant [%s]'s Storage is empty. thanosReceiveIngestor will use local storage", t.tenant.Name)
-		t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] = "default_storage.local"
-		if err := t.Client.Update(t.Context, t.tenant); err != nil {
-			return err
-		}
-	}
-
-	if len(strings.Split(t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage], ".")) != 2 {
-		return fmt.Errorf("Tenant [%s]'s Storage field [%s] is invalid", t.tenant.Name, t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage])
 	}
 
 	var ingestorList monitoringv1alpha1.ThanosReceiveIngestorList
@@ -190,7 +114,7 @@ func (t *Tenant) receiveIngestor() error {
 	for _, ingestorItem := range ingestorList.Items {
 		ingestor := ingestorItem
 		ingestorMapping[ingestorItem.Name] = &ingestor
-		klog.V(3).Infof("Ingestor %s have Tenants: %v", ingestorItem.Name, ingestorItem.Labels[monitoringv1alpha1.MonitoringPaodinTenant])
+		klog.V(3).Infof("Ingestor [%s] have Tenants: %v", ingestorItem.Name, ingestorItem.Spec.Tenants)
 	}
 
 	// Check duplicates
@@ -265,17 +189,8 @@ func (t *Tenant) removeTenantFromIngestorbyName(namespace, name string) error {
 					annotation = make(map[string]string)
 				}
 				annotation[resources.LabelNameReceiveIngestorState] = "deleting"
-				annotation[resources.LabelNameReceiveIngestorDeletingTime] = strconv.Itoa(int(time.Now().Unix()))
+				annotation[resources.LabelNameReceiveIngestorDeletingTime] = strconv.Itoa(int(time.Now().Add(t.DefaultIngestorRetentionPeriod).Unix()))
 				ingestor.Annotations = annotation
-
-				e := DeleteIngestorEvent{
-					NamespacedName: types.NamespacedName{
-						Namespace: ingestor.Namespace,
-						Name:      ingestor.Name,
-					},
-					DeleteDuration: t.DefaultIngestorRetentionPeriod,
-				}
-				t.DeleteIngestorEventChan <- e
 			}
 
 			if t.tenant.Status.ThanosResource != nil && t.tenant.Status.ThanosResource.ThanosReceiveIngestor != nil {

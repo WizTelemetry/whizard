@@ -19,6 +19,8 @@ package monitoring
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -75,6 +77,23 @@ func (r *ThanosReceiveIngestorReconciler) Reconcile(ctx context.Context, req ctr
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
+	}
+
+	// recycle ingestor by using the RequeueAfter event
+	if v, ok := instance.Annotations[resources.LabelNameReceiveIngestorState]; ok && v == "deleting" && len(instance.Spec.Tenants) == 0 {
+		if deletingTime, ok := instance.Annotations[resources.LabelNameReceiveIngestorDeletingTime]; ok {
+			i, err := strconv.ParseInt(deletingTime, 10, 64)
+			if err == nil {
+				d := time.Since(time.Unix(i, 0))
+				if d < 0 {
+					l.Info("recycle", "recycled time", (-d).String())
+					return ctrl.Result{Requeue: true, RequeueAfter: (-d)}, nil
+				} else {
+					err := r.Delete(r.Context, instance)
+					return ctrl.Result{}, err
+				}
+			}
+		}
 	}
 
 	instance, err = r.DefaulterValidator(instance)

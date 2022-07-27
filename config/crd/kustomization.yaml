@@ -8,6 +8,8 @@ resources:
 - bases/monitoring.paodin.io_thanosrulers.yaml
 - bases/monitoring.paodin.io_rules.yaml
 - bases/monitoring.paodin.io_rulegroups.yaml
+- bases/monitoring.paodin.io_storages.yaml
+- bases/monitoring.paodin.io_tenants.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

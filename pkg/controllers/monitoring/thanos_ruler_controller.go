@@ -55,6 +55,7 @@ type ThanosRulerReconciler struct {
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=thanosrulers/finalizers,verbs=update
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=alertingrules,verbs=get;list;watch
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=rulegroups,verbs=get;list;watch
+//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=rules,verbs=get;list;watch
 //+kubebuilder:rbac:groups=monitoring.coreos.com,resources=prometheusrules,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=services;configmaps,verbs=get;list;watch;create;update;patch;delete

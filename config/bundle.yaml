@@ -2428,6 +2428,159 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
+  name: storages.monitoring.paodin.io
+spec:
+  group: monitoring.paodin.io
+  names:
+    kind: Storage
+    listKind: StorageList
+    plural: storages
+    singular: storage
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              thanos:
+                properties:
+                  S3:
+                    description: Config stores the configuration for s3 bucket.
+                    properties:
+                      accessKey:
+                        type: string
+                      awsSdkAuth:
+                        type: boolean
+                      bucket:
+                        type: string
+                      endpoint:
+                        type: string
+                      httpConfig:
+                        description: S3HTTPConfig stores the http.Transport configuration for the s3 minio client.
+                        properties:
+                          expectContinueTimeout:
+                            description: Duration wraps time.Duration. It is used to parse the custom duration format from YAML. This type should not propagate beyond the scope of input/output processing.
+                            format: int64
+                            type: integer
+                          idleConnTimeout:
+                            description: Duration wraps time.Duration. It is used to parse the custom duration format from YAML. This type should not propagate beyond the scope of input/output processing.
+                            format: int64
+                            type: integer
+                          insecureSkipVerify:
+                            type: boolean
+                          maxConnsPerHost:
+                            type: integer
+                          maxIdleConns:
+                            type: integer
+                          maxIdleConnsPerHost:
+                            type: integer
+                          responseHeaderTimeout:
+                            description: Duration wraps time.Duration. It is used to parse the custom duration format from YAML. This type should not propagate beyond the scope of input/output processing.
+                            format: int64
+                            type: integer
+                          tlsConfig:
+                            description: TLSConfig configures the options for TLS connections.
+                            properties:
+                              caFile:
+                                description: The CA cert to use for the targets.
+                                type: string
+                              certFile:
+                                description: The client cert file for the targets.
+                                type: string
+                              insecureSkipVerify:
+                                description: Disable target certificate validation.
+                                type: boolean
+                              keyFile:
+                                description: The client key file for the targets.
+                                type: string
+                              serverName:
+                                description: Used to verify the hostname for the targets.
+                                type: string
+                            type: object
+                          tlsHandshakeTimeout:
+                            description: Duration wraps time.Duration. It is used to parse the custom duration format from YAML. This type should not propagate beyond the scope of input/output processing.
+                            format: int64
+                            type: integer
+                        type: object
+                      insecure:
+                        type: boolean
+                      listObjectsVersion:
+                        type: string
+                      partSize:
+                        description: PartSize used for multipart upload. Only used if uploaded object size is known and larger than configured PartSize. NOTE we need to make sure this number does not produce more parts than 10 000.
+                        format: int64
+                        type: integer
+                      putUserMetadata:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      region:
+                        type: string
+                      secretKey:
+                        type: string
+                      signatureVersion2:
+                        type: boolean
+                      sseConfig:
+                        description: 'S3SSEConfig deals with the configuration of SSE for Minio. The following options are valid: kmsencryptioncontext == https://docs.aws.amazon.com/kms/latest/developerguide/services-s3.html#s3-encryption-context'
+                        properties:
+                          encryptionKey:
+                            type: string
+                          kmsEncryptionContext:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          kmsKeyId:
+                            type: string
+                          type:
+                            type: string
+                        type: object
+                      stsEndpoint:
+                        type: string
+                      trace:
+                        properties:
+                          enable:
+                            type: boolean
+                        type: object
+                    required:
+                    - accessKey
+                    - bucket
+                    - endpoint
+                    - secretKey
+                    type: object
+                type: object
+            required:
+            - thanos
+            type: object
+          status:
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.4.1
+  creationTimestamp: null
   name: stores.monitoring.paodin.io
 spec:
   group: monitoring.paodin.io
@@ -3975,6 +4128,93 @@ spec:
             type: object
           status:
             description: StoreStatus defines the observed state of Store
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.4.1
+  creationTimestamp: null
+  name: tenants.monitoring.paodin.io
+spec:
+  group: monitoring.paodin.io
+  names:
+    kind: Tenant
+    listKind: TenantList
+    plural: tenants
+    singular: tenant
+  scope: Cluster
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Tenant is the Schema for the monitoring Tenant API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              storage:
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                type: object
+              tenant:
+                type: string
+            type: object
+          status:
+            properties:
+              thanos:
+                properties:
+                  thanosCompact:
+                    properties:
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                    type: object
+                  thanosReceiveIngestor:
+                    properties:
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                    type: object
+                  thanosRuler:
+                    properties:
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                    type: object
+                  thanosStore:
+                    properties:
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                    type: object
+                type: object
             type: object
         type: object
     served: true
@@ -5782,7 +6022,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - clusters.kubesphere.io
+  - cluster.kubesphere.io
   resources:
   - clusters
   verbs:
@@ -5827,6 +6067,18 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - secrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
   - services
   verbs:
   - create
@@ -5856,6 +6108,14 @@ rules:
   - monitoring.paodin.io
   resources:
   - rulegroups
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - rules
   verbs:
   - get
   - list
@@ -5901,6 +6161,18 @@ rules:
   verbs:
   - get
   - list
+  - watch
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - storages
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - monitoring.paodin.io
