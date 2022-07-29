@@ -124,18 +124,16 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 		container.Args = append(container.Args, "--tenant.label-name="+g.Service.Spec.TenantLabelName)
 	}
 
-	if thanos := g.Service.Spec.Thanos; thanos != nil {
-		if thanos.QueryFrontend != nil {
-			qf := query_frontend.New(g.ServiceBaseReconciler)
-			container.Args = append(container.Args, fmt.Sprintf("--query.address=%s", qf.HttpAddr()))
-		} else if thanos.Query != nil {
-			q := query.New(g.ServiceBaseReconciler)
-			container.Args = append(container.Args, fmt.Sprintf("--query.address=%s", q.HttpAddr()))
-		}
-		if thanos.ReceiveRouter != nil {
-			r := receive_router.New(g.ServiceBaseReconciler)
-			container.Args = append(container.Args, fmt.Sprintf("--remote-write.address=%s", r.RemoteWriteAddr()))
-		}
+	if g.Service.Spec.QueryFrontend != nil {
+		qf := query_frontend.New(g.ServiceBaseReconciler)
+		container.Args = append(container.Args, fmt.Sprintf("--query.address=%s", qf.HttpAddr()))
+	} else if g.Service.Spec.Query != nil {
+		q := query.New(g.ServiceBaseReconciler)
+		container.Args = append(container.Args, fmt.Sprintf("--query.address=%s", q.HttpAddr()))
+	}
+	if g.Service.Spec.Router != nil {
+		r := receive_router.New(g.ServiceBaseReconciler)
+		container.Args = append(container.Args, fmt.Sprintf("--remote-write.address=%s", r.RemoteWriteAddr()))
 	}
 
 	d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, container)

@@ -6,21 +6,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: thanosreceiveingestors.monitoring.paodin.io
+  name: compacts.monitoring.paodin.io
 spec:
   group: monitoring.paodin.io
   names:
-    kind: ThanosReceiveIngestor
-    listKind: ThanosReceiveIngestorList
-    plural: thanosreceiveingestors
-    singular: thanosreceiveingestor
+    kind: Compact
+    listKind: CompactList
+    plural: compacts
+    singular: compact
   scope: Namespaced
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: ThanosReceiveIngestor is the Schema for the ThanosReceiveIngestor
-          API
+        description: Compact is the Schema for the Compact API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -35,8 +34,6 @@ spec:
           metadata:
             type: object
           spec:
-            description: ThanosReceiveIngestorSpec defines the desired state of a
-              ThanosReceiveIngestor
             properties:
               affinity:
                 description: If specified, the pod's scheduling constraints.
@@ -1169,6 +1166,9 @@ spec:
                         type: object
                     type: object
                 type: object
+              downsamplingDisable:
+                description: DownsamplingDisable specifies whether to disable downsampling
+                type: boolean
               flags:
                 additionalProperties:
                   type: string
@@ -1178,10 +1178,6 @@ spec:
               image:
                 description: Image is the thanos image with tag/version
                 type: string
-              localTsdbRetention:
-                description: LocalTsdbRetention configs how long to retain raw samples
-                  on local storage.
-                type: string
               logFormat:
                 description: 'Log format to use. Possible options: logfmt or json'
                 type: string
@@ -1189,21 +1185,13 @@ spec:
                 description: 'Log filtering level. Possible options: error, warn,
                   info, debug'
                 type: string
-              longTermStore:
-                description: If specified, the object key of Store for long term storage.
-                properties:
-                  name:
-                    type: string
-                  namespace:
-                    type: string
-                type: object
               nodeSelector:
                 additionalProperties:
                   type: string
                 description: Define which Nodes the Pods are scheduled on.
                 type: object
               replicas:
-                description: Number of replicas for a thanos component.
+                description: Number of replicas for a thanos component
                 format: int32
                 type: integer
               resources:
@@ -1232,12 +1220,32 @@ spec:
                       to an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
                     type: object
                 type: object
-              tenants:
-                description: Tenants if not empty indicates current config is for
-                  hard tenants; otherwise, it is for soft tenants.
-                items:
-                  type: string
-                type: array
+              retention:
+                description: Retention configs how long to retain samples
+                properties:
+                  retention1h:
+                    description: Retention1h specifies how long to retain samples
+                      of 1h resolution in bucket
+                    pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
+                    type: string
+                  retention5m:
+                    description: Retention5m specifies how long to retain samples
+                      of 5m resolution in bucket
+                    pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
+                    type: string
+                  retentionRaw:
+                    description: RetentionRaw specifies how long to retain raw samples
+                      in bucket
+                    pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
+                    type: string
+                type: object
+              storage:
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                type: object
               tolerations:
                 description: If specified, the pod's tolerations.
                 items:
@@ -1280,8 +1288,7 @@ spec:
                 type: array
             type: object
           status:
-            description: ThanosReceiveIngestorStatus defines the observed state of
-              Store
+            description: CompactStatus defines the observed state of Compact
             type: object
         type: object
     served: true

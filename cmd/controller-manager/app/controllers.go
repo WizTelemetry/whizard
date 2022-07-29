@@ -36,13 +36,23 @@ func addControllers(mgr manager.Manager, client k8s.Client, informerFactory info
 		return err
 	}
 
-	if err := (&monitoring.ThanosReceiveIngestorReconciler{
-		DefaulterValidator: monitoring.CreateThanosReceiveIngestorDefaulterValidator(*cmOptions.MonitoringOptions),
+	if err := (&monitoring.CompactReconciler{
+		DefaulterValidator: monitoring.CreateCompactDefaulterValidator(*cmOptions.MonitoringOptions),
 		Client:             mgr.GetClient(),
 		Scheme:             mgr.GetScheme(),
 		Context:            ctx,
 	}).SetupWithManager(mgr); err != nil {
-		klog.Errorf("Unable to create ThanosReceiveIngestor controller: %v", err)
+		klog.Errorf("Unable to create Compact controller: %v", err)
+		return err
+	}
+
+	if err := (&monitoring.ThanosReceiveIngesterReconciler{
+		DefaulterValidator: monitoring.CreateThanosReceiveIngesterDefaulterValidator(*cmOptions.MonitoringOptions),
+		Client:             mgr.GetClient(),
+		Scheme:             mgr.GetScheme(),
+		Context:            ctx,
+	}).SetupWithManager(mgr); err != nil {
+		klog.Errorf("Unable to create Ingester controller: %v", err)
 		return err
 	}
 
@@ -54,18 +64,18 @@ func addControllers(mgr manager.Manager, client k8s.Client, informerFactory info
 		Scheme:                mgr.GetScheme(),
 		Context:               ctx,
 	}).SetupWithManager(mgr); err != nil {
-		klog.Errorf("Unable to create ThanosRuler controller: %v", err)
+		klog.Errorf("Unable to create Ruler controller: %v", err)
 		return err
 	}
 
-	d, _ := time.ParseDuration(cmOptions.MonitoringOptions.DefaultIngestorRetentionPeriod)
+	d, _ := time.ParseDuration(cmOptions.MonitoringOptions.DefaultIngesterRetentionPeriod)
 	if err := (&monitoring.TenantReconciler{
 		DefaulterValidator:             monitoring.CreateTenantDefaulterValidator(*cmOptions.MonitoringOptions),
 		Client:                         mgr.GetClient(),
 		Scheme:                         mgr.GetScheme(),
 		Context:                        ctx,
-		DefaultTenantsPerIngestor:      cmOptions.MonitoringOptions.DefaultTenantsPerIngestor,
-		DefaultIngestorRetentionPeriod: d,
+		DefaultTenantsPerIngester:      cmOptions.MonitoringOptions.DefaultTenantsPerIngester,
+		DefaultIngesterRetentionPeriod: d,
 	}).SetupWithManager(mgr); err != nil {
 		klog.Errorf("Unable to create Tenant controller: %v", err)
 		return err

@@ -15,15 +15,15 @@ import (
 
 func (t *Tenant) ruler() error {
 
-	ruler := &monitoringv1alpha1.ThanosRuler{}
-	if t.tenant.Status.ThanosResource != nil && t.tenant.Status.ThanosResource.ThanosRuler != nil {
+	ruler := &monitoringv1alpha1.Ruler{}
+	if t.tenant.Status.Ruler != nil {
 		err := t.Client.Get(t.Context, types.NamespacedName{
-			Namespace: t.tenant.Status.ThanosResource.ThanosRuler.Namespace,
-			Name:      t.tenant.Status.ThanosResource.ThanosRuler.Name,
+			Namespace: t.tenant.Status.Ruler.Namespace,
+			Name:      t.tenant.Status.Ruler.Name,
 		}, ruler)
 		if err != nil {
 			if apierrors.IsNotFound(err) {
-				klog.V(3).Infof("Cannot find ruler [%s] for tenant [%s], create one", t.tenant.Status.ThanosResource.ThanosRuler, t.tenant.Name)
+				klog.V(3).Infof("Cannot find ruler [%s] for tenant [%s], create one", t.tenant.Status.Ruler, t.tenant.Name)
 			} else {
 				return err
 			}
@@ -31,7 +31,7 @@ func (t *Tenant) ruler() error {
 			var needResetRuler bool = false
 			// todo: more ruler check
 			if v, ok := ruler.Labels[monitoringv1alpha1.MonitoringPaodinService]; !ok || v != t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService] {
-				klog.V(3).Infof("Tenant [%s] and ruler [%s]'s Service mismatch, need to reset ingestor", t.tenant.Name, ruler.Name)
+				klog.V(3).Infof("Tenant [%s] and ruler [%s]'s Service mismatch, need to reset ingester", t.tenant.Name, ruler.Name)
 				needResetRuler = true
 			}
 
@@ -43,23 +43,20 @@ func (t *Tenant) ruler() error {
 		}
 	}
 
-	// when tenant.Labels don't contain Service, remove the bindings to ingestor and ruler
+	// when tenant.Labels don't contain Service, remove the bindings to ingester and ruler
 	if v, ok := t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService]; !ok || v == "" {
 		klog.V(3).Infof("Tenant [%s]'s Service is empty. ruler does not need to be created", t.tenant.Name)
-		if t.tenant.Status.ThanosResource != nil && t.tenant.Status.ThanosResource.ThanosRuler != nil && ruler != nil {
+		if t.tenant.Status.Ruler != nil && ruler != nil {
 			if err := t.Client.Delete(t.Context, ruler); err != nil {
 				return err
 			}
-			t.tenant.Status.ThanosResource.ThanosRuler = nil
+			t.tenant.Status.Ruler = nil
 			return t.Client.Status().Update(t.Context, t.tenant)
 		}
 		return nil
 	}
 	ruler = t.createOrUpdateRulerinstance()
-	if t.tenant.Status.ThanosResource == nil {
-		t.tenant.Status.ThanosResource = &monitoringv1alpha1.ThanosResource{}
-	}
-	t.tenant.Status.ThanosResource.ThanosRuler = &monitoringv1alpha1.ObjectReference{
+	t.tenant.Status.Ruler = &monitoringv1alpha1.ObjectReference{
 		Namespace: ruler.Namespace,
 		Name:      ruler.Name,
 	}
@@ -70,7 +67,7 @@ func (t *Tenant) ruler() error {
 	return t.Client.Status().Update(t.Context, t.tenant)
 }
 
-func (t *Tenant) createOrUpdateRulerinstance() *monitoringv1alpha1.ThanosRuler {
+func (t *Tenant) createOrUpdateRulerinstance() *monitoringv1alpha1.Ruler {
 
 	label := make(map[string]string, 2)
 	label[monitoringv1alpha1.MonitoringPaodinTenant] = t.tenant.Name
@@ -79,7 +76,7 @@ func (t *Tenant) createOrUpdateRulerinstance() *monitoringv1alpha1.ThanosRuler {
 	serviceNamespacedName := strings.Split(t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService], ".")
 
 	// todo: thanosruler config
-	return &monitoringv1alpha1.ThanosRuler{ObjectMeta: metav1.ObjectMeta{
+	return &monitoringv1alpha1.Ruler{ObjectMeta: metav1.ObjectMeta{
 		Name:      t.tenant.Name,
 		Namespace: serviceNamespacedName[0],
 		Labels:    label,
@@ -93,7 +90,7 @@ func (t *Tenant) createOrUpdateRulerinstance() *monitoringv1alpha1.ThanosRuler {
 			},
 		},
 	},
-		Spec: monitoringv1alpha1.ThanosRulerSpec{
+		Spec: monitoringv1alpha1.RulerSpec{
 			Tenant: t.tenant.Name,
 		},
 	}

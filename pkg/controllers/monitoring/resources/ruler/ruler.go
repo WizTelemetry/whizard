@@ -21,12 +21,12 @@ const (
 
 type Ruler struct {
 	resources.BaseReconciler
-	ruler                 *monitoringv1alpha1.ThanosRuler
+	ruler                 *monitoringv1alpha1.Ruler
 	reloaderConfig        options.PrometheusConfigReloaderConfig
 	rulerQueryProxyConfig options.RulerQueryProxyConfig
 }
 
-func New(reconciler resources.BaseReconciler, ruler *monitoringv1alpha1.ThanosRuler,
+func New(reconciler resources.BaseReconciler, ruler *monitoringv1alpha1.Ruler,
 	reloaderConfig options.PrometheusConfigReloaderConfig, rulerQueryProxyConfig options.RulerQueryProxyConfig) *Ruler {
 
 	return &Ruler{

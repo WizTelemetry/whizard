@@ -10,7 +10,7 @@ import (
 func (r *Compact) service() (runtime.Object, resources.Operation, error) {
 	var s = &corev1.Service{ObjectMeta: r.meta(r.name(resources.ServiceNameSuffixOperated))}
 
-	if r.compact == nil || r.Store.Spec.ObjectStorageConfig == nil {
+	if r.compact.Spec.Storage == nil {
 		return s, resources.OperationDelete, nil
 	}
 

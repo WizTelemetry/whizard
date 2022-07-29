@@ -27,12 +27,24 @@ type FakeMonitoringV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakeMonitoringV1alpha1) Compacts(namespace string) v1alpha1.CompactInterface {
+	return &FakeCompacts{c, namespace}
+}
+
+func (c *FakeMonitoringV1alpha1) Ingesters(namespace string) v1alpha1.IngesterInterface {
+	return &FakeIngesters{c, namespace}
+}
+
 func (c *FakeMonitoringV1alpha1) Rules(namespace string) v1alpha1.RuleInterface {
 	return &FakeRules{c, namespace}
 }
 
 func (c *FakeMonitoringV1alpha1) RuleGroups(namespace string) v1alpha1.RuleGroupInterface {
 	return &FakeRuleGroups{c, namespace}
+}
+
+func (c *FakeMonitoringV1alpha1) Rulers(namespace string) v1alpha1.RulerInterface {
+	return &FakeRulers{c, namespace}
 }
 
 func (c *FakeMonitoringV1alpha1) Services(namespace string) v1alpha1.ServiceInterface {
@@ -49,14 +61,6 @@ func (c *FakeMonitoringV1alpha1) Stores(namespace string) v1alpha1.StoreInterfac
 
 func (c *FakeMonitoringV1alpha1) Tenants(namespace string) v1alpha1.TenantInterface {
 	return &FakeTenants{c, namespace}
-}
-
-func (c *FakeMonitoringV1alpha1) ThanosReceiveIngestors(namespace string) v1alpha1.ThanosReceiveIngestorInterface {
-	return &FakeThanosReceiveIngestors{c, namespace}
-}
-
-func (c *FakeMonitoringV1alpha1) ThanosRulers(namespace string) v1alpha1.ThanosRulerInterface {
-	return &FakeThanosRulers{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

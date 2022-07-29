@@ -43,13 +43,17 @@ type ServiceSpec struct {
 
 	Storage *ObjectReference `json:"storage,omitempty"`
 
-	// Gateway to proxy and auth requests to Thanos Query and Thanos Receive Router defined in Thanos.
+	// Gateway to proxy and auth requests to Query and Router defined in Thanos.
 	Gateway *Gateway `json:"gateway,omitempty"`
 
-	// Thanos cluster contains explicit Thanos Query and Thanos Receive Router,
-	// and implicit Thanos Receive Ingestor and Thanos Store Gateway and Thanos Compact
-	// which are selected by label selector `monitoring.paodin.io/service=<service_namespace>.<service_name>`.
-	Thanos *Thanos `json:"thanos,omitempty"`
+	// Query component querys from the backends such as Ingester and Store by automated discovery.
+	Query *Query `json:"query,omitempty"`
+
+	// Receive Router component routes to the backends such as Ingester by automated discovery.
+	Router *Router `json:"router,omitempty"`
+
+	// QueryFrontend component implements a service deployed in front of queriers to improve query parallelization and caching.
+	QueryFrontend *QueryFrontend `json:"queryFrontend,omitempty"`
 }
 
 type Gateway struct {
@@ -75,15 +79,6 @@ type Gateway struct {
 	ServerCertificate string `json:"serverCertificate,omitempty"`
 	// Secret name for HTTP Client CA certificate (Kubernetes TLS secret type)
 	ClientCACertificate string `json:"clientCaCertificate,omitempty"`
-}
-
-type Thanos struct {
-	// Thanos Query component querys from the backends such as Thanos Receive Ingestor and Thanos Store Gateway by automated discovery.
-	Query *Query `json:"query,omitempty"`
-	// Thanos Receive Router component routes to the backends such as Thanos Receive Ingestor by automated discovery.
-	ReceiveRouter *ThanosReceiveRouter `json:"receiveRouter,omitempty"`
-	// Thanos Query frontend component implements a service deployed in front of queriers to improve query parallelization and caching.
-	QueryFrontend *ThanosQueryFrontend `json:"queryFrontend,omitempty"`
 }
 
 type Query struct {
@@ -136,7 +131,7 @@ type EnvoySpec struct {
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 
-type ThanosReceiveRouter struct {
+type Router struct {
 	// If specified, the pod's scheduling constraints.
 	Affinity *corev1.Affinity `json:"affinity,omitempty"`
 	// Define which Nodes the Pods are scheduled on.
@@ -162,7 +157,7 @@ type ThanosReceiveRouter struct {
 	Flags map[string]string `json:"flags,omitempty"`
 }
 
-type ThanosQueryFrontend struct {
+type QueryFrontend struct {
 	// If specified, the pod's scheduling constraints.
 	Affinity *corev1.Affinity `json:"affinity,omitempty"`
 	// Define which Nodes the Pods are scheduled on.
@@ -240,40 +235,6 @@ type ServiceList struct {
 	Items           []Service `json:"items"`
 }
 
-type ThanosStoreGateway struct {
-	// If specified, the pod's scheduling constraints.
-	Affinity *corev1.Affinity `json:"affinity,omitempty"`
-	// Define which Nodes the Pods are scheduled on.
-	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
-	// If specified, the pod's tolerations.
-	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
-	// Define resources requests and limits for main container.
-	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-	// Number of replicas for a thanos component
-	Replicas *int32 `json:"replicas,omitempty"`
-
-	// Image is the thanos image with tag/version
-	Image string `json:"image,omitempty"`
-	// Log filtering level. Possible options: error, warn, info, debug
-	LogLevel string `json:"logLevel,omitempty"`
-	// Log format to use. Possible options: logfmt or json
-	LogFormat string `json:"logFormat,omitempty"`
-
-	// MinTime specifies start of time range limit to serve
-	MinTime string `json:"minTime,omitempty"`
-	// MaxTime specifies end of time range limit to serve
-	MaxTime string `json:"maxTime,omitempty"`
-
-	// IndexCacheConfig contains index cache configuration.
-	IndexCacheConfig *IndexCacheConfig `json:"indexCacheConfig,omitempty"`
-
-	// Flags is a list of key/value that could be used to set strategy parameters.
-	Flags map[string]string `json:"flags,omitempty"`
-
-	// DataVolume specifies how volume shall be used
-	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
-}
-
 // IndexCacheConfig specifies the index cache config.
 type IndexCacheConfig struct {
 	Type CacheProvider `json:"type"`
@@ -287,37 +248,6 @@ type InMemoryIndexCacheConfig struct {
 	MaxSize string `json:"max_size,omitempty" yaml:"max_size,omitempty"`
 	// MaxItemSize represents maximum size of single item. ie. 125MB
 	MaxItemSize string `json:"max_item_size,omitempty" yaml:"max_item_size,omitempty"`
-}
-
-type ThanosCompact struct {
-	// If specified, the pod's scheduling constraints.
-	Affinity *corev1.Affinity `json:"affinity,omitempty"`
-	// Define which Nodes the Pods are scheduled on.
-	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
-	// If specified, the pod's tolerations.
-	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
-	// Define resources requests and limits for main container.
-	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-	// Number of replicas for a thanos component
-	Replicas *int32 `json:"replicas,omitempty"`
-
-	// Image is the thanos image with tag/version
-	Image string `json:"image,omitempty"`
-	// Log filtering level. Possible options: error, warn, info, debug
-	LogLevel string `json:"logLevel,omitempty"`
-	// Log format to use. Possible options: logfmt or json
-	LogFormat string `json:"logFormat,omitempty"`
-
-	// DownsamplingDisable specifies whether to disable downsampling
-	DownsamplingDisable *bool `json:"downsamplingDisable,omitempty"`
-	// Retention configs how long to retain samples
-	Retention *Retention `json:"retention,omitempty"`
-
-	// Flags is a list of key/value that could be used to set strategy parameters.
-	Flags map[string]string `json:"flags,omitempty"`
-
-	// DataVolume specifies how volume shall be used
-	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
 }
 
 // KubernetesVolume defines the configured volume for a thanos instance.
@@ -336,19 +266,40 @@ type Retention struct {
 	Retention1h Duration `json:"retention1h,omitempty"`
 }
 
-// StoreSpec defines the desired state of a Store
 type StoreSpec struct {
-	// ObjectStorageConfig allows specifying a key of a Secret containing object store configuration
-	ObjectStorageConfig *corev1.SecretKeySelector `json:"objectStorageConfig,omitempty"`
-	// Thanos contains Thanos Store Gateway and Thanos Compact.
-	Thanos *ThanosStore `json:"thanos,omitempty"`
-}
+	// If specified, the pod's scheduling constraints.
+	Affinity *corev1.Affinity `json:"affinity,omitempty"`
+	// Define which Nodes the Pods are scheduled on.
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+	// If specified, the pod's tolerations.
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+	// Define resources requests and limits for main container.
+	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
+	// Number of replicas for a thanos component
+	Replicas *int32 `json:"replicas,omitempty"`
 
-type ThanosStore struct {
-	// Thanos Store Gateway will be selected as query backends by Service.
-	StoreGateway *ThanosStoreGateway `json:"storeGateway,omitempty"`
-	// Thanos Compact as object storage data compactor and lifecycle manager.
-	Compact *ThanosCompact `json:"compact,omitempty"`
+	// Image is the thanos image with tag/version
+	Image string `json:"image,omitempty"`
+	// Log filtering level. Possible options: error, warn, info, debug
+	LogLevel string `json:"logLevel,omitempty"`
+	// Log format to use. Possible options: logfmt or json
+	LogFormat string `json:"logFormat,omitempty"`
+
+	Storage *ObjectReference `json:"storage,omitempty"`
+
+	// MinTime specifies start of time range limit to serve
+	MinTime string `json:"minTime,omitempty"`
+	// MaxTime specifies end of time range limit to serve
+	MaxTime string `json:"maxTime,omitempty"`
+
+	// IndexCacheConfig contains index cache configuration.
+	IndexCacheConfig *IndexCacheConfig `json:"indexCacheConfig,omitempty"`
+
+	// Flags is a list of key/value that could be used to set strategy parameters.
+	Flags map[string]string `json:"flags,omitempty"`
+
+	// DataVolume specifies how volume shall be used
+	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
 }
 
 // StoreStatus defines the observed state of Store
@@ -379,8 +330,69 @@ type StoreList struct {
 	Items           []Store `json:"items"`
 }
 
-// ThanosReceiveIngestorSpec defines the desired state of a ThanosReceiveIngestor
-type ThanosReceiveIngestorSpec struct {
+type CompactSpec struct {
+	// If specified, the pod's scheduling constraints.
+	Affinity *corev1.Affinity `json:"affinity,omitempty"`
+	// Define which Nodes the Pods are scheduled on.
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+	// If specified, the pod's tolerations.
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+	// Define resources requests and limits for main container.
+	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
+	// Number of replicas for a thanos component
+	Replicas *int32 `json:"replicas,omitempty"`
+
+	// Image is the thanos image with tag/version
+	Image string `json:"image,omitempty"`
+	// Log filtering level. Possible options: error, warn, info, debug
+	LogLevel string `json:"logLevel,omitempty"`
+	// Log format to use. Possible options: logfmt or json
+	LogFormat string `json:"logFormat,omitempty"`
+
+	// DownsamplingDisable specifies whether to disable downsampling
+	DownsamplingDisable *bool `json:"downsamplingDisable,omitempty"`
+	// Retention configs how long to retain samples
+	Retention *Retention `json:"retention,omitempty"`
+
+	Storage *ObjectReference `json:"storage,omitempty"`
+
+	// Flags is a list of key/value that could be used to set strategy parameters.
+	Flags map[string]string `json:"flags,omitempty"`
+
+	// DataVolume specifies how volume shall be used
+	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
+}
+
+// CompactStatus defines the observed state of Compact
+type CompactStatus struct {
+	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+}
+
+//+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
+// +genclient
+
+// Compact is the Schema for the Compact API
+type Compact struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   CompactSpec   `json:"spec,omitempty"`
+	Status CompactStatus `json:"status,omitempty"`
+}
+
+//+kubebuilder:object:root=true
+
+// StoreList contains a list of Store
+type CompactList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []Store `json:"items"`
+}
+
+// IngesterSpec defines the desired state of a Ingester
+type IngesterSpec struct {
 	// Tenants if not empty indicates current config is for hard tenants; otherwise, it is for soft tenants.
 	Tenants []string `json:"tenants,omitempty"`
 
@@ -408,8 +420,8 @@ type ThanosReceiveIngestorSpec struct {
 	// Flags is a list of key/value that could be used to set strategy parameters.
 	Flags map[string]string `json:"flags,omitempty"`
 
-	// If specified, the object key of Store for long term storage.
-	LongTermStore *ObjectReference `json:"longTermStore,omitempty"`
+	// If specified, the object key of Storage for long term storage.
+	Storage *ObjectReference `json:"storage,omitempty"`
 
 	// DataVolume specifies how volume shall be used
 	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
@@ -420,8 +432,8 @@ type ObjectReference struct {
 	Name      string `json:"name,omitempty"`
 }
 
-// ThanosReceiveIngestorStatus defines the observed state of Store
-type ThanosReceiveIngestorStatus struct {
+// ThanosReceiveIngesterStatus defines the observed state of Store
+type IngesterStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 }
@@ -430,26 +442,26 @@ type ThanosReceiveIngestorStatus struct {
 //+kubebuilder:subresource:status
 // +genclient
 
-// ThanosReceiveIngestor is the Schema for the ThanosReceiveIngestor API
-type ThanosReceiveIngestor struct {
+// Ingester is the Schema for the Ingester API
+type Ingester struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ThanosReceiveIngestorSpec   `json:"spec,omitempty"`
-	Status ThanosReceiveIngestorStatus `json:"status,omitempty"`
+	Spec   IngesterSpec   `json:"spec,omitempty"`
+	Status IngesterStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// ThanosReceiveIngestorList contains a list of Store
-type ThanosReceiveIngestorList struct {
+// IngesterList contains a list of Store
+type IngesterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ThanosReceiveIngestor `json:"items"`
+	Items           []Ingester `json:"items"`
 }
 
-// ThanosRulerSpec defines the desired state of a ThanosRuler
-type ThanosRulerSpec struct {
+// RulerSpec defines the desired state of a ThanosRuler
+type RulerSpec struct {
 	// If specified, the pod's scheduling constraints.
 	Affinity *corev1.Affinity `json:"affinity,omitempty"`
 	// Define which Nodes the Pods are scheduled on.
@@ -511,7 +523,7 @@ type ThanosRulerSpec struct {
 }
 
 // ThanosRulerStatus defines the observed state of ThanosRuler
-type ThanosRulerStatus struct {
+type RulerStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 }
@@ -521,21 +533,21 @@ type ThanosRulerStatus struct {
 // +genclient
 
 // ThanosRuler is the Schema for the ThanosRuler API
-type ThanosRuler struct {
+type Ruler struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ThanosRulerSpec   `json:"spec,omitempty"`
-	Status ThanosRulerStatus `json:"status,omitempty"`
+	Spec   RulerSpec   `json:"spec,omitempty"`
+	Status RulerStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
 // ThanosRulerList contains a list of ThanosRuler
-type ThanosRulerList struct {
+type RulerList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ThanosRuler `json:"items"`
+	Items           []Ruler `json:"items"`
 }
 
 // RuleSpec defines the desired state of a Rule
@@ -618,9 +630,10 @@ type Duration string
 func init() {
 	SchemeBuilder = SchemeBuilder.
 		Register(&Service{}, &ServiceList{}).
-		Register(&ThanosReceiveIngestor{}, &ThanosReceiveIngestorList{}).
+		Register(&Ingester{}, &IngesterList{}).
+		Register(&Ruler{}, &RulerList{}).
 		Register(&Store{}, &StoreList{}).
-		Register(&ThanosRuler{}, &ThanosRulerList{}).
+		Register(&Compact{}, &CompactList{}).
 		Register(&Rule{}, &RuleList{}).
 		Register(&RuleGroup{}, &RuleGroupList{})
 }

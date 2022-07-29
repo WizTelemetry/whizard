@@ -17,6 +17,22 @@ limitations under the License.
 
 package v1alpha1
 
+// CompactListerExpansion allows custom methods to be added to
+// CompactLister.
+type CompactListerExpansion interface{}
+
+// CompactNamespaceListerExpansion allows custom methods to be added to
+// CompactNamespaceLister.
+type CompactNamespaceListerExpansion interface{}
+
+// IngesterListerExpansion allows custom methods to be added to
+// IngesterLister.
+type IngesterListerExpansion interface{}
+
+// IngesterNamespaceListerExpansion allows custom methods to be added to
+// IngesterNamespaceLister.
+type IngesterNamespaceListerExpansion interface{}
+
 // RuleListerExpansion allows custom methods to be added to
 // RuleLister.
 type RuleListerExpansion interface{}
@@ -32,6 +48,14 @@ type RuleGroupListerExpansion interface{}
 // RuleGroupNamespaceListerExpansion allows custom methods to be added to
 // RuleGroupNamespaceLister.
 type RuleGroupNamespaceListerExpansion interface{}
+
+// RulerListerExpansion allows custom methods to be added to
+// RulerLister.
+type RulerListerExpansion interface{}
+
+// RulerNamespaceListerExpansion allows custom methods to be added to
+// RulerNamespaceLister.
+type RulerNamespaceListerExpansion interface{}
 
 // ServiceListerExpansion allows custom methods to be added to
 // ServiceLister.
@@ -64,19 +88,3 @@ type TenantListerExpansion interface{}
 // TenantNamespaceListerExpansion allows custom methods to be added to
 // TenantNamespaceLister.
 type TenantNamespaceListerExpansion interface{}
-
-// ThanosReceiveIngestorListerExpansion allows custom methods to be added to
-// ThanosReceiveIngestorLister.
-type ThanosReceiveIngestorListerExpansion interface{}
-
-// ThanosReceiveIngestorNamespaceListerExpansion allows custom methods to be added to
-// ThanosReceiveIngestorNamespaceLister.
-type ThanosReceiveIngestorNamespaceListerExpansion interface{}
-
-// ThanosRulerListerExpansion allows custom methods to be added to
-// ThanosRulerLister.
-type ThanosRulerListerExpansion interface{}
-
-// ThanosRulerNamespaceListerExpansion allows custom methods to be added to
-// ThanosRulerNamespaceLister.
-type ThanosRulerNamespaceListerExpansion interface{}

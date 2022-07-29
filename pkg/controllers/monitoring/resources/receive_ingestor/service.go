@@ -1,4 +1,4 @@
-package receive_ingestor
+package receive_ingester
 
 import (
 	corev1 "k8s.io/api/core/v1"
@@ -7,7 +7,7 @@ import (
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
 )
 
-func (r *ReceiveIngestor) service() (runtime.Object, resources.Operation, error) {
+func (r *ReceiveIngester) service() (runtime.Object, resources.Operation, error) {
 	var s = &corev1.Service{ObjectMeta: r.meta(r.name(resources.ServiceNameSuffixOperated))}
 
 	s.Spec = corev1.ServiceSpec{

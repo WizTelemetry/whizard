@@ -27,19 +27,28 @@ import (
 
 type MonitoringV1alpha1Interface interface {
 	RESTClient() rest.Interface
+	CompactsGetter
+	IngestersGetter
 	RulesGetter
 	RuleGroupsGetter
+	RulersGetter
 	ServicesGetter
 	StoragesGetter
 	StoresGetter
 	TenantsGetter
-	ThanosReceiveIngestorsGetter
-	ThanosRulersGetter
 }
 
 // MonitoringV1alpha1Client is used to interact with features provided by the monitoring group.
 type MonitoringV1alpha1Client struct {
 	restClient rest.Interface
+}
+
+func (c *MonitoringV1alpha1Client) Compacts(namespace string) CompactInterface {
+	return newCompacts(c, namespace)
+}
+
+func (c *MonitoringV1alpha1Client) Ingesters(namespace string) IngesterInterface {
+	return newIngesters(c, namespace)
 }
 
 func (c *MonitoringV1alpha1Client) Rules(namespace string) RuleInterface {
@@ -48,6 +57,10 @@ func (c *MonitoringV1alpha1Client) Rules(namespace string) RuleInterface {
 
 func (c *MonitoringV1alpha1Client) RuleGroups(namespace string) RuleGroupInterface {
 	return newRuleGroups(c, namespace)
+}
+
+func (c *MonitoringV1alpha1Client) Rulers(namespace string) RulerInterface {
+	return newRulers(c, namespace)
 }
 
 func (c *MonitoringV1alpha1Client) Services(namespace string) ServiceInterface {
@@ -64,14 +77,6 @@ func (c *MonitoringV1alpha1Client) Stores(namespace string) StoreInterface {
 
 func (c *MonitoringV1alpha1Client) Tenants(namespace string) TenantInterface {
 	return newTenants(c, namespace)
-}
-
-func (c *MonitoringV1alpha1Client) ThanosReceiveIngestors(namespace string) ThanosReceiveIngestorInterface {
-	return newThanosReceiveIngestors(c, namespace)
-}
-
-func (c *MonitoringV1alpha1Client) ThanosRulers(namespace string) ThanosRulerInterface {
-	return newThanosRulers(c, namespace)
 }
 
 // NewForConfig creates a new MonitoringV1alpha1Client for the given config.

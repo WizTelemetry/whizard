@@ -24,7 +24,7 @@ const (
 	AppNameThanosQuery           = "thanos-query"
 	AppNameThanosQueryFrontend   = "thanos-query-frontend"
 	AppNameThanosReceiveRouter   = "thanos-receive-router"
-	AppNameThanosReceiveIngestor = "thanos-receive-ingestor"
+	AppNameThanosReceiveIngester = "thanos-receive-ingester"
 	AppNameThanosRuler           = "thanos-ruler"
 	AppNameThanosStoreGateway    = "thanos-store-gateway"
 	AppNameThanosCompact         = "thanos-compact"
@@ -37,8 +37,8 @@ const (
 	LabelNameAppManagedBy = "app.kubernetes.io/managed-by"
 	LabelNameAppPartOf    = "app.kubernetes.io/part-of"
 
-	LabelNameReceiveIngestorState        = "monitoring.paodin.io/ingestor-state"
-	LabelNameReceiveIngestorDeletingTime = "monitoring.paodin.io/ingestor-deleting-time"
+	LabelNameReceiveIngesterState        = "monitoring.paodin.io/ingester-state"
+	LabelNameReceiveIngesterDeletingTime = "monitoring.paodin.io/ingester-deleting-time"
 
 	SecretThanosBucketKey = "bucket.yml"
 )

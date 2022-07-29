@@ -8,14 +8,16 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 
+	"github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
 )
 
 func (r *Compact) statefulSet() (runtime.Object, resources.Operation, error) {
 	var sts = &appsv1.StatefulSet{ObjectMeta: r.meta(r.name())}
 
-	if r.compact == nil || r.Store.Spec.ObjectStorageConfig == nil {
+	if r.compact.Spec.Storage == nil {
 		return sts, resources.OperationDelete, nil
 	}
 
@@ -28,18 +30,18 @@ func (r *Compact) statefulSet() (runtime.Object, resources.Operation, error) {
 				Labels: r.labels(),
 			},
 			Spec: corev1.PodSpec{
-				NodeSelector: r.compact.NodeSelector,
-				Tolerations:  r.compact.Tolerations,
-				Affinity:     r.compact.Affinity,
+				NodeSelector: r.compact.Spec.NodeSelector,
+				Tolerations:  r.compact.Spec.Tolerations,
+				Affinity:     r.compact.Spec.Affinity,
 			},
 		},
 	}
 
 	var container = corev1.Container{
 		Name:      "compact",
-		Image:     r.compact.Image,
+		Image:     r.compact.Spec.Image,
 		Args:      []string{"compact", "--wait"},
-		Resources: r.compact.Resources,
+		Resources: r.compact.Spec.Resources,
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          resources.ThanosHTTPPortName,
@@ -57,7 +59,7 @@ func (r *Compact) statefulSet() (runtime.Object, resources.Operation, error) {
 			EmptyDir: &corev1.EmptyDirVolumeSource{},
 		},
 	}
-	if v := r.compact.DataVolume; v != nil {
+	if v := r.compact.Spec.DataVolume; v != nil {
 		if pvc := v.PersistentVolumeClaim; pvc != nil {
 			if pvc.Name == "" {
 				pvc.Name = sts.Name + "-tsdb"
@@ -83,15 +85,20 @@ func (r *Compact) statefulSet() (runtime.Object, resources.Operation, error) {
 		})
 	}
 
-	osConfig := r.Store.Spec.ObjectStorageConfig
+	storage := &v1alpha1.Storage{}
+	err := r.Client.Get(r.Context, types.NamespacedName{Namespace: r.compact.Spec.Storage.Namespace, Name: r.compact.Spec.Storage.Name}, storage)
+	if err != nil {
+		return nil, "", err
+	}
+
 	osVol := corev1.Volume{
-		Name: "secret-" + osConfig.Name,
+		Name: storage.Name,
 		VolumeSource: corev1.VolumeSource{
 			Secret: &corev1.SecretVolumeSource{
-				SecretName: osConfig.Name,
+				SecretName: "secret-" + storage.Name,
 				Items: []corev1.KeyToPath{{
-					Key:  osConfig.Key,
-					Path: osConfig.Key,
+					Key:  resources.SecretThanosBucketKey,
+					Path: resources.SecretThanosBucketKey,
 				}},
 			},
 		},
@@ -99,21 +106,21 @@ func (r *Compact) statefulSet() (runtime.Object, resources.Operation, error) {
 	sts.Spec.Template.Spec.Volumes = append(sts.Spec.Template.Spec.Volumes, osVol)
 	container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
 		Name:      osVol.Name,
-		MountPath: filepath.Join(secretsDir, osConfig.Name),
+		MountPath: filepath.Join(secretsDir, storage.Name),
 	})
 
-	if r.compact.LogLevel != "" {
-		container.Args = append(container.Args, "--log.level="+r.compact.LogLevel)
+	if r.compact.Spec.LogLevel != "" {
+		container.Args = append(container.Args, "--log.level="+r.compact.Spec.LogLevel)
 	}
-	if r.compact.LogFormat != "" {
-		container.Args = append(container.Args, "--log.format="+r.compact.LogFormat)
+	if r.compact.Spec.LogFormat != "" {
+		container.Args = append(container.Args, "--log.format="+r.compact.Spec.LogFormat)
 	}
 	container.Args = append(container.Args, fmt.Sprintf("--data-dir=%s", storageDir))
-	if r.compact.DownsamplingDisable != nil {
-		container.Args = append(container.Args, fmt.Sprintf("--downsampling.disable=%v", r.compact.DownsamplingDisable))
+	if r.compact.Spec.DownsamplingDisable != nil {
+		container.Args = append(container.Args, fmt.Sprintf("--downsampling.disable=%v", r.compact.Spec.DownsamplingDisable))
 	}
-	container.Args = append(container.Args, "--objstore.config-file="+filepath.Join(secretsDir, osConfig.Name, osConfig.Key))
-	if retention := r.compact.Retention; retention != nil {
+	container.Args = append(container.Args, "--objstore.config-file="+filepath.Join(secretsDir, storage.Name, resources.SecretThanosBucketKey))
+	if retention := r.compact.Spec.Retention; retention != nil {
 		if retention.RetentionRaw != "" {
 			container.Args = append(container.Args, fmt.Sprintf("--retention.resolution-raw=%s", retention.RetentionRaw))
 		}
@@ -126,7 +133,7 @@ func (r *Compact) statefulSet() (runtime.Object, resources.Operation, error) {
 	}
 	container.Args = append(container.Args, "--deduplication.replica-label=receive_replica")
 
-	for name, value := range r.compact.Flags {
+	for name, value := range r.compact.Spec.Flags {
 		container.Args = append(container.Args, fmt.Sprintf("--%s=%s", name, value))
 	}
 

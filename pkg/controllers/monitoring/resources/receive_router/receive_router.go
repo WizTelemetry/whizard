@@ -16,13 +16,13 @@ const (
 
 type ReceiveRouter struct {
 	resources.ServiceBaseReconciler
-	router *v1alpha1.ThanosReceiveRouter
+	router *v1alpha1.Router
 }
 
 func New(reconciler resources.ServiceBaseReconciler) *ReceiveRouter {
 	return &ReceiveRouter{
 		ServiceBaseReconciler: reconciler,
-		router:                reconciler.Service.Spec.Thanos.ReceiveRouter,
+		router:                reconciler.Service.Spec.Router,
 	}
 }
 

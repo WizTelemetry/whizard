@@ -6,14 +6,14 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: thanosrulers.monitoring.paodin.io
+  name: rulers.monitoring.paodin.io
 spec:
   group: monitoring.paodin.io
   names:
-    kind: ThanosRuler
-    listKind: ThanosRulerList
-    plural: thanosrulers
-    singular: thanosruler
+    kind: Ruler
+    listKind: RulerList
+    plural: rulers
+    singular: ruler
   scope: Namespaced
   versions:
   - name: v1alpha1
@@ -34,7 +34,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: ThanosRulerSpec defines the desired state of a ThanosRuler
+            description: RulerSpec defines the desired state of a ThanosRuler
             properties:
               affinity:
                 description: If specified, the pod's scheduling constraints.

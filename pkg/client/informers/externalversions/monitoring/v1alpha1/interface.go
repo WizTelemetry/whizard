@@ -23,10 +23,16 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// Compacts returns a CompactInformer.
+	Compacts() CompactInformer
+	// Ingesters returns a IngesterInformer.
+	Ingesters() IngesterInformer
 	// Rules returns a RuleInformer.
 	Rules() RuleInformer
 	// RuleGroups returns a RuleGroupInformer.
 	RuleGroups() RuleGroupInformer
+	// Rulers returns a RulerInformer.
+	Rulers() RulerInformer
 	// Services returns a ServiceInformer.
 	Services() ServiceInformer
 	// Storages returns a StorageInformer.
@@ -35,10 +41,6 @@ type Interface interface {
 	Stores() StoreInformer
 	// Tenants returns a TenantInformer.
 	Tenants() TenantInformer
-	// ThanosReceiveIngestors returns a ThanosReceiveIngestorInformer.
-	ThanosReceiveIngestors() ThanosReceiveIngestorInformer
-	// ThanosRulers returns a ThanosRulerInformer.
-	ThanosRulers() ThanosRulerInformer
 }
 
 type version struct {
@@ -52,6 +54,16 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
+// Compacts returns a CompactInformer.
+func (v *version) Compacts() CompactInformer {
+	return &compactInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// Ingesters returns a IngesterInformer.
+func (v *version) Ingesters() IngesterInformer {
+	return &ingesterInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
 // Rules returns a RuleInformer.
 func (v *version) Rules() RuleInformer {
 	return &ruleInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
@@ -60,6 +72,11 @@ func (v *version) Rules() RuleInformer {
 // RuleGroups returns a RuleGroupInformer.
 func (v *version) RuleGroups() RuleGroupInformer {
 	return &ruleGroupInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// Rulers returns a RulerInformer.
+func (v *version) Rulers() RulerInformer {
+	return &rulerInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // Services returns a ServiceInformer.
@@ -80,14 +97,4 @@ func (v *version) Stores() StoreInformer {
 // Tenants returns a TenantInformer.
 func (v *version) Tenants() TenantInformer {
 	return &tenantInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
-// ThanosReceiveIngestors returns a ThanosReceiveIngestorInformer.
-func (v *version) ThanosReceiveIngestors() ThanosReceiveIngestorInformer {
-	return &thanosReceiveIngestorInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
-// ThanosRulers returns a ThanosRulerInformer.
-func (v *version) ThanosRulers() ThanosRulerInformer {
-	return &thanosRulerInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

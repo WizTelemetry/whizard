@@ -1,4 +1,4 @@
-package receive_ingestor
+package receive_ingester
 
 import (
 	"fmt"
@@ -16,11 +16,11 @@ import (
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
 )
 
-func (r *ReceiveIngestor) statefulSet() (runtime.Object, resources.Operation, error) {
+func (r *ReceiveIngester) statefulSet() (runtime.Object, resources.Operation, error) {
 	var sts = &appsv1.StatefulSet{ObjectMeta: r.meta(r.name())}
 
 	sts.Spec = appsv1.StatefulSetSpec{
-		Replicas: r.ingestor.Spec.Replicas,
+		Replicas: r.ingester.Spec.Replicas,
 		Selector: &metav1.LabelSelector{
 			MatchLabels: r.labels(),
 		},
@@ -30,18 +30,18 @@ func (r *ReceiveIngestor) statefulSet() (runtime.Object, resources.Operation, er
 				Labels: r.labels(),
 			},
 			Spec: corev1.PodSpec{
-				NodeSelector: r.ingestor.Spec.NodeSelector,
-				Tolerations:  r.ingestor.Spec.Tolerations,
-				Affinity:     r.ingestor.Spec.Affinity,
+				NodeSelector: r.ingester.Spec.NodeSelector,
+				Tolerations:  r.ingester.Spec.Tolerations,
+				Affinity:     r.ingester.Spec.Affinity,
 			},
 		},
 	}
 
 	var container = corev1.Container{
 		Name:      "receive",
-		Image:     r.ingestor.Spec.Image,
+		Image:     r.ingester.Spec.Image,
 		Args:      []string{"receive"},
-		Resources: r.ingestor.Spec.Resources,
+		Resources: r.ingester.Spec.Resources,
 		Ports: []corev1.ContainerPort{
 			{
 				Protocol:      corev1.ProtocolTCP,
@@ -79,7 +79,7 @@ func (r *ReceiveIngestor) statefulSet() (runtime.Object, resources.Operation, er
 			EmptyDir: &corev1.EmptyDirVolumeSource{},
 		},
 	}
-	if v := r.ingestor.Spec.DataVolume; v != nil {
+	if v := r.ingester.Spec.DataVolume; v != nil {
 		if pvc := v.PersistentVolumeClaim; pvc != nil {
 			if pvc.Name == "" {
 				pvc.Name = sts.Name + "-tsdb"
@@ -105,61 +105,54 @@ func (r *ReceiveIngestor) statefulSet() (runtime.Object, resources.Operation, er
 		})
 	}
 
-	var osConfig *corev1.SecretKeySelector
-	if lts := r.ingestor.Spec.LongTermStore; lts != nil {
-		var store monitoringv1alpha1.Store
-		if err := r.Client.Get(r.Context, types.NamespacedName{
-			Namespace: lts.Namespace,
-			Name:      lts.Name,
-		}, &store); err != nil {
-			if !apierrors.IsNotFound(err) {
-				r.Log.Error(err, "")
-			}
-		} else {
-			osConfig = store.Spec.ObjectStorageConfig
+	storage := &monitoringv1alpha1.Storage{}
+	if r.ingester.Spec.Storage != nil {
+		err := r.Client.Get(r.Context, types.NamespacedName{Namespace: r.ingester.Spec.Storage.Namespace, Name: r.ingester.Spec.Storage.Name}, storage)
+		if err != nil {
+			return nil, "", err
 		}
 	}
 
-	if osConfig != nil && osConfig.Name != "" {
+	if storage != nil && storage.Name != "" {
 		sts.Spec.Template.Spec.Volumes = append(sts.Spec.Template.Spec.Volumes, corev1.Volume{
-			Name: "secret-" + osConfig.Name,
+			Name: storage.Name,
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					SecretName: osConfig.Name,
+					SecretName: "secret-" + storage.Name,
 					Items: []corev1.KeyToPath{{
-						Key:  osConfig.Key,
-						Path: osConfig.Key,
+						Key:  resources.SecretThanosBucketKey,
+						Path: resources.SecretThanosBucketKey,
 					}},
 				},
 			},
 		})
 		container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
-			Name:      "secret-" + osConfig.Name,
-			MountPath: filepath.Join(secretsDir, osConfig.Name),
+			Name:      storage.Name,
+			MountPath: filepath.Join(secretsDir, storage.Name),
 		})
 	}
 
-	if r.ingestor.Spec.LogLevel != "" {
-		container.Args = append(container.Args, "--log.level="+r.ingestor.Spec.LogLevel)
+	if r.ingester.Spec.LogLevel != "" {
+		container.Args = append(container.Args, "--log.level="+r.ingester.Spec.LogLevel)
 	}
-	if r.ingestor.Spec.LogFormat != "" {
-		container.Args = append(container.Args, "--log.format="+r.ingestor.Spec.LogFormat)
+	if r.ingester.Spec.LogFormat != "" {
+		container.Args = append(container.Args, "--log.format="+r.ingester.Spec.LogFormat)
 	}
 	container.Args = append(container.Args, `--label=thanos_receive_replica="$(POD_NAME)"`)
 	container.Args = append(container.Args, fmt.Sprintf("--tsdb.path=%s", storageDir))
 	container.Args = append(container.Args, fmt.Sprintf("--receive.local-endpoint=$(POD_NAME).%s:%d", r.name(resources.ServiceNameSuffixOperated), resources.ThanosGRPCPort))
-	if r.ingestor.Spec.LocalTsdbRetention != "" {
-		container.Args = append(container.Args, "--tsdb.retention="+r.ingestor.Spec.LocalTsdbRetention)
+	if r.ingester.Spec.LocalTsdbRetention != "" {
+		container.Args = append(container.Args, "--tsdb.retention="+r.ingester.Spec.LocalTsdbRetention)
 	}
-	if osConfig != nil && osConfig.Name != "" {
-		container.Args = append(container.Args, "--objstore.config-file="+filepath.Join(secretsDir, osConfig.Name, osConfig.Key))
+	if storage != nil && storage.Name != "" {
+		container.Args = append(container.Args, "--objstore.config-file="+filepath.Join(secretsDir, storage.Name, resources.SecretThanosBucketKey))
 	} else {
 		// set tsdb.max-block-duration by localTsdbRetention to enable block compact when using only local storage
 		maxBlockDuration, err := model.ParseDuration("31d")
 		if err != nil {
 			return nil, resources.OperationCreateOrUpdate, err
 		}
-		retention := r.ingestor.Spec.LocalTsdbRetention
+		retention := r.ingester.Spec.LocalTsdbRetention
 		if retention == "" {
 			retention = "15d"
 		}
@@ -174,7 +167,7 @@ func (r *ReceiveIngestor) statefulSet() (runtime.Object, resources.Operation, er
 		container.Args = append(container.Args, "--tsdb.max-block-duration="+maxBlockDuration.String())
 	}
 
-	namespacedName := monitoringv1alpha1.ServiceNamespacedName(r.ingestor)
+	namespacedName := monitoringv1alpha1.ServiceNamespacedName(r.ingester)
 
 	if namespacedName != nil {
 		var service monitoringv1alpha1.Service
@@ -195,9 +188,9 @@ func (r *ReceiveIngestor) statefulSet() (runtime.Object, resources.Operation, er
 		}
 	}
 
-	for name, value := range r.ingestor.Spec.Flags {
+	for name, value := range r.ingester.Spec.Flags {
 		if name == "receive.hashrings" || name == "receive.hashrings-file" {
-			// ignoring these flags to make receiver run with ingestor mode
+			// ignoring these flags to make receiver run with ingester mode
 			// refer to https://github.com/thanos-io/thanos/blob/release-0.26/cmd/thanos/receive.go#L816
 			continue
 		}

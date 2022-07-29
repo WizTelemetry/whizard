@@ -30,20 +30,20 @@ import (
 	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/options"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/storegateway"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/compact"
 )
 
-// StoreReconciler reconciles a Store object
-type StoreReconciler struct {
-	DefaulterValidator StoreDefaulterValidator
+// CompactReconciler reconciles a compact object
+type CompactReconciler struct {
+	DefaulterValidator CompactDefaulterValidator
 	client.Client
 	Scheme  *runtime.Scheme
 	Context context.Context
 }
 
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=stores,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=stores/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=stores/finalizers,verbs=update
+//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=compacts,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=compacts/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=compacts/finalizers,verbs=update
 //+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
 
@@ -56,12 +56,12 @@ type StoreReconciler struct {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
-func (r *StoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	l := log.FromContext(ctx).WithValues("store", req.NamespacedName)
+func (r *CompactReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	l := log.FromContext(ctx).WithValues("compact", req.NamespacedName)
 
 	l.Info("sync")
 
-	instance := &monitoringv1alpha1.Store{}
+	instance := &monitoringv1alpha1.Compact{}
 	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -82,7 +82,7 @@ func (r *StoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		Context: ctx,
 	}
 
-	if err := storegateway.New(baseReconciler, instance).Reconcile(); err != nil {
+	if err := compact.New(baseReconciler, instance).Reconcile(); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -90,28 +90,28 @@ func (r *StoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *StoreReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *CompactReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&monitoringv1alpha1.Store{}).
+		For(&monitoringv1alpha1.Compact{}).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Service{}).
 		Complete(r)
 }
 
-type StoreDefaulterValidator func(store *monitoringv1alpha1.Store) (*monitoringv1alpha1.Store, error)
+type CompactDefaulterValidator func(compact *monitoringv1alpha1.Compact) (*monitoringv1alpha1.Compact, error)
 
-func CreateStoreDefaulterValidator(opt options.Options) StoreDefaulterValidator {
+func CreateCompactDefaulterValidator(opt options.Options) CompactDefaulterValidator {
 	var replicas int32 = 1
 
-	return func(store *monitoringv1alpha1.Store) (*monitoringv1alpha1.Store, error) {
+	return func(compact *monitoringv1alpha1.Compact) (*monitoringv1alpha1.Compact, error) {
 
-		if store.Spec.Image == "" {
-			store.Spec.Image = opt.ThanosImage
+		if compact.Spec.Image == "" {
+			compact.Spec.Image = opt.ThanosImage
 		}
-		if store.Spec.Replicas == nil || *store.Spec.Replicas < 0 {
-			store.Spec.Replicas = &replicas
+		if compact.Spec.Replicas == nil || *compact.Spec.Replicas < 0 {
+			compact.Spec.Replicas = &replicas
 		}
 
-		return store, nil
+		return compact, nil
 	}
 }

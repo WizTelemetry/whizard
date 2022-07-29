@@ -34,133 +34,123 @@ spec:
             type: object
           spec:
             properties:
-              thanos:
+              S3:
+                description: Config stores the configuration for s3 bucket.
                 properties:
-                  S3:
-                    description: Config stores the configuration for s3 bucket.
+                  accessKey:
+                    type: string
+                  awsSdkAuth:
+                    type: boolean
+                  bucket:
+                    type: string
+                  endpoint:
+                    type: string
+                  httpConfig:
+                    description: S3HTTPConfig stores the http.Transport configuration
+                      for the s3 minio client.
                     properties:
-                      accessKey:
-                        type: string
-                      awsSdkAuth:
-                        type: boolean
-                      bucket:
-                        type: string
-                      endpoint:
-                        type: string
-                      httpConfig:
-                        description: S3HTTPConfig stores the http.Transport configuration
-                          for the s3 minio client.
-                        properties:
-                          expectContinueTimeout:
-                            description: Duration wraps time.Duration. It is used
-                              to parse the custom duration format from YAML. This
-                              type should not propagate beyond the scope of input/output
-                              processing.
-                            format: int64
-                            type: integer
-                          idleConnTimeout:
-                            description: Duration wraps time.Duration. It is used
-                              to parse the custom duration format from YAML. This
-                              type should not propagate beyond the scope of input/output
-                              processing.
-                            format: int64
-                            type: integer
-                          insecureSkipVerify:
-                            type: boolean
-                          maxConnsPerHost:
-                            type: integer
-                          maxIdleConns:
-                            type: integer
-                          maxIdleConnsPerHost:
-                            type: integer
-                          responseHeaderTimeout:
-                            description: Duration wraps time.Duration. It is used
-                              to parse the custom duration format from YAML. This
-                              type should not propagate beyond the scope of input/output
-                              processing.
-                            format: int64
-                            type: integer
-                          tlsConfig:
-                            description: TLSConfig configures the options for TLS
-                              connections.
-                            properties:
-                              caFile:
-                                description: The CA cert to use for the targets.
-                                type: string
-                              certFile:
-                                description: The client cert file for the targets.
-                                type: string
-                              insecureSkipVerify:
-                                description: Disable target certificate validation.
-                                type: boolean
-                              keyFile:
-                                description: The client key file for the targets.
-                                type: string
-                              serverName:
-                                description: Used to verify the hostname for the targets.
-                                type: string
-                            type: object
-                          tlsHandshakeTimeout:
-                            description: Duration wraps time.Duration. It is used
-                              to parse the custom duration format from YAML. This
-                              type should not propagate beyond the scope of input/output
-                              processing.
-                            format: int64
-                            type: integer
-                        type: object
-                      insecure:
-                        type: boolean
-                      listObjectsVersion:
-                        type: string
-                      partSize:
-                        description: PartSize used for multipart upload. Only used
-                          if uploaded object size is known and larger than configured
-                          PartSize. NOTE we need to make sure this number does not
-                          produce more parts than 10 000.
+                      expectContinueTimeout:
+                        description: Duration wraps time.Duration. It is used to parse
+                          the custom duration format from YAML. This type should not
+                          propagate beyond the scope of input/output processing.
                         format: int64
                         type: integer
-                      putUserMetadata:
+                      idleConnTimeout:
+                        description: Duration wraps time.Duration. It is used to parse
+                          the custom duration format from YAML. This type should not
+                          propagate beyond the scope of input/output processing.
+                        format: int64
+                        type: integer
+                      insecureSkipVerify:
+                        type: boolean
+                      maxConnsPerHost:
+                        type: integer
+                      maxIdleConns:
+                        type: integer
+                      maxIdleConnsPerHost:
+                        type: integer
+                      responseHeaderTimeout:
+                        description: Duration wraps time.Duration. It is used to parse
+                          the custom duration format from YAML. This type should not
+                          propagate beyond the scope of input/output processing.
+                        format: int64
+                        type: integer
+                      tlsConfig:
+                        description: TLSConfig configures the options for TLS connections.
+                        properties:
+                          caFile:
+                            description: The CA cert to use for the targets.
+                            type: string
+                          certFile:
+                            description: The client cert file for the targets.
+                            type: string
+                          insecureSkipVerify:
+                            description: Disable target certificate validation.
+                            type: boolean
+                          keyFile:
+                            description: The client key file for the targets.
+                            type: string
+                          serverName:
+                            description: Used to verify the hostname for the targets.
+                            type: string
+                        type: object
+                      tlsHandshakeTimeout:
+                        description: Duration wraps time.Duration. It is used to parse
+                          the custom duration format from YAML. This type should not
+                          propagate beyond the scope of input/output processing.
+                        format: int64
+                        type: integer
+                    type: object
+                  insecure:
+                    type: boolean
+                  listObjectsVersion:
+                    type: string
+                  partSize:
+                    description: PartSize used for multipart upload. Only used if
+                      uploaded object size is known and larger than configured PartSize.
+                      NOTE we need to make sure this number does not produce more
+                      parts than 10 000.
+                    format: int64
+                    type: integer
+                  putUserMetadata:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  region:
+                    type: string
+                  secretKey:
+                    type: string
+                  signatureVersion2:
+                    type: boolean
+                  sseConfig:
+                    description: 'S3SSEConfig deals with the configuration of SSE
+                      for Minio. The following options are valid: kmsencryptioncontext
+                      == https://docs.aws.amazon.com/kms/latest/developerguide/services-s3.html#s3-encryption-context'
+                    properties:
+                      encryptionKey:
+                        type: string
+                      kmsEncryptionContext:
                         additionalProperties:
                           type: string
                         type: object
-                      region:
+                      kmsKeyId:
                         type: string
-                      secretKey:
+                      type:
                         type: string
-                      signatureVersion2:
-                        type: boolean
-                      sseConfig:
-                        description: 'S3SSEConfig deals with the configuration of
-                          SSE for Minio. The following options are valid: kmsencryptioncontext
-                          == https://docs.aws.amazon.com/kms/latest/developerguide/services-s3.html#s3-encryption-context'
-                        properties:
-                          encryptionKey:
-                            type: string
-                          kmsEncryptionContext:
-                            additionalProperties:
-                              type: string
-                            type: object
-                          kmsKeyId:
-                            type: string
-                          type:
-                            type: string
-                        type: object
-                      stsEndpoint:
-                        type: string
-                      trace:
-                        properties:
-                          enable:
-                            type: boolean
-                        type: object
-                    required:
-                    - accessKey
-                    - bucket
-                    - endpoint
-                    - secretKey
                     type: object
+                  stsEndpoint:
+                    type: string
+                  trace:
+                    properties:
+                      enable:
+                        type: boolean
+                    type: object
+                required:
+                - accessKey
+                - bucket
+                - endpoint
+                - secretKey
                 type: object
-            required:
-            - thanos
             type: object
           status:
             type: object

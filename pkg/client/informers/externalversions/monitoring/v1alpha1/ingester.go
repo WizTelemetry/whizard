@@ -31,59 +31,59 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// ThanosReceiveIngestorInformer provides access to a shared informer and lister for
-// ThanosReceiveIngestors.
-type ThanosReceiveIngestorInformer interface {
+// IngesterInformer provides access to a shared informer and lister for
+// Ingesters.
+type IngesterInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.ThanosReceiveIngestorLister
+	Lister() v1alpha1.IngesterLister
 }
 
-type thanosReceiveIngestorInformer struct {
+type ingesterInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 	namespace        string
 }
 
-// NewThanosReceiveIngestorInformer constructs a new informer for ThanosReceiveIngestor type.
+// NewIngesterInformer constructs a new informer for Ingester type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewThanosReceiveIngestorInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredThanosReceiveIngestorInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewIngesterInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredIngesterInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredThanosReceiveIngestorInformer constructs a new informer for ThanosReceiveIngestor type.
+// NewFilteredIngesterInformer constructs a new informer for Ingester type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredThanosReceiveIngestorInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredIngesterInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.MonitoringV1alpha1().ThanosReceiveIngestors(namespace).List(context.TODO(), options)
+				return client.MonitoringV1alpha1().Ingesters(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.MonitoringV1alpha1().ThanosReceiveIngestors(namespace).Watch(context.TODO(), options)
+				return client.MonitoringV1alpha1().Ingesters(namespace).Watch(context.TODO(), options)
 			},
 		},
-		&monitoringv1alpha1.ThanosReceiveIngestor{},
+		&monitoringv1alpha1.Ingester{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func (f *thanosReceiveIngestorInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredThanosReceiveIngestorInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+func (f *ingesterInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredIngesterInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *thanosReceiveIngestorInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&monitoringv1alpha1.ThanosReceiveIngestor{}, f.defaultInformer)
+func (f *ingesterInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&monitoringv1alpha1.Ingester{}, f.defaultInformer)
 }
 
-func (f *thanosReceiveIngestorInformer) Lister() v1alpha1.ThanosReceiveIngestorLister {
-	return v1alpha1.NewThanosReceiveIngestorLister(f.Informer().GetIndexer())
+func (f *ingesterInformer) Lister() v1alpha1.IngesterLister {
+	return v1alpha1.NewIngesterLister(f.Informer().GetIndexer())
 }

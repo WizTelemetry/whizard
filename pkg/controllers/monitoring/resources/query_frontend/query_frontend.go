@@ -15,13 +15,13 @@ const (
 
 type QueryFrontend struct {
 	resources.ServiceBaseReconciler
-	queryFrontend *monitoringv1alpha1.ThanosQueryFrontend
+	queryFrontend *monitoringv1alpha1.QueryFrontend
 }
 
 func New(reconciler resources.ServiceBaseReconciler) *QueryFrontend {
 	return &QueryFrontend{
 		ServiceBaseReconciler: reconciler,
-		queryFrontend:         reconciler.Service.Spec.Thanos.QueryFrontend,
+		queryFrontend:         reconciler.Service.Spec.QueryFrontend,
 	}
 }
 

@@ -75,7 +75,7 @@ func (r *ThanosRulerReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	l.Info("sync")
 
-	instance := &monitoringv1alpha1.ThanosRuler{}
+	instance := &monitoringv1alpha1.Ruler{}
 	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -106,7 +106,7 @@ func (r *ThanosRulerReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 // SetupWithManager sets up the controller with the Manager.
 func (r *ThanosRulerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&monitoringv1alpha1.ThanosRuler{}).
+		For(&monitoringv1alpha1.Ruler{}).
 		Watches(&source.Kind{Type: &promv1.PrometheusRule{}},
 			handler.EnqueueRequestsFromMapFunc(r.mapRuleToThanosRulerFunc)).
 		Watches(&source.Kind{Type: &monitoringv1alpha1.Rule{}},
@@ -129,7 +129,7 @@ func (r *ThanosRulerReconciler) mapRuleToThanosRulerFunc(o client.Object) []reco
 		return nil
 	}
 
-	var thanosRulerList monitoringv1alpha1.ThanosRulerList
+	var thanosRulerList monitoringv1alpha1.RulerList
 	if err := r.Client.List(r.Context, &thanosRulerList); err != nil {
 		log.FromContext(r.Context).WithValues("thanosrulerlist", "").Error(err, "")
 		return nil
@@ -191,7 +191,7 @@ func (r *ThanosRulerReconciler) mapRuleGroupToThanosRulerFunc(o client.Object) [
 
 func (r *ThanosRulerReconciler) mapToThanosRulerFunc(o client.Object) []reconcile.Request {
 
-	var thanosRulerList monitoringv1alpha1.ThanosRulerList
+	var thanosRulerList monitoringv1alpha1.RulerList
 	if err := r.Client.List(r.Context, &thanosRulerList,
 		client.MatchingLabels(monitoringv1alpha1.ManagedLabelByService(o))); err != nil {
 		log.FromContext(r.Context).WithValues("thanosrulerlist", "").Error(err, "")
@@ -211,12 +211,12 @@ func (r *ThanosRulerReconciler) mapToThanosRulerFunc(o client.Object) []reconcil
 	return reqs
 }
 
-type ThanosRulerDefaulterValidator func(ruler *monitoringv1alpha1.ThanosRuler) (*monitoringv1alpha1.ThanosRuler, error)
+type ThanosRulerDefaulterValidator func(ruler *monitoringv1alpha1.Ruler) (*monitoringv1alpha1.Ruler, error)
 
 func CreateThanosRulerDefaulterValidator(opt options.Options) ThanosRulerDefaulterValidator {
 	var replicas int32 = 1
 
-	return func(ruler *monitoringv1alpha1.ThanosRuler) (*monitoringv1alpha1.ThanosRuler, error) {
+	return func(ruler *monitoringv1alpha1.Ruler) (*monitoringv1alpha1.Ruler, error) {
 
 		if ruler.Spec.Image == "" {
 			ruler.Spec.Image = opt.ThanosImage

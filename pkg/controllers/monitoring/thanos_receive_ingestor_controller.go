@@ -37,21 +37,21 @@ import (
 	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/options"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/receive_ingestor"
+	receive_ingester "github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/receive_ingestor"
 	"github.com/prometheus/common/model"
 )
 
-// ThanosReceiveIngestorReconciler reconciles a ThanosReceiveIngestor object
-type ThanosReceiveIngestorReconciler struct {
-	DefaulterValidator ThanosReceiveIngestorDefaulterValidator
+// ThanosReceiveIngesterReconciler reconciles a ThanosReceiveIngester object
+type ThanosReceiveIngesterReconciler struct {
+	DefaulterValidator ThanosReceiveIngesterDefaulterValidator
 	client.Client
 	Scheme  *runtime.Scheme
 	Context context.Context
 }
 
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=thanosreceiveingestors,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=thanosreceiveingestors/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=thanosreceiveingestors/finalizers,verbs=update
+//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=thanosreceiveingesters,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=thanosreceiveingesters/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=thanosreceiveingesters/finalizers,verbs=update
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=services,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
@@ -65,12 +65,12 @@ type ThanosReceiveIngestorReconciler struct {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
-func (r *ThanosReceiveIngestorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	l := log.FromContext(ctx).WithValues("thanosreceiveingestor", req.NamespacedName)
+func (r *ThanosReceiveIngesterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	l := log.FromContext(ctx).WithValues("thanosreceiveingester", req.NamespacedName)
 
 	l.Info("sync")
 
-	instance := &monitoringv1alpha1.ThanosReceiveIngestor{}
+	instance := &monitoringv1alpha1.Ingester{}
 	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -79,9 +79,9 @@ func (r *ThanosReceiveIngestorReconciler) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, err
 	}
 
-	// recycle ingestor by using the RequeueAfter event
-	if v, ok := instance.Annotations[resources.LabelNameReceiveIngestorState]; ok && v == "deleting" && len(instance.Spec.Tenants) == 0 {
-		if deletingTime, ok := instance.Annotations[resources.LabelNameReceiveIngestorDeletingTime]; ok {
+	// recycle ingester by using the RequeueAfter event
+	if v, ok := instance.Annotations[resources.LabelNameReceiveIngesterState]; ok && v == "deleting" && len(instance.Spec.Tenants) == 0 {
+		if deletingTime, ok := instance.Annotations[resources.LabelNameReceiveIngesterDeletingTime]; ok {
 			i, err := strconv.ParseInt(deletingTime, 10, 64)
 			if err == nil {
 				d := time.Since(time.Unix(i, 0))
@@ -108,7 +108,7 @@ func (r *ThanosReceiveIngestorReconciler) Reconcile(ctx context.Context, req ctr
 		Context: ctx,
 	}
 
-	if err := receive_ingestor.New(baseReconciler, instance).Reconcile(); err != nil {
+	if err := receive_ingester.New(baseReconciler, instance).Reconcile(); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -116,31 +116,31 @@ func (r *ThanosReceiveIngestorReconciler) Reconcile(ctx context.Context, req ctr
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ThanosReceiveIngestorReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ThanosReceiveIngesterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&monitoringv1alpha1.ThanosReceiveIngestor{}).
+		For(&monitoringv1alpha1.Ingester{}).
 		Watches(&source.Kind{Type: &monitoringv1alpha1.Service{}},
-			handler.EnqueueRequestsFromMapFunc(r.mapToIngestorFunc)).
+			handler.EnqueueRequestsFromMapFunc(r.mapToIngesterFunc)).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Service{}).
 		Complete(r)
 }
 
-func (r *ThanosReceiveIngestorReconciler) mapToIngestorFunc(o client.Object) []reconcile.Request {
+func (r *ThanosReceiveIngesterReconciler) mapToIngesterFunc(o client.Object) []reconcile.Request {
 
-	var ingestorList monitoringv1alpha1.ThanosReceiveIngestorList
-	if err := r.Client.List(r.Context, &ingestorList,
+	var ingesterList monitoringv1alpha1.IngesterList
+	if err := r.Client.List(r.Context, &ingesterList,
 		client.MatchingLabels(monitoringv1alpha1.ManagedLabelByService(o))); err != nil {
-		log.FromContext(r.Context).WithValues("thanosreceiveingestorlist", "").Error(err, "")
+		log.FromContext(r.Context).WithValues("thanosreceiveingesterlist", "").Error(err, "")
 		return nil
 	}
 
 	var reqs []reconcile.Request
-	for _, ingestor := range ingestorList.Items {
+	for _, ingester := range ingesterList.Items {
 		reqs = append(reqs, reconcile.Request{
 			NamespacedName: types.NamespacedName{
-				Namespace: ingestor.Namespace,
-				Name:      ingestor.Name,
+				Namespace: ingester.Namespace,
+				Name:      ingester.Name,
 			},
 		})
 	}
@@ -148,27 +148,27 @@ func (r *ThanosReceiveIngestorReconciler) mapToIngestorFunc(o client.Object) []r
 	return reqs
 }
 
-type ThanosReceiveIngestorDefaulterValidator func(ingestor *monitoringv1alpha1.ThanosReceiveIngestor) (*monitoringv1alpha1.ThanosReceiveIngestor, error)
+type ThanosReceiveIngesterDefaulterValidator func(ingester *monitoringv1alpha1.Ingester) (*monitoringv1alpha1.Ingester, error)
 
-func CreateThanosReceiveIngestorDefaulterValidator(opt options.Options) ThanosReceiveIngestorDefaulterValidator {
+func CreateThanosReceiveIngesterDefaulterValidator(opt options.Options) ThanosReceiveIngesterDefaulterValidator {
 	var replicas int32 = 1
 
-	return func(ingestor *monitoringv1alpha1.ThanosReceiveIngestor) (*monitoringv1alpha1.ThanosReceiveIngestor, error) {
+	return func(ingester *monitoringv1alpha1.Ingester) (*monitoringv1alpha1.Ingester, error) {
 
-		if ingestor.Spec.LocalTsdbRetention != "" {
-			_, err := model.ParseDuration(ingestor.Spec.LocalTsdbRetention)
+		if ingester.Spec.LocalTsdbRetention != "" {
+			_, err := model.ParseDuration(ingester.Spec.LocalTsdbRetention)
 			if err != nil {
 				return nil, fmt.Errorf("invalid localTsdbRetention: %v", err)
 			}
 		}
 
-		if ingestor.Spec.Image == "" {
-			ingestor.Spec.Image = opt.ThanosImage
+		if ingester.Spec.Image == "" {
+			ingester.Spec.Image = opt.ThanosImage
 		}
-		if ingestor.Spec.Replicas == nil || *ingestor.Spec.Replicas < 0 {
-			ingestor.Spec.Replicas = &replicas
+		if ingester.Spec.Replicas == nil || *ingester.Spec.Replicas < 0 {
+			ingester.Spec.Replicas = &replicas
 		}
 
-		return ingestor, nil
+		return ingester, nil
 	}
 }

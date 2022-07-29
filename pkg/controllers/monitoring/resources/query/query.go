@@ -25,7 +25,7 @@ type Query struct {
 func New(reconciler resources.ServiceBaseReconciler) *Query {
 	return &Query{
 		ServiceBaseReconciler: reconciler,
-		query:                 reconciler.Service.Spec.Thanos.Query,
+		query:                 reconciler.Service.Spec.Query,
 	}
 }
 

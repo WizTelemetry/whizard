@@ -19,9 +19,9 @@ import (
 	"github.com/kubesphere/paodin/pkg/util"
 )
 
-func (t *Tenant) receiveIngestor() error {
+func (t *Tenant) receiveIngester() error {
 
-	// finalizers check,  when tenant cr is deleted, ObjectMeta.GetDeletionTimestamp() is not nil, remove finalizers field and call removeTenantFromIngestorbyName()
+	// finalizers check,  when tenant cr is deleted, ObjectMeta.GetDeletionTimestamp() is not nil, remove finalizers field and call removeTenantFromIngesterbyName()
 	if t.tenant.ObjectMeta.GetDeletionTimestamp().IsZero() {
 		if !containsString(t.tenant.ObjectMeta.Finalizers, monitoringv1alpha1.FinalizerMonitoringPaodin) {
 			t.tenant.ObjectMeta.Finalizers = append(t.tenant.ObjectMeta.Finalizers, monitoringv1alpha1.FinalizerMonitoringPaodin)
@@ -29,52 +29,52 @@ func (t *Tenant) receiveIngestor() error {
 		}
 	} else {
 		if containsString(t.tenant.ObjectMeta.Finalizers, monitoringv1alpha1.FinalizerMonitoringPaodin) {
-			if t.tenant.Status.ThanosResource != nil && t.tenant.Status.ThanosResource.ThanosReceiveIngestor != nil {
-				if err := t.removeTenantFromIngestorbyName(t.tenant.Status.ThanosResource.ThanosReceiveIngestor.Namespace, t.tenant.Status.ThanosResource.ThanosReceiveIngestor.Name); err != nil {
+			if t.tenant.Status.Ingester != nil {
+				if err := t.removeTenantFromIngesterbyName(t.tenant.Status.Ingester.Namespace, t.tenant.Status.Ingester.Name); err != nil {
 					return err
 				}
-				t.tenant.Status.ThanosResource.ThanosReceiveIngestor = nil
+				t.tenant.Status.Ingester = nil
 			}
 			t.tenant.ObjectMeta.Finalizers = removeString(t.tenant.Finalizers, monitoringv1alpha1.FinalizerMonitoringPaodin)
 			return t.Client.Update(t.Context, t.tenant)
 		}
 	}
 
-	// Check if ingestor needs to be created or reset
-	ingestor := &monitoringv1alpha1.ThanosReceiveIngestor{}
-	if t.tenant.Status.ThanosResource != nil && t.tenant.Status.ThanosResource.ThanosReceiveIngestor != nil {
+	// Check if ingester needs to be created or reset
+	ingester := &monitoringv1alpha1.Ingester{}
+	if t.tenant.Status.Ingester != nil {
 		err := t.Client.Get(t.Context, types.NamespacedName{
-			Namespace: t.tenant.Status.ThanosResource.ThanosReceiveIngestor.Namespace,
-			Name:      t.tenant.Status.ThanosResource.ThanosReceiveIngestor.Name,
-		}, ingestor)
+			Namespace: t.tenant.Status.Ingester.Namespace,
+			Name:      t.tenant.Status.Ingester.Name,
+		}, ingester)
 		if err != nil {
 			if apierrors.IsNotFound(err) {
-				klog.V(3).Infof("Cannot find ingestor [%s] for tenant [%s], create one", t.tenant.Status.ThanosResource.ThanosReceiveIngestor.Name, t.tenant.Name)
+				klog.V(3).Infof("Cannot find ingester [%s] for tenant [%s], create one", t.tenant.Status.Ingester.Name, t.tenant.Name)
 			} else {
 				return err
 			}
 		} else {
-			var needResetIngestor bool = false
-			if ok := containsString(ingestor.Spec.Tenants, t.tenant.Spec.Tenant); !ok {
-				klog.V(3).Infof("Tenant [%s] and ingestor [%s] mismatch, need to reset ingestor", t.tenant.Name, ingestor.Name)
-				needResetIngestor = true
+			var needResetIngester bool = false
+			if ok := containsString(ingester.Spec.Tenants, t.tenant.Spec.Tenant); !ok {
+				klog.V(3).Infof("Tenant [%s] and ingester [%s] mismatch, need to reset ingester", t.tenant.Name, ingester.Name)
+				needResetIngester = true
 			}
 
-			if v, ok := ingestor.Labels[monitoringv1alpha1.MonitoringPaodinService]; !ok || v != t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService] {
-				klog.V(3).Infof("Tenant [%s] and ingestor [%s]'s Service mismatch, need to reset ingestor", t.tenant.Name, ingestor.Name)
-				needResetIngestor = true
+			if v, ok := ingester.Labels[monitoringv1alpha1.MonitoringPaodinService]; !ok || v != t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService] {
+				klog.V(3).Infof("Tenant [%s] and ingester [%s]'s Service mismatch, need to reset ingester", t.tenant.Name, ingester.Name)
+				needResetIngester = true
 			}
 
-			if v, ok := ingestor.Labels[monitoringv1alpha1.MonitoringPaodinStorage]; !ok || v != t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] {
-				klog.V(3).Infof("Tenant [%s] and ingestor [%s]'s Storage mismatch, need to reset ingestor", t.tenant.Name, ingestor.Name)
-				needResetIngestor = true
+			if v, ok := ingester.Labels[monitoringv1alpha1.MonitoringPaodinStorage]; !ok || v != t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] {
+				klog.V(3).Infof("Tenant [%s] and ingester [%s]'s Storage mismatch, need to reset ingester", t.tenant.Name, ingester.Name)
+				needResetIngester = true
 			}
 
-			if !needResetIngestor {
+			if !needResetIngester {
 				return nil
 			} else {
-				klog.V(3).Infof("Reset ingestor [%s] for tenant [%s]", ingestor.Name, t.tenant.Name)
-				err := t.removeTenantFromIngestorbyName(ingestor.Namespace, ingestor.Name)
+				klog.V(3).Infof("Reset ingester [%s] for tenant [%s]", ingester.Name, t.tenant.Name)
+				err := t.removeTenantFromIngesterbyName(ingester.Namespace, ingester.Name)
 				if err != nil {
 					return err
 				}
@@ -84,11 +84,11 @@ func (t *Tenant) receiveIngestor() error {
 		}
 	}
 
-	// when tenant.Labels don't contain Service, remove the bindings to ingestor and ruler
+	// when tenant.Labels don't contain Service, remove the bindings to ingester and ruler
 	if v, ok := t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService]; !ok || v == "" {
-		klog.V(3).Infof("Tenant [%s]'s Service is empty. ingestor does not need to be created", t.tenant.Name)
-		if t.tenant.Status.ThanosResource != nil && t.tenant.Status.ThanosResource.ThanosReceiveIngestor != nil {
-			err := t.removeTenantFromIngestorbyName(t.tenant.Status.ThanosResource.ThanosReceiveIngestor.Namespace, t.tenant.Status.ThanosResource.ThanosReceiveIngestor.Name)
+		klog.V(3).Infof("Tenant [%s]'s Service is empty. ingester does not need to be created", t.tenant.Name)
+		if t.tenant.Status.Ingester != nil {
+			err := t.removeTenantFromIngesterbyName(t.tenant.Status.Ingester.Namespace, t.tenant.Status.Ingester.Name)
 			if err != nil {
 				return err
 			}
@@ -97,12 +97,12 @@ func (t *Tenant) receiveIngestor() error {
 		return nil
 	}
 
-	var ingestorList monitoringv1alpha1.ThanosReceiveIngestorList
+	var ingesterList monitoringv1alpha1.IngesterList
 	ls := make(map[string]string, 2)
 	ls[monitoringv1alpha1.MonitoringPaodinService] = t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService]
 	ls[monitoringv1alpha1.MonitoringPaodinStorage] = t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage]
 	serviceNamespacedName := strings.Split(t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService], ".")
-	err := t.Client.List(t.Context, &ingestorList, &client.ListOptions{
+	err := t.Client.List(t.Context, &ingesterList, &client.ListOptions{
 		Namespace:     serviceNamespacedName[0],
 		LabelSelector: labels.SelectorFromSet(ls),
 	})
@@ -110,67 +110,62 @@ func (t *Tenant) receiveIngestor() error {
 		return err
 	}
 
-	ingestorMapping := make(map[string]*monitoringv1alpha1.ThanosReceiveIngestor, len(ingestorList.Items))
-	for _, ingestorItem := range ingestorList.Items {
-		ingestor := ingestorItem
-		ingestorMapping[ingestorItem.Name] = &ingestor
-		klog.V(3).Infof("Ingestor [%s] have Tenants: %v", ingestorItem.Name, ingestorItem.Spec.Tenants)
+	ingesterMapping := make(map[string]*monitoringv1alpha1.Ingester, len(ingesterList.Items))
+	for _, ingesterItem := range ingesterList.Items {
+		ingester := ingesterItem
+		ingesterMapping[ingesterItem.Name] = &ingester
+		klog.V(3).Infof("Ingester [%s] have Tenants: %v", ingesterItem.Name, ingesterItem.Spec.Tenants)
 	}
 
 	// Check duplicates
-	for _, ingestorItem := range ingestorMapping {
-		if containsString(ingestorItem.Spec.Tenants, t.tenant.Spec.Tenant) {
-			klog.V(3).Infof("Ingestor [%s] has tenant [%s] ,update status ", ingestorItem.Name, t.tenant.Name)
-			if t.tenant.Status.ThanosResource == nil {
-				t.tenant.Status.ThanosResource = &monitoringv1alpha1.ThanosResource{}
-			}
-			t.tenant.Status.ThanosResource.ThanosReceiveIngestor = &monitoringv1alpha1.ObjectReference{
-				Namespace: ingestorItem.Namespace,
-				Name:      ingestorItem.Name,
+	for _, ingesterItem := range ingesterMapping {
+		if containsString(ingesterItem.Spec.Tenants, t.tenant.Spec.Tenant) {
+			klog.V(3).Infof("Ingester [%s] has tenant [%s] ,update status ", ingesterItem.Name, t.tenant.Name)
+
+			t.tenant.Status.Ingester = &monitoringv1alpha1.ObjectReference{
+				Namespace: ingesterItem.Namespace,
+				Name:      ingesterItem.Name,
 			}
 
 			return t.Client.Status().Update(t.Context, t.tenant)
 		}
 	}
 
-	// create or update ingestor instance.
-	// traverse ingestorMapping according to the index, if it is currently empty, create a new instance,
-	// otherwise check len(ingestorItem.Spec.Tenants) < t.DefaultTenantsPerIngestor，if so, select the instance.
-	for i := 0; i < len(ingestorMapping)+1; i++ {
-		name := createIngestorInstanceName(t.tenant, strconv.Itoa(i))
-		if ingestorItem, ok := ingestorMapping[name]; ok {
-			if len(ingestorItem.Spec.Tenants) < t.DefaultTenantsPerIngestor {
-				ingestor = ingestorItem
-				addTenantToIngestorInstance(t.tenant, ingestor)
+	// create or update ingester instance.
+	// traverse ingesterMapping according to the index, if it is currently empty, create a new instance,
+	// otherwise check len(ingesterItem.Spec.Tenants) < t.DefaultTenantsPerIngester，if so, select the instance.
+	for i := 0; i < len(ingesterMapping)+1; i++ {
+		name := createIngesterInstanceName(t.tenant, strconv.Itoa(i))
+		if ingesterItem, ok := ingesterMapping[name]; ok {
+			if len(ingesterItem.Spec.Tenants) < t.DefaultTenantsPerIngester {
+				ingester = ingesterItem
+				addTenantToIngesterInstance(t.tenant, ingester)
 				break
 			}
 		} else {
-			ingestor = createIngestorInstance(name, t.tenant)
+			ingester = createIngesterInstance(name, t.tenant)
 			break
 		}
 	}
 
-	if t.tenant.Status.ThanosResource == nil {
-		t.tenant.Status.ThanosResource = &monitoringv1alpha1.ThanosResource{}
-	}
-	t.tenant.Status.ThanosResource.ThanosReceiveIngestor = &monitoringv1alpha1.ObjectReference{
-		Namespace: ingestor.Namespace,
-		Name:      ingestor.Name,
+	t.tenant.Status.Ingester = &monitoringv1alpha1.ObjectReference{
+		Namespace: ingester.Namespace,
+		Name:      ingester.Name,
 	}
 
-	if err := util.CreateOrUpdate(t.Context, t.Client, ingestor); err != nil {
+	if err := util.CreateOrUpdate(t.Context, t.Client, ingester); err != nil {
 		return err
 	}
 	return t.Client.Status().Update(t.Context, t.tenant)
 }
 
-func (t *Tenant) removeTenantFromIngestorbyName(namespace, name string) error {
-	ingestor := &monitoringv1alpha1.ThanosReceiveIngestor{}
+func (t *Tenant) removeTenantFromIngesterbyName(namespace, name string) error {
+	ingester := &monitoringv1alpha1.Ingester{}
 
 	err := t.Client.Get(t.Context, types.NamespacedName{
 		Namespace: namespace,
 		Name:      name,
-	}, ingestor)
+	}, ingester)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil
@@ -178,37 +173,37 @@ func (t *Tenant) removeTenantFromIngestorbyName(namespace, name string) error {
 			return err
 		}
 	} else {
-		if ok := containsString(ingestor.Spec.Tenants, t.tenant.Spec.Tenant); ok {
-			klog.V(3).Infof("ingestor %s update, remove tenant %s", ingestor.Name, t.tenant.Name)
-			ingestor.Spec.Tenants = removeString(ingestor.Spec.Tenants, t.tenant.Spec.Tenant)
-			ingestor.Labels[monitoringv1alpha1.MonitoringPaodinTenant] = strings.Join(ingestor.Spec.Tenants, "_")
+		if ok := containsString(ingester.Spec.Tenants, t.tenant.Spec.Tenant); ok {
+			klog.V(3).Infof("ingester %s update, remove tenant %s", ingester.Name, t.tenant.Name)
+			ingester.Spec.Tenants = removeString(ingester.Spec.Tenants, t.tenant.Spec.Tenant)
+			ingester.Labels[monitoringv1alpha1.MonitoringPaodinTenant] = strings.Join(ingester.Spec.Tenants, "_")
 
-			if len(ingestor.Spec.Tenants) == 0 {
-				annotation := ingestor.GetAnnotations()
+			if len(ingester.Spec.Tenants) == 0 {
+				annotation := ingester.GetAnnotations()
 				if annotation == nil {
 					annotation = make(map[string]string)
 				}
-				annotation[resources.LabelNameReceiveIngestorState] = "deleting"
-				annotation[resources.LabelNameReceiveIngestorDeletingTime] = strconv.Itoa(int(time.Now().Add(t.DefaultIngestorRetentionPeriod).Unix()))
-				ingestor.Annotations = annotation
+				annotation[resources.LabelNameReceiveIngesterState] = "deleting"
+				annotation[resources.LabelNameReceiveIngesterDeletingTime] = strconv.Itoa(int(time.Now().Add(t.DefaultIngesterRetentionPeriod).Unix()))
+				ingester.Annotations = annotation
 			}
 
-			if t.tenant.Status.ThanosResource != nil && t.tenant.Status.ThanosResource.ThanosReceiveIngestor != nil {
-				t.tenant.Status.ThanosResource.ThanosReceiveIngestor = nil
+			if t.tenant.Status.Ingester != nil {
+				t.tenant.Status.Ingester = nil
 			}
 
-			return util.CreateOrUpdate(t.Context, t.Client, ingestor)
+			return util.CreateOrUpdate(t.Context, t.Client, ingester)
 		}
 	}
 	return nil
 }
 
-func (t *Tenant) deleteIngestorInstance(namespace, name string) error {
-	ingestor := &monitoringv1alpha1.ThanosReceiveIngestor{}
+func (t *Tenant) deleteIngesterInstance(namespace, name string) error {
+	ingester := &monitoringv1alpha1.Ingester{}
 	err := t.Client.Get(t.Context, types.NamespacedName{
 		Namespace: namespace,
 		Name:      name,
-	}, ingestor)
+	}, ingester)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil
@@ -217,12 +212,12 @@ func (t *Tenant) deleteIngestorInstance(namespace, name string) error {
 		}
 	}
 
-	annotations := ingestor.GetAnnotations()
+	annotations := ingester.GetAnnotations()
 	if annotations != nil {
-		if v, ok := annotations[resources.LabelNameReceiveIngestorState]; ok && v == "deleting" {
+		if v, ok := annotations[resources.LabelNameReceiveIngesterState]; ok && v == "deleting" {
 			if v, ok := annotations[monitoringv1alpha1.MonitoringPaodinTenant]; !ok || len(v) == 0 {
-				klog.V(3).Infof("ThanosReceiveIngestor %s will be deleted.")
-				t.Client.Delete(t.Context, ingestor)
+				klog.V(3).Infof("ThanosReceiveIngester %s will be deleted.")
+				t.Client.Delete(t.Context, ingester)
 			}
 		}
 	}
@@ -263,7 +258,7 @@ func (t *Tenant) isStorageContainLabel(namespace, name string, matchLabels map[s
 	return true, nil
 }
 
-func createIngestorInstanceName(tenant *monitoringv1alpha1.Tenant, suffix ...string) string {
+func createIngesterInstanceName(tenant *monitoringv1alpha1.Tenant, suffix ...string) string {
 	serviceNamespacedName := strings.Split(tenant.Labels[monitoringv1alpha1.MonitoringPaodinService], ".")
 	storageNamespacedName := strings.Split(tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage], ".")
 
@@ -274,46 +269,46 @@ func createIngestorInstanceName(tenant *monitoringv1alpha1.Tenant, suffix ...str
 	return name
 }
 
-func createIngestorInstance(name string, tenant *monitoringv1alpha1.Tenant) *monitoringv1alpha1.ThanosReceiveIngestor {
-	klog.V(3).Infof("create new ingestor %s for tenant %s", name, tenant.Name)
+func createIngesterInstance(name string, tenant *monitoringv1alpha1.Tenant) *monitoringv1alpha1.Ingester {
+	klog.V(3).Infof("create new ingester %s for tenant %s", name, tenant.Name)
 	label := make(map[string]string, 2)
 	label[monitoringv1alpha1.MonitoringPaodinService] = tenant.Labels[monitoringv1alpha1.MonitoringPaodinService]
 	label[monitoringv1alpha1.MonitoringPaodinStorage] = tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage]
 	label[monitoringv1alpha1.MonitoringPaodinTenant] = tenant.Name
 
 	namespacedName := strings.Split(tenant.Labels[monitoringv1alpha1.MonitoringPaodinService], ".")
-	// todo: ingestor config
-	return &monitoringv1alpha1.ThanosReceiveIngestor{
+	// todo: ingester config
+	return &monitoringv1alpha1.Ingester{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespacedName[0],
 			Labels:    label,
 		},
-		Spec: monitoringv1alpha1.ThanosReceiveIngestorSpec{
+		Spec: monitoringv1alpha1.IngesterSpec{
 			Tenants: []string{tenant.Spec.Tenant},
 		},
 	}
 }
 
-func addTenantToIngestorInstance(tenant *monitoringv1alpha1.Tenant, ingestor *monitoringv1alpha1.ThanosReceiveIngestor) {
-	klog.V(3).Infof("Ingestor %s update, add tenant %s", ingestor.Name, tenant.Name)
+func addTenantToIngesterInstance(tenant *monitoringv1alpha1.Tenant, ingester *monitoringv1alpha1.Ingester) {
+	klog.V(3).Infof("Ingester %s update, add tenant %s", ingester.Name, tenant.Name)
 
-	ingestor.Spec.Tenants = append(ingestor.Spec.Tenants, tenant.Spec.Tenant)
+	ingester.Spec.Tenants = append(ingester.Spec.Tenants, tenant.Spec.Tenant)
 
-	label := ingestor.GetLabels()
+	label := ingester.GetLabels()
 	if v, ok := label[monitoringv1alpha1.MonitoringPaodinTenant]; !ok || len(v) == 0 {
 		label[monitoringv1alpha1.MonitoringPaodinTenant] = tenant.Name
 	} else {
 		label[monitoringv1alpha1.MonitoringPaodinTenant] = label[monitoringv1alpha1.MonitoringPaodinTenant] + "." + tenant.Name
 	}
-	ingestor.Labels = label
+	ingester.Labels = label
 
-	annotation := ingestor.GetAnnotations()
-	if v, ok := annotation[resources.LabelNameReceiveIngestorState]; ok && v == "deleting" {
-		annotation[resources.LabelNameReceiveIngestorState] = "running"
-		annotation[resources.LabelNameReceiveIngestorDeletingTime] = ""
+	annotation := ingester.GetAnnotations()
+	if v, ok := annotation[resources.LabelNameReceiveIngesterState]; ok && v == "deleting" {
+		annotation[resources.LabelNameReceiveIngesterState] = "running"
+		annotation[resources.LabelNameReceiveIngesterDeletingTime] = ""
 	}
-	ingestor.Annotations = annotation
+	ingester.Annotations = annotation
 }
 
 func containsString(slice []string, s string) bool {

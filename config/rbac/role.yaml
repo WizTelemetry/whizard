@@ -117,6 +117,32 @@ rules:
 - apiGroups:
   - monitoring.paodin.io
   resources:
+  - compacts
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - compacts/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - compacts/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
   - rulegroups
   verbs:
   - get
@@ -240,7 +266,7 @@ rules:
 - apiGroups:
   - monitoring.paodin.io
   resources:
-  - thanosreceiveingestors
+  - thanosreceiveingesters
   verbs:
   - create
   - delete
@@ -252,13 +278,13 @@ rules:
 - apiGroups:
   - monitoring.paodin.io
   resources:
-  - thanosreceiveingestors/finalizers
+  - thanosreceiveingesters/finalizers
   verbs:
   - update
 - apiGroups:
   - monitoring.paodin.io
   resources:
-  - thanosreceiveingestors/status
+  - thanosreceiveingesters/status
   verbs:
   - get
   - patch

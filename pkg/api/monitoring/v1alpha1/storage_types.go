@@ -33,10 +33,6 @@ const (
 )
 
 type StorageSpec struct {
-	Thanos *ThanosStorage `json:"thanos"`
-}
-
-type ThanosStorage struct {
 	S3 *S3 `json:"S3,omitempty"`
 }
 

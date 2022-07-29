@@ -10,6 +10,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
@@ -18,12 +19,12 @@ import (
 func (r *StoreGateway) statefulSet() (runtime.Object, resources.Operation, error) {
 	var sts = &appsv1.StatefulSet{ObjectMeta: r.meta(r.name())}
 
-	if r.store == nil || r.Store.Spec.ObjectStorageConfig == nil {
+	if r.store.Spec.Storage == nil {
 		return sts, resources.OperationDelete, nil
 	}
 
 	sts.Spec = appsv1.StatefulSetSpec{
-		Replicas: r.store.Replicas,
+		Replicas: r.store.Spec.Replicas,
 		Selector: &metav1.LabelSelector{
 			MatchLabels: r.labels(),
 		},
@@ -32,18 +33,18 @@ func (r *StoreGateway) statefulSet() (runtime.Object, resources.Operation, error
 				Labels: r.labels(),
 			},
 			Spec: corev1.PodSpec{
-				NodeSelector: r.store.NodeSelector,
-				Tolerations:  r.store.Tolerations,
-				Affinity:     r.store.Affinity,
+				NodeSelector: r.store.Spec.NodeSelector,
+				Tolerations:  r.store.Spec.Tolerations,
+				Affinity:     r.store.Spec.Affinity,
 			},
 		},
 	}
 
 	var container = corev1.Container{
 		Name:      "store",
-		Image:     r.store.Image,
+		Image:     r.store.Spec.Image,
 		Args:      []string{"store"},
-		Resources: r.store.Resources,
+		Resources: r.store.Spec.Resources,
 		Ports: []corev1.ContainerPort{
 			{
 				Protocol:      corev1.ProtocolTCP,
@@ -66,7 +67,7 @@ func (r *StoreGateway) statefulSet() (runtime.Object, resources.Operation, error
 			EmptyDir: &corev1.EmptyDirVolumeSource{},
 		},
 	}
-	if v := r.store.DataVolume; v != nil {
+	if v := r.store.Spec.DataVolume; v != nil {
 		if pvc := v.PersistentVolumeClaim; pvc != nil {
 			if pvc.Name == "" {
 				pvc.Name = sts.Name + "-tsdb"
@@ -92,27 +93,32 @@ func (r *StoreGateway) statefulSet() (runtime.Object, resources.Operation, error
 		})
 	}
 
-	osConfig := r.Store.Spec.ObjectStorageConfig
+	storage := &v1alpha1.Storage{}
+
+	if err := r.Client.Get(r.Context, types.NamespacedName{Namespace: r.store.Spec.Storage.Namespace, Name: r.store.Spec.Storage.Name}, storage); err != nil {
+		return nil, "", err
+	}
 	osVol := corev1.Volume{
-		Name: "secret-" + osConfig.Name,
+		Name: storage.Name,
 		VolumeSource: corev1.VolumeSource{
 			Secret: &corev1.SecretVolumeSource{
-				SecretName: osConfig.Name,
+				SecretName: "secret-" + storage.Name,
 				Items: []corev1.KeyToPath{{
-					Key:  osConfig.Key,
-					Path: osConfig.Key,
+					Key:  resources.SecretThanosBucketKey,
+					Path: resources.SecretThanosBucketKey,
 				}},
 			},
 		},
 	}
+
 	sts.Spec.Template.Spec.Volumes = append(sts.Spec.Template.Spec.Volumes, osVol)
 	container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
 		Name:      osVol.Name,
-		MountPath: filepath.Join(secretsDir, osConfig.Name),
+		MountPath: filepath.Join(secretsDir, storage.Name),
 	})
 
 	// index cache config
-	if cacheConfig := r.store.IndexCacheConfig; cacheConfig != nil {
+	if cacheConfig := r.store.Spec.IndexCacheConfig; cacheConfig != nil {
 		var c *storecache.IndexCacheConfig
 
 		switch cacheConfig.Type {
@@ -142,21 +148,21 @@ func (r *StoreGateway) statefulSet() (runtime.Object, resources.Operation, error
 	}
 
 	container.Args = append(container.Args, fmt.Sprintf("--data-dir=%s", storageDir))
-	if r.store.LogLevel != "" {
-		container.Args = append(container.Args, "--log.level="+r.store.LogLevel)
+	if r.store.Spec.LogLevel != "" {
+		container.Args = append(container.Args, "--log.level="+r.store.Spec.LogLevel)
 	}
-	if r.store.LogFormat != "" {
-		container.Args = append(container.Args, "--log.format="+r.store.LogFormat)
+	if r.store.Spec.LogFormat != "" {
+		container.Args = append(container.Args, "--log.format="+r.store.Spec.LogFormat)
 	}
-	if r.store.MinTime != "" {
-		container.Args = append(container.Args, "--min-time="+r.store.MinTime)
+	if r.store.Spec.MinTime != "" {
+		container.Args = append(container.Args, "--min-time="+r.store.Spec.MinTime)
 	}
-	if r.store.MaxTime != "" {
-		container.Args = append(container.Args, "--max-time="+r.store.MaxTime)
+	if r.store.Spec.MaxTime != "" {
+		container.Args = append(container.Args, "--max-time="+r.store.Spec.MaxTime)
 	}
-	container.Args = append(container.Args, "--objstore.config-file="+filepath.Join(secretsDir, osConfig.Name, osConfig.Key))
+	container.Args = append(container.Args, "--objstore.config-file="+filepath.Join(secretsDir, storage.Name, resources.SecretThanosBucketKey))
 
-	for name, value := range r.store.Flags {
+	for name, value := range r.store.Spec.Flags {
 		container.Args = append(container.Args, fmt.Sprintf("--%s=%s", name, value))
 	}
 

@@ -12,7 +12,7 @@ import (
 )
 
 func (s *Storage) secret() (runtime.Object, resources.Operation, error) {
-	buff, err := parseObjStorageConfig(s.storage.Spec.Thanos)
+	buff, err := parseObjStorageConfig(&s.storage.Spec)
 	if err != nil {
 		return nil, "", err
 	}
@@ -42,12 +42,12 @@ func (s *Storage) secret() (runtime.Object, resources.Operation, error) {
 	return secret, resources.OperationCreateOrUpdate, nil
 }
 
-func parseObjStorageConfig(thanosStorageConfig *monitoringv1alpha1.ThanosStorage) ([]byte, error) {
+func parseObjStorageConfig(storageConfig *monitoringv1alpha1.StorageSpec) ([]byte, error) {
 	bucket := &BucketConfig{}
 
-	if thanosStorageConfig.S3 != nil {
+	if storageConfig.S3 != nil {
 		bucket.Type = S3
-		bucket.Config = *thanosStorageConfig.S3
+		bucket.Config = *storageConfig.S3
 	}
 
 	return yaml.Marshal(bucket)

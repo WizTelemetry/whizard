@@ -17,9 +17,15 @@ limitations under the License.
 
 package v1alpha1
 
+type CompactExpansion interface{}
+
+type IngesterExpansion interface{}
+
 type RuleExpansion interface{}
 
 type RuleGroupExpansion interface{}
+
+type RulerExpansion interface{}
 
 type ServiceExpansion interface{}
 
@@ -28,7 +34,3 @@ type StorageExpansion interface{}
 type StoreExpansion interface{}
 
 type TenantExpansion interface{}
-
-type ThanosReceiveIngestorExpansion interface{}
-
-type ThanosRulerExpansion interface{}
