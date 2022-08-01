@@ -4,7 +4,7 @@
 resources:
 - bases/monitoring.paodin.io_services.yaml
 - bases/monitoring.paodin.io_stores.yaml
-- bases/monitoring.paodin.io_compacts.yaml
+- bases/monitoring.paodin.io_compactors.yaml
 - bases/monitoring.paodin.io_ingesters.yaml
 - bases/monitoring.paodin.io_rulers.yaml
 - bases/monitoring.paodin.io_rules.yaml

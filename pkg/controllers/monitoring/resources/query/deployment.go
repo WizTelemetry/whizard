@@ -12,6 +12,7 @@ import (
 
 	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/ingester"
 )
 
 func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
@@ -102,13 +103,14 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 	if err := q.Client.List(q.Context, &ingesterList,
 		client.MatchingLabels(monitoringv1alpha1.ManagedLabelByService(q.Service))); err != nil {
 
-		q.Log.WithValues("thanosreceiveingesterlist", "").Error(err, "")
+		q.Log.WithValues("ingesterlist", "").Error(err, "")
 		return nil, resources.OperationCreateOrUpdate, err
 	}
 	for _, item := range ingesterList.Items {
-		ingesterSvcName := resources.QualifiedName(resources.AppNameThanosRuler, item.Name, resources.ServiceNameSuffixOperated)
-		endpoint := fmt.Sprintf("%s.%s.svc:%d", ingesterSvcName, item.Namespace, resources.ThanosGRPCPort)
-		queryContainer.Args = append(queryContainer.Args, "--endpoint="+endpoint)
+		ingesterInstance := ingester.New(q.BaseReconciler, &item)
+		for _, endpoint := range ingesterInstance.GrpcAddrs() {
+			queryContainer.Args = append(queryContainer.Args, "--endpoint="+endpoint)
+		}
 	}
 
 	var storeList monitoringv1alpha1.StoreList
@@ -119,7 +121,7 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 		return nil, resources.OperationCreateOrUpdate, err
 	}
 	for _, item := range storeList.Items {
-		storeSvcName := resources.QualifiedName(resources.AppNameThanosStoreGateway, item.Name, resources.ServiceNameSuffixOperated)
+		storeSvcName := resources.QualifiedName(resources.AppNameStore, item.Name, resources.ServiceNameSuffixOperated)
 		endpoint := fmt.Sprintf("%s.%s.svc:%d", storeSvcName, item.Namespace, resources.ThanosGRPCPort)
 		queryContainer.Args = append(queryContainer.Args, "--endpoint="+endpoint)
 	}
@@ -128,11 +130,11 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 	if err := q.Client.List(q.Context, &rulerList,
 		client.MatchingLabels(monitoringv1alpha1.ManagedLabelByService(q.Service))); err != nil {
 
-		q.Log.WithValues("thanosrulerlist", "").Error(err, "")
+		q.Log.WithValues("rulerlist", "").Error(err, "")
 		return nil, resources.OperationCreateOrUpdate, err
 	}
 	for _, item := range rulerList.Items {
-		rulerSvcName := resources.QualifiedName(resources.AppNameThanosRuler, item.Name, resources.ServiceNameSuffixOperated)
+		rulerSvcName := resources.QualifiedName(resources.AppNameRuler, item.Name, resources.ServiceNameSuffixOperated)
 		endpoint := fmt.Sprintf("%s.%s.svc:%d", rulerSvcName, item.Namespace, resources.ThanosGRPCPort)
 		queryContainer.Args = append(queryContainer.Args, "--endpoint="+endpoint)
 	}

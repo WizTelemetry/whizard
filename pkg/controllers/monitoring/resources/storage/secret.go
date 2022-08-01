@@ -35,7 +35,7 @@ func (s *Storage) secret() (runtime.Object, resources.Operation, error) {
 		},
 		Type: corev1.SecretTypeOpaque,
 		Data: map[string][]byte{
-			resources.SecretThanosBucketKey: buff,
+			resources.SecretBucketKey: buff,
 		},
 	}
 

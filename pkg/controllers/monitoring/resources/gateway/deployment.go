@@ -12,7 +12,7 @@ import (
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/query"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/query_frontend"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/receive_router"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/router"
 )
 
 func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
@@ -132,7 +132,7 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 		container.Args = append(container.Args, fmt.Sprintf("--query.address=%s", q.HttpAddr()))
 	}
 	if g.Service.Spec.Router != nil {
-		r := receive_router.New(g.ServiceBaseReconciler)
+		r := router.New(g.ServiceBaseReconciler)
 		container.Args = append(container.Args, fmt.Sprintf("--remote-write.address=%s", r.RemoteWriteAddr()))
 	}
 

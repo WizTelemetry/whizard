@@ -929,7 +929,7 @@ spec:
                     description: Define which Nodes the Pods are scheduled on.
                     type: object
                   replicas:
-                    description: Number of replicas for a thanos component
+                    description: Number of replicas for a component
                     format: int32
                     type: integer
                   resources:
@@ -1878,7 +1878,7 @@ spec:
                       requiring auth to the secure stores
                     properties:
                       image:
-                        description: Image is the thanos image with tag/version
+                        description: Image is the envoy image with tag/version
                         type: string
                       resources:
                         description: Define resources requests and limits for envoy
@@ -1937,7 +1937,7 @@ spec:
                       type: string
                     type: array
                   replicas:
-                    description: Number of replicas for a thanos component
+                    description: Number of replicas for a component
                     format: int32
                     type: integer
                   resources:
@@ -1972,8 +1972,8 @@ spec:
                     description: Selector labels that will be exposed in info endpoint.
                     type: object
                   stores:
-                    description: Additional StoreApi servers from which Thanos Query
-                      component queries from
+                    description: Additional StoreApi servers from which Query component
+                      queries from
                     items:
                       properties:
                         addresses:
@@ -2968,7 +2968,7 @@ spec:
                     description: Define which Nodes the Pods are scheduled on.
                     type: object
                   replicas:
-                    description: Number of replicas for a thanos component
+                    description: Number of replicas for a component
                     format: int32
                     type: integer
                   resources:
@@ -3930,7 +3930,7 @@ spec:
                     description: Define which Nodes the Pods are scheduled on.
                     type: object
                   replicas:
-                    description: Number of replicas for a thanos component.
+                    description: Number of replicas for a component.
                     format: int32
                     type: integer
                   replicationFactor:

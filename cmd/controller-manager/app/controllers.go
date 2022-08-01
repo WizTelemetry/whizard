@@ -36,18 +36,18 @@ func addControllers(mgr manager.Manager, client k8s.Client, informerFactory info
 		return err
 	}
 
-	if err := (&monitoring.CompactReconciler{
-		DefaulterValidator: monitoring.CreateCompactDefaulterValidator(*cmOptions.MonitoringOptions),
+	if err := (&monitoring.CompactorReconciler{
+		DefaulterValidator: monitoring.CreateCompactorDefaulterValidator(*cmOptions.MonitoringOptions),
 		Client:             mgr.GetClient(),
 		Scheme:             mgr.GetScheme(),
 		Context:            ctx,
 	}).SetupWithManager(mgr); err != nil {
-		klog.Errorf("Unable to create Compact controller: %v", err)
+		klog.Errorf("Unable to create Compactor controller: %v", err)
 		return err
 	}
 
-	if err := (&monitoring.ThanosReceiveIngesterReconciler{
-		DefaulterValidator: monitoring.CreateThanosReceiveIngesterDefaulterValidator(*cmOptions.MonitoringOptions),
+	if err := (&monitoring.IngesterReconciler{
+		DefaulterValidator: monitoring.CreateIngesterDefaulterValidator(*cmOptions.MonitoringOptions),
 		Client:             mgr.GetClient(),
 		Scheme:             mgr.GetScheme(),
 		Context:            ctx,
@@ -56,8 +56,8 @@ func addControllers(mgr manager.Manager, client k8s.Client, informerFactory info
 		return err
 	}
 
-	if err := (&monitoring.ThanosRulerReconciler{
-		DefaulterValidator:    monitoring.CreateThanosRulerDefaulterValidator(*cmOptions.MonitoringOptions),
+	if err := (&monitoring.RulerReconciler{
+		DefaulterValidator:    monitoring.CreateRulerDefaulterValidator(*cmOptions.MonitoringOptions),
 		ReloaderConfig:        cmOptions.MonitoringOptions.PrometheusConfigReloader,
 		RulerQueryProxyConfig: cmOptions.MonitoringOptions.RulerQueryProxy,
 		Client:                mgr.GetClient(),

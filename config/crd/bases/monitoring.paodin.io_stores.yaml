@@ -1215,7 +1215,7 @@ spec:
                 description: Define which Nodes the Pods are scheduled on.
                 type: object
               replicas:
-                description: Number of replicas for a thanos component
+                description: Number of replicas for a component
                 format: int32
                 type: integer
               resources:

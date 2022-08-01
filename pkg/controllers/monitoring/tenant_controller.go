@@ -54,8 +54,8 @@ type TenantReconciler struct {
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=tenants/finalizers,verbs=update
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=service,verbs=get;list;watch
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=storage,verbs=get;list;watch
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=thanosreceiveingesters,verbs=get;list;watch
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=thanosrulers,verbs=get;list;watch
+//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=ingesters,verbs=get;list;watch
+//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=rulers,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

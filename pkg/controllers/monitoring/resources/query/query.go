@@ -80,13 +80,13 @@ func (q *Query) stores() (*Stores, error) {
 
 func (q *Query) labels() map[string]string {
 	labels := q.BaseLabels()
-	labels[resources.LabelNameAppName] = resources.AppNameThanosQuery
+	labels[resources.LabelNameAppName] = resources.AppNameQuery
 	labels[resources.LabelNameAppManagedBy] = q.Service.Name
 	return labels
 }
 
 func (q *Query) name(nameSuffix ...string) string {
-	return resources.QualifiedName(resources.AppNameThanosQuery, q.Service.Name, nameSuffix...)
+	return resources.QualifiedName(resources.AppNameQuery, q.Service.Name, nameSuffix...)
 }
 
 func (q *Query) meta(name string) metav1.ObjectMeta {

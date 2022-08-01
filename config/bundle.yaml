@@ -9,20 +9,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: compacts.monitoring.paodin.io
+  name: compactors.monitoring.paodin.io
 spec:
   group: monitoring.paodin.io
   names:
-    kind: Compact
-    listKind: CompactList
-    plural: compacts
-    singular: compact
+    kind: Compactor
+    listKind: CompactorList
+    plural: compactors
+    singular: compactor
   scope: Namespaced
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Compact is the Schema for the Compact API
+        description: Compactor is the Schema for the Compactor API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -713,7 +713,7 @@ spec:
                 description: Define which Nodes the Pods are scheduled on.
                 type: object
               replicas:
-                description: Number of replicas for a thanos component
+                description: Number of replicas for a component
                 format: int32
                 type: integer
               resources:
@@ -786,7 +786,7 @@ spec:
                 type: array
             type: object
           status:
-            description: CompactStatus defines the observed state of Compact
+            description: CompactorStatus defines the observed state of Compactor
             type: object
         type: object
     served: true
@@ -1511,7 +1511,7 @@ spec:
                 description: Define which Nodes the Pods are scheduled on.
                 type: object
               replicas:
-                description: Number of replicas for a thanos component.
+                description: Number of replicas for a component.
                 format: int32
                 type: integer
               resources:
@@ -1574,7 +1574,7 @@ spec:
                 type: array
             type: object
           status:
-            description: ThanosReceiveIngesterStatus defines the observed state of Store
+            description: IngesterStatus defines the observed state of Ingester
             type: object
         type: object
     served: true
@@ -1659,7 +1659,7 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: ThanosRuler is the Schema for the ThanosRuler API
+        description: Ruler is the Schema for the Ruler API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -1670,7 +1670,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: RulerSpec defines the desired state of a ThanosRuler
+            description: RulerSpec defines the desired state of a Ruler
             properties:
               affinity:
                 description: If specified, the pod's scheduling constraints.
@@ -2134,7 +2134,7 @@ spec:
                     type: object
                 type: object
               alertDropLabels:
-                description: AlertDropLabels configure the label names which should be dropped in ThanosRuler alerts. The replica label `thanos_ruler_replica` will always be dropped in alerts.
+                description: AlertDropLabels configure the label names which should be dropped in Ruler alerts. The replica label `thanos_ruler_replica` will always be dropped in alerts.
                 items:
                   type: string
                 type: array
@@ -2369,7 +2369,7 @@ spec:
               labels:
                 additionalProperties:
                   type: string
-                description: Labels configure the external label pairs to ThanosRuler. A default replica label `thanos_ruler_replica` will be always added  as a label with the value of the pod's name and it will be dropped in the alerts.
+                description: Labels configure the external label pairs to Ruler. A default replica label `thanos_ruler_replica` will be always added  as a label with the value of the pod's name and it will be dropped in the alerts.
                 type: object
               logFormat:
                 description: 'Log format to use. Possible options: logfmt or json'
@@ -2383,7 +2383,7 @@ spec:
                 description: Define which Nodes the Pods are scheduled on.
                 type: object
               prometheusRuleNamespaceSelector:
-                description: Namespaces to be selected for PrometheusRules discovery. If unspecified, only the same namespace as the ThanosRuler object is in is used.
+                description: Namespaces to be selected for PrometheusRules discovery. If unspecified, only the same namespace as the Ruler object is in is used.
                 properties:
                   matchExpressions:
                     description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
@@ -2443,7 +2443,7 @@ spec:
                     type: object
                 type: object
               replicas:
-                description: Number of replicas for a thanos component.
+                description: Number of replicas for a component.
                 format: int32
                 type: integer
               resources:
@@ -2469,7 +2469,7 @@ spec:
                     type: object
                 type: object
               ruleNamespaceSelector:
-                description: Namespaces to be selected for Rules discovery. If nil, only the same namespace as the ThanosRuler object is in is used.
+                description: Namespaces to be selected for Rules discovery. If nil, only the same namespace as the Ruler object is in is used.
                 properties:
                   matchExpressions:
                     description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
@@ -2556,7 +2556,7 @@ spec:
                 type: array
             type: object
           status:
-            description: ThanosRulerStatus defines the observed state of ThanosRuler
+            description: RulerStatus defines the observed state of Ruler
             type: object
         type: object
     served: true
@@ -3158,7 +3158,7 @@ spec:
                     description: Define which Nodes the Pods are scheduled on.
                     type: object
                   replicas:
-                    description: Number of replicas for a thanos component
+                    description: Number of replicas for a component
                     format: int32
                     type: integer
                   resources:
@@ -3678,7 +3678,7 @@ spec:
                     description: Envoy is used to config sidecar which proxies requests requiring auth to the secure stores
                     properties:
                       image:
-                        description: Image is the thanos image with tag/version
+                        description: Image is the envoy image with tag/version
                         type: string
                       resources:
                         description: Define resources requests and limits for envoy container.
@@ -3728,7 +3728,7 @@ spec:
                       type: string
                     type: array
                   replicas:
-                    description: Number of replicas for a thanos component
+                    description: Number of replicas for a component
                     format: int32
                     type: integer
                   resources:
@@ -3759,7 +3759,7 @@ spec:
                     description: Selector labels that will be exposed in info endpoint.
                     type: object
                   stores:
-                    description: Additional StoreApi servers from which Thanos Query component queries from
+                    description: Additional StoreApi servers from which Query component queries from
                     items:
                       properties:
                         addresses:
@@ -4318,7 +4318,7 @@ spec:
                     description: Define which Nodes the Pods are scheduled on.
                     type: object
                   replicas:
-                    description: Number of replicas for a thanos component
+                    description: Number of replicas for a component
                     format: int32
                     type: integer
                   resources:
@@ -4851,7 +4851,7 @@ spec:
                     description: Define which Nodes the Pods are scheduled on.
                     type: object
                   replicas:
-                    description: Number of replicas for a thanos component.
+                    description: Number of replicas for a component.
                     format: int32
                     type: integer
                   replicationFactor:
@@ -5812,7 +5812,7 @@ spec:
                 description: Define which Nodes the Pods are scheduled on.
                 type: object
               replicas:
-                description: Number of replicas for a thanos component
+                description: Number of replicas for a component
                 format: int32
                 type: integer
               resources:
@@ -5926,7 +5926,7 @@ spec:
             type: object
           status:
             properties:
-              compact:
+              compactor:
                 properties:
                   name:
                     type: string
@@ -6128,7 +6128,7 @@ rules:
 - apiGroups:
   - monitoring.paodin.io
   resources:
-  - compacts
+  - compactors
   verbs:
   - create
   - delete
@@ -6140,13 +6140,39 @@ rules:
 - apiGroups:
   - monitoring.paodin.io
   resources:
-  - compacts/finalizers
+  - compactors/finalizers
   verbs:
   - update
 - apiGroups:
   - monitoring.paodin.io
   resources:
-  - compacts/status
+  - compactors/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - ingesters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - ingesters/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - ingesters/status
   verbs:
   - get
   - patch
@@ -6159,6 +6185,32 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - rulers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - rulers/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - rulers/status
+  verbs:
+  - get
+  - patch
+  - update
 - apiGroups:
   - monitoring.paodin.io
   resources:
@@ -6270,58 +6322,6 @@ rules:
   - monitoring.paodin.io
   resources:
   - tenants/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - monitoring.paodin.io
-  resources:
-  - thanosreceiveingesters
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - monitoring.paodin.io
-  resources:
-  - thanosreceiveingesters/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - monitoring.paodin.io
-  resources:
-  - thanosreceiveingesters/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - monitoring.paodin.io
-  resources:
-  - thanosrulers
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - monitoring.paodin.io
-  resources:
-  - thanosrulers/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - monitoring.paodin.io
-  resources:
-  - thanosrulers/status
   verbs:
   - get
   - patch

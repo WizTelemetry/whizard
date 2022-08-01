@@ -27,13 +27,13 @@ func New(reconciler resources.ServiceBaseReconciler) *QueryFrontend {
 
 func (q *QueryFrontend) labels() map[string]string {
 	labels := q.BaseLabels()
-	labels[resources.LabelNameAppName] = resources.AppNameThanosQueryFrontend
+	labels[resources.LabelNameAppName] = resources.AppNameQueryFrontend
 	labels[resources.LabelNameAppManagedBy] = q.Service.Name
 	return labels
 }
 
 func (q *QueryFrontend) name(nameSuffix ...string) string {
-	return resources.QualifiedName(resources.AppNameThanosQueryFrontend, q.Service.Name, nameSuffix...)
+	return resources.QualifiedName(resources.AppNameQueryFrontend, q.Service.Name, nameSuffix...)
 }
 
 func (q *QueryFrontend) meta(name string) metav1.ObjectMeta {

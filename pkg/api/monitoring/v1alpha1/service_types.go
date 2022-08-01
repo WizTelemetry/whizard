@@ -65,7 +65,7 @@ type Gateway struct {
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 	// Define resources requests and limits for main container.
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-	// Number of replicas for a thanos component
+	// Number of replicas for a component
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// Image is the gateway image with tag/version.
@@ -91,7 +91,7 @@ type Query struct {
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 	// Define resources requests and limits for main container.
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-	// Number of replicas for a thanos component
+	// Number of replicas for a component
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// Image is the thanos image with tag/version
@@ -101,7 +101,7 @@ type Query struct {
 	// Log format to use. Possible options: logfmt or json
 	LogFormat string `json:"logFormat,omitempty"`
 
-	// Additional StoreApi servers from which Thanos Query component queries from
+	// Additional StoreApi servers from which Query component queries from
 	Stores []QueryStores `json:"stores,omitempty"`
 	// Selector labels that will be exposed in info endpoint.
 	SelectorLabels map[string]string `json:"selectorLabels,omitempty"`
@@ -125,7 +125,7 @@ type QueryStores struct {
 
 // EnvoySpec defines the desired state of envoy proxy sidecar which delegates requests to the secure thanos stores
 type EnvoySpec struct {
-	// Image is the thanos image with tag/version
+	// Image is the envoy image with tag/version
 	Image string `json:"image,omitempty"`
 	// Define resources requests and limits for envoy container.
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
@@ -140,7 +140,7 @@ type Router struct {
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 	// Define resources requests and limits for main container.
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-	// Number of replicas for a thanos component.
+	// Number of replicas for a component.
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// Image is the thanos image with tag/version
@@ -166,7 +166,7 @@ type QueryFrontend struct {
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 	// Define resources requests and limits for main container.
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-	// Number of replicas for a thanos component
+	// Number of replicas for a component
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// Image is the thanos image with tag/version
@@ -250,7 +250,7 @@ type InMemoryIndexCacheConfig struct {
 	MaxItemSize string `json:"max_item_size,omitempty" yaml:"max_item_size,omitempty"`
 }
 
-// KubernetesVolume defines the configured volume for a thanos instance.
+// KubernetesVolume defines the configured volume for a instance.
 type KubernetesVolume struct {
 	EmptyDir              *corev1.EmptyDirVolumeSource  `json:"emptyDir,omitempty"`
 	PersistentVolumeClaim *corev1.PersistentVolumeClaim `json:"pvc,omitempty"`
@@ -275,7 +275,7 @@ type StoreSpec struct {
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 	// Define resources requests and limits for main container.
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-	// Number of replicas for a thanos component
+	// Number of replicas for a component
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// Image is the thanos image with tag/version
@@ -330,7 +330,7 @@ type StoreList struct {
 	Items           []Store `json:"items"`
 }
 
-type CompactSpec struct {
+type CompactorSpec struct {
 	// If specified, the pod's scheduling constraints.
 	Affinity *corev1.Affinity `json:"affinity,omitempty"`
 	// Define which Nodes the Pods are scheduled on.
@@ -339,7 +339,7 @@ type CompactSpec struct {
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 	// Define resources requests and limits for main container.
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-	// Number of replicas for a thanos component
+	// Number of replicas for a component
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// Image is the thanos image with tag/version
@@ -363,8 +363,8 @@ type CompactSpec struct {
 	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
 }
 
-// CompactStatus defines the observed state of Compact
-type CompactStatus struct {
+// CompactorStatus defines the observed state of Compactor
+type CompactorStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 }
@@ -373,22 +373,22 @@ type CompactStatus struct {
 //+kubebuilder:subresource:status
 // +genclient
 
-// Compact is the Schema for the Compact API
-type Compact struct {
+// Compactor is the Schema for the Compactor API
+type Compactor struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   CompactSpec   `json:"spec,omitempty"`
-	Status CompactStatus `json:"status,omitempty"`
+	Spec   CompactorSpec   `json:"spec,omitempty"`
+	Status CompactorStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// StoreList contains a list of Store
-type CompactList struct {
+// CompactorList contains a list of Compactor
+type CompactorList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Store `json:"items"`
+	Items           []Compactor `json:"items"`
 }
 
 // IngesterSpec defines the desired state of a Ingester
@@ -404,7 +404,7 @@ type IngesterSpec struct {
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 	// Define resources requests and limits for main container.
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-	// Number of replicas for a thanos component.
+	// Number of replicas for a component.
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// Image is the thanos image with tag/version
@@ -432,7 +432,7 @@ type ObjectReference struct {
 	Name      string `json:"name,omitempty"`
 }
 
-// ThanosReceiveIngesterStatus defines the observed state of Store
+// IngesterStatus defines the observed state of Ingester
 type IngesterStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
@@ -453,14 +453,14 @@ type Ingester struct {
 
 //+kubebuilder:object:root=true
 
-// IngesterList contains a list of Store
+// IngesterList contains a list of Ingester
 type IngesterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Ingester `json:"items"`
 }
 
-// RulerSpec defines the desired state of a ThanosRuler
+// RulerSpec defines the desired state of a Ruler
 type RulerSpec struct {
 	// If specified, the pod's scheduling constraints.
 	Affinity *corev1.Affinity `json:"affinity,omitempty"`
@@ -470,7 +470,7 @@ type RulerSpec struct {
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 	// Define resources requests and limits for main container.
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-	// Number of replicas for a thanos component.
+	// Number of replicas for a component.
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// Image is the thanos image with tag/version
@@ -484,23 +484,23 @@ type RulerSpec struct {
 	// recording.
 	RuleSelector *metav1.LabelSelector `json:"ruleSelector,omitempty"`
 	// Namespaces to be selected for Rules discovery. If nil, only
-	// the same namespace as the ThanosRuler object is in is used.
+	// the same namespace as the Ruler object is in is used.
 	RuleNamespaceSelector *metav1.LabelSelector `json:"ruleNamespaceSelector,omitempty"`
 	// A label selector to select which PrometheusRules to mount for alerting and
 	// recording.
 	PrometheusRuleSelector *metav1.LabelSelector `json:"prometheusRuleSelector,omitempty"`
 	// Namespaces to be selected for PrometheusRules discovery. If unspecified, only
-	// the same namespace as the ThanosRuler object is in is used.
+	// the same namespace as the Ruler object is in is used.
 	PrometheusRuleNamespaceSelector *metav1.LabelSelector `json:"prometheusRuleNamespaceSelector,omitempty"`
 
 	// Tenant if not empty indicates which tenant's data is evaluated for the selected rules;
 	// otherwise, it is for all tenants.
 	Tenant string `json:"tenant,omitempty"`
 
-	// Labels configure the external label pairs to ThanosRuler. A default replica label
+	// Labels configure the external label pairs to Ruler. A default replica label
 	// `thanos_ruler_replica` will be always added  as a label with the value of the pod's name and it will be dropped in the alerts.
 	Labels map[string]string `json:"labels,omitempty"`
-	// AlertDropLabels configure the label names which should be dropped in ThanosRuler alerts.
+	// AlertDropLabels configure the label names which should be dropped in Ruler alerts.
 	// The replica label `thanos_ruler_replica` will always be dropped in alerts.
 	AlertDropLabels []string `json:"alertDropLabels,omitempty"`
 	// Define URLs to send alerts to Alertmanager.  For Thanos v0.10.0 and higher,
@@ -522,7 +522,7 @@ type RulerSpec struct {
 	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
 }
 
-// ThanosRulerStatus defines the observed state of ThanosRuler
+// RulerStatus defines the observed state of Ruler
 type RulerStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
@@ -532,7 +532,7 @@ type RulerStatus struct {
 //+kubebuilder:subresource:status
 // +genclient
 
-// ThanosRuler is the Schema for the ThanosRuler API
+// Ruler is the Schema for the Ruler API
 type Ruler struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -543,7 +543,7 @@ type Ruler struct {
 
 //+kubebuilder:object:root=true
 
-// ThanosRulerList contains a list of ThanosRuler
+// RulerList contains a list of Ruler
 type RulerList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -633,7 +633,7 @@ func init() {
 		Register(&Ingester{}, &IngesterList{}).
 		Register(&Ruler{}, &RulerList{}).
 		Register(&Store{}, &StoreList{}).
-		Register(&Compact{}, &CompactList{}).
+		Register(&Compactor{}, &CompactorList{}).
 		Register(&Rule{}, &RuleList{}).
 		Register(&RuleGroup{}, &RuleGroupList{})
 }

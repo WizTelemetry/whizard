@@ -36,7 +36,7 @@ import (
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/gateway"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/query"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/query_frontend"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/receive_router"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/router"
 )
 
 // ServiceReconciler reconciles a Service object
@@ -50,9 +50,9 @@ type ServiceReconciler struct {
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=services,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=services/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=services/finalizers,verbs=update
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=thanosreceiveingesters,verbs=get;list;watch
+//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=ingesters,verbs=get;list;watch
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=stores,verbs=get;list;watch
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=thanosrulers,verbs=get;list;watch
+//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=rulers,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=services;configmaps;serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=deployments;statefulsets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings,verbs=get;list;watch;create;update;patch;delete
@@ -97,7 +97,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	var reconciles []func() error
 
-	reconciles = append(reconciles, receive_router.New(serviceBaseReconciler).Reconcile)
+	reconciles = append(reconciles, router.New(serviceBaseReconciler).Reconcile)
 	reconciles = append(reconciles, query_frontend.New(serviceBaseReconciler).Reconcile)
 	reconciles = append(reconciles, query.New(serviceBaseReconciler).Reconcile)
 	reconciles = append(reconciles, gateway.New(serviceBaseReconciler).Reconcile)
@@ -167,8 +167,8 @@ func CreateServiceDefaulterValidator(opt options.Options) ServiceDefaulterValida
 			if service.Spec.Query.Image == "" {
 				service.Spec.Query.Image = opt.ThanosImage
 			}
-			if service.Spec.Query.Image == "" {
-				service.Spec.Query.Image = opt.EnvoyImage
+			if service.Spec.Query.Envoy.Image == "" {
+				service.Spec.Query.Envoy.Image = opt.EnvoyImage
 			}
 
 		}

@@ -47,7 +47,7 @@ spec:
             type: object
           status:
             properties:
-              compact:
+              compactor:
                 properties:
                   name:
                     type: string

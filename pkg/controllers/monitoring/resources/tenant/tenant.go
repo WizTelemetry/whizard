@@ -25,7 +25,7 @@ func New(reconciler resources.BaseReconciler, tenant *monitoringv1alpha1.Tenant,
 }
 
 func (t *Tenant) Reconcile() error {
-	if err := t.receiveIngester(); err != nil {
+	if err := t.ingester(); err != nil {
 		return err
 	}
 	if err := t.ruler(); err != nil {

@@ -26,10 +26,10 @@ type TenantSpec struct {
 }
 
 type TenantStatus struct {
-	Store    *ObjectReference `json:"store,omitempty"`
-	Ruler    *ObjectReference `json:"ruler,omitempty"`
-	Compact  *ObjectReference `json:"compact,omitempty"`
-	Ingester *ObjectReference `json:"ingester,omitempty"`
+	Store     *ObjectReference `json:"store,omitempty"`
+	Ruler     *ObjectReference `json:"ruler,omitempty"`
+	Compactor *ObjectReference `json:"compactor,omitempty"`
+	Ingester  *ObjectReference `json:"ingester,omitempty"`
 }
 
 //+genclient

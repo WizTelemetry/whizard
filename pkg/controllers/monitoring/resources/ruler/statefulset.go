@@ -20,7 +20,7 @@ import (
 	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/query"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/receive_router"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/router"
 )
 
 func (r *Ruler) statefulSet(ruleConfigMapNames []string) (runtime.Object, resources.Operation, error) {
@@ -184,7 +184,7 @@ func (r *Ruler) statefulSet(ruleConfigMapNames []string) (runtime.Object, resour
 		})
 
 		// remote write config
-		receiveRouter := receive_router.New(resources.ServiceBaseReconciler{
+		receiveRouter := router.New(resources.ServiceBaseReconciler{
 			BaseReconciler: r.BaseReconciler,
 			Service:        &service,
 		})

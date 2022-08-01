@@ -39,13 +39,13 @@ func New(reconciler resources.BaseReconciler, ruler *monitoringv1alpha1.Ruler,
 
 func (r *Ruler) labels() map[string]string {
 	labels := r.BaseLabels()
-	labels[resources.LabelNameAppName] = resources.AppNameThanosRuler
+	labels[resources.LabelNameAppName] = resources.AppNameRuler
 	labels[resources.LabelNameAppManagedBy] = r.ruler.Name
 	return labels
 }
 
 func (r *Ruler) name(nameSuffix ...string) string {
-	return resources.QualifiedName(resources.AppNameThanosRuler, r.ruler.Name, nameSuffix...)
+	return resources.QualifiedName(resources.AppNameRuler, r.ruler.Name, nameSuffix...)
 }
 
 func (r *Ruler) meta(name string) metav1.ObjectMeta {
