@@ -299,9 +299,9 @@ func (r *Ruler) selectPrometheusRules() (map[string]string, error) {
 	return rules, nil
 }
 
-// makeRulesConfigMaps takes a ThanosRuler configuration and rule files and
+// makeRulesConfigMaps takes a Ruler configuration and rule files and
 // returns a list of Kubernetes ConfigMaps to be later on mounted into the
-// ThanosRuler instance.
+// Ruler instance.
 // If the total size of rule files exceeds the Kubernetes ConfigMap limit,
 // they are split up via the simple first-fit [1] bin packing algorithm. In the
 // future this can be replaced by a more sophisticated algorithm, but for now

@@ -125,12 +125,12 @@ Follow the following steps to deploy components:
   EOF
   ```
 
-4. On host cluster, create an ingestor instance to ingest scraped data. The soft tenants instance with empty tenants as follows can receive requests with all tenants:
+4. On host cluster, create an ingester instance to ingest scraped data. The soft tenants instance with empty tenants as follows can receive requests with all tenants:
 
   ```shell
   cat <<EOF | kubectl apply -f -
   apiVersion: monitoring.paodin.io/v1alpha1
-  kind: ThanosReceiveIngestor
+  kind: ThanosReceiveIngester
   metadata:
     name: softs
     namespace: kubesphere-monitoring-system
@@ -145,18 +145,18 @@ Follow the following steps to deploy components:
   EOF
   ```
 
-5. On host cluster, create an ingestor instance to ingest preprocessed data from thanos ruler. 
+5. On host cluster, create an ingester instance to ingest preprocessed data from thanos ruler. 
 
   ```shell
   cat <<EOF | kubectl apply -f -
   apiVersion: monitoring.paodin.io/v1alpha1
-  kind: ThanosReceiveIngestor
+  kind: ThanosReceiveIngester
   metadata:
     name: preprocessed
     namespace: kubesphere-monitoring-system
     labels: 
       monitoring.paodin.io/service: kubesphere-monitoring-system.central
-      monitoring.paodin.io/preprocessed-data-ingestor: '' 
+      monitoring.paodin.io/preprocessed-data-ingester: '' 
   spec:
     tenants: []
     replicas: 2
@@ -166,7 +166,7 @@ Follow the following steps to deploy components:
   EOF
   ```
 
-> Set label `monitoring.paodin.io/preprocessed-data-ingestor` to indicate the ingestor to ingest preprocessed data.
+> Set label `monitoring.paodin.io/preprocessed-data-ingester` to indicate the ingester to ingest preprocessed data.
 
 6. on host cluster, create a thanos ruler to eval recording rules and alerting rules: 
 

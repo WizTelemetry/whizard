@@ -117,11 +117,89 @@ rules:
 - apiGroups:
   - monitoring.paodin.io
   resources:
+  - compactors
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - compactors/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - compactors/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - ingesters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - ingesters/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - ingesters/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
   - rulegroups
   verbs:
   - get
   - list
   - watch
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - rulers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - rulers/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - monitoring.paodin.io
+  resources:
+  - rulers/status
+  verbs:
+  - get
+  - patch
+  - update
 - apiGroups:
   - monitoring.paodin.io
   resources:
@@ -233,58 +311,6 @@ rules:
   - monitoring.paodin.io
   resources:
   - tenants/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - monitoring.paodin.io
-  resources:
-  - thanosreceiveingestors
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - monitoring.paodin.io
-  resources:
-  - thanosreceiveingestors/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - monitoring.paodin.io
-  resources:
-  - thanosreceiveingestors/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - monitoring.paodin.io
-  resources:
-  - thanosrulers
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - monitoring.paodin.io
-  resources:
-  - thanosrulers/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - monitoring.paodin.io
-  resources:
-  - thanosrulers/status
   verbs:
   - get
   - patch

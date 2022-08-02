@@ -36,7 +36,7 @@ import (
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/gateway"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/query"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/query_frontend"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/receive_router"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/router"
 )
 
 // ServiceReconciler reconciles a Service object
@@ -50,9 +50,9 @@ type ServiceReconciler struct {
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=services,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=services/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=services/finalizers,verbs=update
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=thanosreceiveingestors,verbs=get;list;watch
+//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=ingesters,verbs=get;list;watch
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=stores,verbs=get;list;watch
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=thanosrulers,verbs=get;list;watch
+//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=rulers,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=services;configmaps;serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=deployments;statefulsets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings,verbs=get;list;watch;create;update;patch;delete
@@ -96,11 +96,8 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	var reconciles []func() error
-	if instance.Spec.Thanos == nil {
-		// to clean up resources defined by spec.Thanos
-		serviceBaseReconciler.Service.Spec.Thanos = &monitoringv1alpha1.Thanos{}
-	}
-	reconciles = append(reconciles, receive_router.New(serviceBaseReconciler).Reconcile)
+
+	reconciles = append(reconciles, router.New(serviceBaseReconciler).Reconcile)
 	reconciles = append(reconciles, query_frontend.New(serviceBaseReconciler).Reconcile)
 	reconciles = append(reconciles, query.New(serviceBaseReconciler).Reconcile)
 	reconciles = append(reconciles, gateway.New(serviceBaseReconciler).Reconcile)
@@ -117,11 +114,11 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 func (r *ServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&monitoringv1alpha1.Service{}).
-		Watches(&source.Kind{Type: &monitoringv1alpha1.ThanosReceiveIngestor{}},
+		Watches(&source.Kind{Type: &monitoringv1alpha1.Ingester{}},
 			handler.EnqueueRequestsFromMapFunc(r.mapToServiceFunc)).
 		Watches(&source.Kind{Type: &monitoringv1alpha1.Store{}},
 			handler.EnqueueRequestsFromMapFunc(r.mapToServiceFunc)).
-		Watches(&source.Kind{Type: &monitoringv1alpha1.ThanosRuler{}},
+		Watches(&source.Kind{Type: &monitoringv1alpha1.Ruler{}},
 			handler.EnqueueRequestsFromMapFunc(r.mapToServiceFunc)).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
@@ -163,42 +160,34 @@ func CreateServiceDefaulterValidator(opt options.Options) ServiceDefaulterValida
 			service.Spec.Gateway.Image = opt.PaodinMonitoringGatewayImage
 		}
 
-		if service.Spec.Thanos == nil {
-			return service, nil
-		}
-
-		var thanos = service.Spec.Thanos
-
-		if thanos.Query != nil {
-			if thanos.Query.Replicas == nil || *thanos.Query.Replicas < 0 {
-				thanos.Query.Replicas = &replicas
+		if service.Spec.Query != nil {
+			if service.Spec.Query.Replicas == nil || *service.Spec.Query.Replicas < 0 {
+				service.Spec.Query.Replicas = &replicas
 			}
-			if thanos.Query.Image == "" {
-				thanos.Query.Image = opt.ThanosImage
+			if service.Spec.Query.Image == "" {
+				service.Spec.Query.Image = opt.ThanosImage
 			}
-			if thanos.Query.Envoy.Image == "" {
-				thanos.Query.Envoy.Image = opt.EnvoyImage
+			if service.Spec.Query.Envoy.Image == "" {
+				service.Spec.Query.Envoy.Image = opt.EnvoyImage
 			}
 
 		}
-		if thanos.ReceiveRouter != nil {
-			if thanos.ReceiveRouter.Replicas == nil || *thanos.ReceiveRouter.Replicas < 0 {
-				thanos.ReceiveRouter.Replicas = &replicas
+		if service.Spec.Router != nil {
+			if service.Spec.Router.Replicas == nil || *service.Spec.Router.Replicas < 0 {
+				service.Spec.Router.Replicas = &replicas
 			}
-			if thanos.ReceiveRouter.Image == "" {
-				thanos.ReceiveRouter.Image = opt.ThanosImage
-			}
-		}
-		if thanos.QueryFrontend != nil {
-			if thanos.QueryFrontend.Replicas == nil || *thanos.QueryFrontend.Replicas < 0 {
-				thanos.QueryFrontend.Replicas = &replicas
-			}
-			if thanos.QueryFrontend.Image == "" {
-				thanos.QueryFrontend.Image = opt.ThanosImage
+			if service.Spec.Router.Image == "" {
+				service.Spec.Router.Image = opt.ThanosImage
 			}
 		}
-
-		service.Spec.Thanos = thanos
+		if service.Spec.QueryFrontend != nil {
+			if service.Spec.QueryFrontend.Replicas == nil || *service.Spec.QueryFrontend.Replicas < 0 {
+				service.Spec.QueryFrontend.Replicas = &replicas
+			}
+			if service.Spec.QueryFrontend.Image == "" {
+				service.Spec.QueryFrontend.Image = opt.ThanosImage
+			}
+		}
 
 		return service, nil
 	}

@@ -30,20 +30,20 @@ import (
 	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/options"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/store"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/compactor"
 )
 
-// StoreReconciler reconciles a Store object
-type StoreReconciler struct {
-	DefaulterValidator StoreDefaulterValidator
+// CompactorReconciler reconciles a compactor object
+type CompactorReconciler struct {
+	DefaulterValidator CompactorDefaulterValidator
 	client.Client
 	Scheme  *runtime.Scheme
 	Context context.Context
 }
 
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=stores,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=stores/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=stores/finalizers,verbs=update
+//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=compactors,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=compactors/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=compactors/finalizers,verbs=update
 //+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
 
@@ -56,12 +56,12 @@ type StoreReconciler struct {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
-func (r *StoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	l := log.FromContext(ctx).WithValues("store", req.NamespacedName)
+func (r *CompactorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	l := log.FromContext(ctx).WithValues("compactor", req.NamespacedName)
 
 	l.Info("sync")
 
-	instance := &monitoringv1alpha1.Store{}
+	instance := &monitoringv1alpha1.Compactor{}
 	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -82,7 +82,7 @@ func (r *StoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		Context: ctx,
 	}
 
-	if err := store.New(baseReconciler, instance).Reconcile(); err != nil {
+	if err := compactor.New(baseReconciler, instance).Reconcile(); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -90,28 +90,28 @@ func (r *StoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *StoreReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *CompactorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&monitoringv1alpha1.Store{}).
+		For(&monitoringv1alpha1.Compactor{}).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Service{}).
 		Complete(r)
 }
 
-type StoreDefaulterValidator func(store *monitoringv1alpha1.Store) (*monitoringv1alpha1.Store, error)
+type CompactorDefaulterValidator func(compactor *monitoringv1alpha1.Compactor) (*monitoringv1alpha1.Compactor, error)
 
-func CreateStoreDefaulterValidator(opt options.Options) StoreDefaulterValidator {
+func CreateCompactorDefaulterValidator(opt options.Options) CompactorDefaulterValidator {
 	var replicas int32 = 1
 
-	return func(store *monitoringv1alpha1.Store) (*monitoringv1alpha1.Store, error) {
+	return func(compactor *monitoringv1alpha1.Compactor) (*monitoringv1alpha1.Compactor, error) {
 
-		if store.Spec.Image == "" {
-			store.Spec.Image = opt.ThanosImage
+		if compactor.Spec.Image == "" {
+			compactor.Spec.Image = opt.ThanosImage
 		}
-		if store.Spec.Replicas == nil || *store.Spec.Replicas < 0 {
-			store.Spec.Replicas = &replicas
+		if compactor.Spec.Replicas == nil || *compactor.Spec.Replicas < 0 {
+			compactor.Spec.Replicas = &replicas
 		}
 
-		return store, nil
+		return compactor, nil
 	}
 }

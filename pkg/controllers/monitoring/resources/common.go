@@ -20,14 +20,14 @@ const (
 	ReplicaLabelNameThanosReceive = "thanos_receive_replica"
 	ReplicaLabelNameThanosRuler   = "thanos_ruler_replica"
 
-	AppNameGateway               = "paodin-monitoring-gateway"
-	AppNameThanosQuery           = "thanos-query"
-	AppNameThanosQueryFrontend   = "thanos-query-frontend"
-	AppNameThanosReceiveRouter   = "thanos-receive-router"
-	AppNameThanosReceiveIngestor = "thanos-receive-ingestor"
-	AppNameThanosRuler           = "thanos-ruler"
-	AppNameThanosStoreGateway    = "thanos-store-gateway"
-	AppNameThanosCompact         = "thanos-compact"
+	AppNameGateway       = "paodin-monitoring-gateway"
+	AppNameQuery         = "query"
+	AppNameQueryFrontend = "query-frontend"
+	AppNameRouter        = "router"
+	AppNameIngester      = "ingester"
+	AppNameRuler         = "ruler"
+	AppNameStore         = "store"
+	AppNameCompactor     = "compactor"
 
 	ServiceNameSuffixOperated = "operated"
 
@@ -37,10 +37,10 @@ const (
 	LabelNameAppManagedBy = "app.kubernetes.io/managed-by"
 	LabelNameAppPartOf    = "app.kubernetes.io/part-of"
 
-	LabelNameReceiveIngestorState        = "monitoring.paodin.io/ingestor-state"
-	LabelNameReceiveIngestorDeletingTime = "monitoring.paodin.io/ingestor-deleting-time"
+	LabelNameIngesterState        = "monitoring.paodin.io/ingester-state"
+	LabelNameIngesterDeletingTime = "monitoring.paodin.io/ingester-deleting-time"
 
-	SecretThanosBucketKey = "bucket.yml"
+	SecretBucketKey = "bucket.yml"
 )
 
 func QualifiedName(appName, instanceName string, suffix ...string) string {

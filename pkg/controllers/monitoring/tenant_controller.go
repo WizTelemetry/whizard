@@ -45,8 +45,8 @@ type TenantReconciler struct {
 	Scheme  *runtime.Scheme
 	Context context.Context
 
-	DefaultTenantsPerIngestor      int
-	DefaultIngestorRetentionPeriod time.Duration
+	DefaultTenantsPerIngester      int
+	DefaultIngesterRetentionPeriod time.Duration
 }
 
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=tenants,verbs=get;list;watch;create;update;patch;delete
@@ -54,8 +54,8 @@ type TenantReconciler struct {
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=tenants/finalizers,verbs=update
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=service,verbs=get;list;watch
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=storage,verbs=get;list;watch
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=thanosreceiveingestors,verbs=get;list;watch
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=thanosrulers,verbs=get;list;watch
+//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=ingesters,verbs=get;list;watch
+//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=rulers,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -91,7 +91,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		Scheme:  r.Scheme,
 		Context: ctx,
 	}
-	if err := tenant.New(baseReconciler, instance, r.DefaultTenantsPerIngestor, r.DefaultIngestorRetentionPeriod).Reconcile(); err != nil {
+	if err := tenant.New(baseReconciler, instance, r.DefaultTenantsPerIngester, r.DefaultIngesterRetentionPeriod).Reconcile(); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -102,13 +102,13 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&monitoringv1alpha1.Tenant{}).
-		Watches(&source.Kind{Type: &monitoringv1alpha1.ThanosReceiveIngestor{}},
+		Watches(&source.Kind{Type: &monitoringv1alpha1.Ingester{}},
 			handler.EnqueueRequestsFromMapFunc(r.mapToTenantbyLabelFunc)).
 		Watches(&source.Kind{Type: &monitoringv1alpha1.Service{}},
 			handler.EnqueueRequestsFromMapFunc(r.mapToTenantbyService)).
 		Watches(&source.Kind{Type: &monitoringv1alpha1.Storage{}},
 			handler.EnqueueRequestsFromMapFunc(r.mapToTenantbyStorage)).
-		Owns(&monitoringv1alpha1.ThanosRuler{}).
+		Owns(&monitoringv1alpha1.Ruler{}).
 		Complete(r)
 }
 
@@ -141,10 +141,10 @@ func (r *TenantReconciler) mapToTenantbyService(o client.Object) []reconcile.Req
 	}
 
 	var reqs []reconcile.Request
-	for _, ingestor := range tenantList.Items {
+	for _, ingester := range tenantList.Items {
 		reqs = append(reqs, reconcile.Request{
 			NamespacedName: types.NamespacedName{
-				Name: ingestor.Name,
+				Name: ingester.Name,
 			},
 		})
 	}
@@ -161,10 +161,10 @@ func (r *TenantReconciler) mapToTenantbyStorage(o client.Object) []reconcile.Req
 	}
 
 	var reqs []reconcile.Request
-	for _, ingestor := range tenantList.Items {
+	for _, ingester := range tenantList.Items {
 		reqs = append(reqs, reconcile.Request{
 			NamespacedName: types.NamespacedName{
-				Name: ingestor.Name,
+				Name: ingester.Name,
 			},
 		})
 	}

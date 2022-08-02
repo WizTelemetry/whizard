@@ -47,36 +47,33 @@ spec:
             type: object
           status:
             properties:
-              thanos:
+              compactor:
                 properties:
-                  thanosCompact:
-                    properties:
-                      name:
-                        type: string
-                      namespace:
-                        type: string
-                    type: object
-                  thanosReceiveIngestor:
-                    properties:
-                      name:
-                        type: string
-                      namespace:
-                        type: string
-                    type: object
-                  thanosRuler:
-                    properties:
-                      name:
-                        type: string
-                      namespace:
-                        type: string
-                    type: object
-                  thanosStore:
-                    properties:
-                      name:
-                        type: string
-                      namespace:
-                        type: string
-                    type: object
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                type: object
+              ingester:
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                type: object
+              ruler:
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                type: object
+              store:
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
                 type: object
             type: object
         type: object

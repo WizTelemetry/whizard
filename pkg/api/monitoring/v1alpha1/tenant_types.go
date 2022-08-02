@@ -26,14 +26,10 @@ type TenantSpec struct {
 }
 
 type TenantStatus struct {
-	ThanosResource *ThanosResource `json:"thanos,omitempty"`
-}
-
-type ThanosResource struct {
-	ThanosStore           *ObjectReference `json:"thanosStore,omitempty"`
-	ThanosRuler           *ObjectReference `json:"thanosRuler,omitempty"`
-	ThanosCompact         *ObjectReference `json:"thanosCompact,omitempty"`
-	ThanosReceiveIngestor *ObjectReference `json:"thanosReceiveIngestor,omitempty"`
+	Store     *ObjectReference `json:"store,omitempty"`
+	Ruler     *ObjectReference `json:"ruler,omitempty"`
+	Compactor *ObjectReference `json:"compactor,omitempty"`
+	Ingester  *ObjectReference `json:"ingester,omitempty"`
 }
 
 //+genclient

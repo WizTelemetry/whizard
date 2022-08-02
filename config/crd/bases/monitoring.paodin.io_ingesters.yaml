@@ -6,20 +6,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: stores.monitoring.paodin.io
+  name: ingesters.monitoring.paodin.io
 spec:
   group: monitoring.paodin.io
   names:
-    kind: Store
-    listKind: StoreList
-    plural: stores
-    singular: store
+    kind: Ingester
+    listKind: IngesterList
+    plural: ingesters
+    singular: ingester
   scope: Namespaced
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Store is the Schema for the Store API
+        description: Ingester is the Schema for the Ingester API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -34,6 +34,7 @@ spec:
           metadata:
             type: object
           spec:
+            description: IngesterSpec defines the desired state of a Ingester
             properties:
               affinity:
                 description: If specified, the pod's scheduling constraints.
@@ -1175,27 +1176,10 @@ spec:
               image:
                 description: Image is the thanos image with tag/version
                 type: string
-              indexCacheConfig:
-                description: IndexCacheConfig contains index cache configuration.
-                properties:
-                  inMemory:
-                    description: InMemoryIndexCacheConfig holds the in-memory index
-                      cache config.
-                    properties:
-                      max_item_size:
-                        description: MaxItemSize represents maximum size of single
-                          item. ie. 125MB
-                        type: string
-                      max_size:
-                        description: MaxSize represents overall maximum number of
-                          bytes cache can contain. ie. 250MB
-                        type: string
-                    type: object
-                  type:
-                    type: string
-                required:
-                - type
-                type: object
+              localTsdbRetention:
+                description: LocalTsdbRetention configs how long to retain raw samples
+                  on local storage.
+                type: string
               logFormat:
                 description: 'Log format to use. Possible options: logfmt or json'
                 type: string
@@ -1203,19 +1187,13 @@ spec:
                 description: 'Log filtering level. Possible options: error, warn,
                   info, debug'
                 type: string
-              maxTime:
-                description: MaxTime specifies end of time range limit to serve
-                type: string
-              minTime:
-                description: MinTime specifies start of time range limit to serve
-                type: string
               nodeSelector:
                 additionalProperties:
                   type: string
                 description: Define which Nodes the Pods are scheduled on.
                 type: object
               replicas:
-                description: Number of replicas for a component
+                description: Number of replicas for a component.
                 format: int32
                 type: integer
               resources:
@@ -1245,12 +1223,20 @@ spec:
                     type: object
                 type: object
               storage:
+                description: If specified, the object key of Storage for long term
+                  storage.
                 properties:
                   name:
                     type: string
                   namespace:
                     type: string
                 type: object
+              tenants:
+                description: Tenants if not empty indicates current config is for
+                  hard tenants; otherwise, it is for soft tenants.
+                items:
+                  type: string
+                type: array
               tolerations:
                 description: If specified, the pod's tolerations.
                 items:
@@ -1293,7 +1279,7 @@ spec:
                 type: array
             type: object
           status:
-            description: StoreStatus defines the observed state of Store
+            description: IngesterStatus defines the observed state of Ingester
             type: object
         type: object
     served: true

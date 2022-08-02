@@ -11,21 +11,21 @@ type Tenant struct {
 	tenant *monitoringv1alpha1.Tenant
 	resources.BaseReconciler
 
-	DefaultTenantsPerIngestor      int
-	DefaultIngestorRetentionPeriod time.Duration
+	DefaultTenantsPerIngester      int
+	DefaultIngesterRetentionPeriod time.Duration
 }
 
-func New(reconciler resources.BaseReconciler, tenant *monitoringv1alpha1.Tenant, DefaultTenantsPerIngestor int, defaultIngestorRetentionPeriod time.Duration) *Tenant {
+func New(reconciler resources.BaseReconciler, tenant *monitoringv1alpha1.Tenant, DefaultTenantsPerIngester int, defaultIngesterRetentionPeriod time.Duration) *Tenant {
 	return &Tenant{
 		tenant:                         tenant,
 		BaseReconciler:                 reconciler,
-		DefaultTenantsPerIngestor:      DefaultTenantsPerIngestor,
-		DefaultIngestorRetentionPeriod: defaultIngestorRetentionPeriod,
+		DefaultTenantsPerIngester:      DefaultTenantsPerIngester,
+		DefaultIngesterRetentionPeriod: defaultIngesterRetentionPeriod,
 	}
 }
 
 func (t *Tenant) Reconcile() error {
-	if err := t.receiveIngestor(); err != nil {
+	if err := t.ingester(); err != nil {
 		return err
 	}
 	if err := t.ruler(); err != nil {
