@@ -18,7 +18,7 @@ Follow the following steps to deploy components:
   kubectl -n kubesphere-monitoring-system patch prometheus k8s --patch='{"spec":{"externalLabels":{"cluster":"<cluster_name>"},"thanos":{}}}' --type=merge
   ```
 
-2. On host cluster, deploy Thanos Query to proxy all Thanos Sidecar stores: 
+2. On host cluster, deploy Query to proxy all Thanos Sidecar stores: 
 
   ```shell
   cat <<EOF | kubectl apply -f -
@@ -28,14 +28,13 @@ Follow the following steps to deploy components:
     name: scattered
     namespace: kubesphere-monitoring-system
   spec:
-    thanos: 
-      query:
-        replicaLabelNames:
-        - prometheus_replica
-        stores:
-        - addresses: 
-          - prometheus-operated:10901
-          - <member-prometheus-svc>:10901
+    query:
+      replicaLabelNames:
+      - prometheus_replica
+      stores:
+      - addresses: 
+        - prometheus-operated:10901
+        - <member-prometheus-svc>:10901
   EOF
   ```
 
@@ -50,26 +49,22 @@ Each cluster writes metric data to host cluster, and then queries data from host
 
 Follow the following steps to deploy components:   
 
-1. On host cluster, create secret for object storage config: 
+1. On host cluster, create Storage for object storage config: 
 
   ```shell
   cat <<EOF | kubectl apply -f -
-  apiVersion: v1
-  kind: Secret
+  apiVersion: monitoring.paodin.io/v1alpha1
+  kind: Storage
   metadata:
-    name: objectstorage
+    name: default
     namespace: kubesphere-monitoring-system
-  type: Opaque
-  data:
-    thanos.yaml: |-
-      type: s3
-      config:
-        bucket: thanos-storage
-        region: sh1a
-        endpoint: s3.sh1a.qingstor.com
-        access_key: <access_key>
-        secret_key: <secret_key>
-  EOF
+  spec:
+    S3:
+      bucket: "xxxxxxxxxx"
+      endpoint: "s3.pek3b.qingstor.com:443"
+      accessKey: "************"
+      secretKey: "**********************"
+    EOF
   ```
 
 2. On host cluster, create a service instance: 
@@ -85,119 +80,119 @@ Follow the following steps to deploy components:
     tenantHeader: cluster
     defaultTenantId: unknown
     tenantLabelName: cluster
+    storage:
+      name: default
+      namespace: kubesphere-monitoring-system
     gateway: {}
-    thanos: 
-      query:
-        replicaLabelNames:
-        - prometheus_replica
-        - thanos_receive_replica
-        - thanos_ruler_replica
-      receiveRouter: 
-        replicationFactor: 2
-      queryFrontend:
-        cacheConfig:
-          type: IN-MEMORY
-          inMemory:
-            maxSize: 500M
-            maxSizeItems: 0
-            validity: 0
+    query:
+      replicaLabelNames:
+      - prometheus_replica
+      - thanos_receive_replica
+      - thanos_ruler_replica
+    router:
+      replicationFactor: 2
+    queryFrontend:
+      cacheConfig:
+        type: IN-MEMORY
+        inMemory:
+          maxSize: 500M
+          maxSizeItems: 0
+          validity: 0
   EOF
   ```
 
-3. On host cluster, create a store instance for long term storage:
+3. Controller-manager enables the KubeSphere adapter feature (default true), which creates or deletes tenant CR according to the lifecycle of KubeSphere cluster, and then automatically extends Ingester, Ruler, Store, and Compactor based on the tenant.
 
-  ```shell
-  cat <<EOF | kubectl apply -f -
-  apiVersion: monitoring.paodin.io/v1alpha1
-  kind: Store
-  metadata:
-    name: longterm
-    namespace: kubesphere-monitoring-system
-    labels: 
-      monitoring.paodin.io/service: kubesphere-monitoring-system.central
-  spec:
-    objectStorageConfig: 
-      name: objectstorage
-      key: thanos.yaml
-    thanos: 
-      storeGateway: {}
-      compact: {}
-  EOF
-  ```
+Automatically generated Tenant CR looks like this.
 
-4. On host cluster, create an ingester instance to ingest scraped data. The soft tenants instance with empty tenants as follows can receive requests with all tenants:
-
-  ```shell
-  cat <<EOF | kubectl apply -f -
-  apiVersion: monitoring.paodin.io/v1alpha1
-  kind: ThanosReceiveIngester
-  metadata:
-    name: softs
-    namespace: kubesphere-monitoring-system
-    labels: 
-      monitoring.paodin.io/service: kubesphere-monitoring-system.central
-  spec:
-    tenants: []
-    replicas: 2
-    longTermStore: 
-      namespace: kubesphere-monitoring-system
-      name: longterm
-  EOF
-  ```
-
-5. On host cluster, create an ingester instance to ingest preprocessed data from thanos ruler. 
-
-  ```shell
-  cat <<EOF | kubectl apply -f -
-  apiVersion: monitoring.paodin.io/v1alpha1
-  kind: ThanosReceiveIngester
-  metadata:
-    name: preprocessed
-    namespace: kubesphere-monitoring-system
-    labels: 
-      monitoring.paodin.io/service: kubesphere-monitoring-system.central
-      monitoring.paodin.io/preprocessed-data-ingester: '' 
-  spec:
-    tenants: []
-    replicas: 2
-    longTermStore: 
-      namespace: kubesphere-monitoring-system
-      name: longterm
-  EOF
-  ```
-
-> Set label `monitoring.paodin.io/preprocessed-data-ingester` to indicate the ingester to ingest preprocessed data.
-
-6. on host cluster, create a thanos ruler to eval recording rules and alerting rules: 
-
-```shell
-cat <<EOF | kubectl apply -f -
+```yaml
 apiVersion: monitoring.paodin.io/v1alpha1
-kind: ThanosRuler
+kind: Tenant
 metadata:
   labels:
     monitoring.paodin.io/service: kubesphere-monitoring-system.central
-  name: mix
-  namespace: kubesphere-monitoring-system
+  name: host
 spec:
-  alertingRuleSelector: {}
-  alertmanagersUrl:
-    - 'dnssrv+http://alertmanager-operated.kubesphere-monitoring-system.svc:9093'
-  evaluationInterval: 1m
-  ruleSelector:
-    matchLabels:
-      role: record-rules
-      thanos-ruler: mix
+  storage:
+    name: central
+    namespace: kubesphere-monitoring-system
+  tenant: host
+status:
+  ingester:
+    name: central-central-auto-0
+    namespace: kubesphere-monitoring-system
+  ruler:
+    name: host
+    namespace: kubesphere-monitoring-system
+```
+
+4. On all cluster, deploy agent-proxy
+```shell
+cat <<EOF | kubectl apply -f -
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app.kubernetes.io/name: paodin-monitoring-agent-proxy
+      component: paodin
+    name: paodin-monitoring-agent-proxy
+    namespace: kubesphere-monitoring-system
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app.kubernetes.io/name: paodin-monitoring-agent-proxy
+        component: paodin
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/name: paodin-monitoring-agent-proxy
+          component: paodin
+      spec:
+        containers:
+        - image: kubesphere/paodin-monitoring-agent-proxy:latest
+          args: 
+            - --gateway.address="<gateway_address>"
+            - --tenant="<cluster_name>"
+          name: agent-proxy
+          ports:
+          - containerPort: 9090
+            protocol: TCP
+          resources:
+            limits:
+              cpu: 150m
+              memory: 300Mi
+            requests:
+              cpu: 50m
+              memory: 100Mi
+  ---
+  apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app.kubernetes.io/name: paodin-monitoring-agent-proxy
+      component: paodin
+    name: paodin-monitoring-agent-proxy
+    namespace: kubesphere-monitoring-system
+  spec:
+    selector:
+      app.kubernetes.io/name: paodin-monitoring-agent-proxy
+      component: paodin
+    ports:
+    - port: 9090
+      protocol: TCP
+      targetPort: 9090
+    type: ClusterIP
 EOF
 ```
 
-7. On all clusters, configure Prometheus to write to gateway:  
+5. On all clusters, configure Prometheus to write to agent-proxy:  
 
   ```shell
-  kubectl -n kubesphere-monitoring-system patch prometheus k8s --patch='{"spec":{"remoteWrite":[{"url":"http://<gateway_address>:9090/<cluster_name>/api/v1/receive"}]}}' --type=merge
+  kubectl -n kubesphere-monitoring-system patch prometheus k8s --patch='{"spec":{"remoteWrite":[{"url":"http://paodin-monitoring-agent-proxy.kubesphere-monitoring-system.svc:9090/api/v1/receive"}]}}' --type=merge
   ```
 
-8. On all clusters, configure ks-apiserver to read from gateway:  
+6. On member clusters, configure ks-apiserver to read from agent-proxy:  
 
   update monitoring endpoint as follows by `kubectl -n kubesphere-system edit cm kubesphere-config`:   
 
@@ -207,9 +202,12 @@ EOF
     kubesphere.yaml: |
       ...
       monitoring:
-        endpoint: http://<gateway_address>:9090/<cluster_name>
+        endpoint: http://paodin-monitoring-agent-proxy.kubesphere-monitoring-system.svc:9090
         ...
       ...
   ...
   ```
 
+7. On host cluster, configure ks-apiserver to read from paodin-apiserver
+
+  todo;
