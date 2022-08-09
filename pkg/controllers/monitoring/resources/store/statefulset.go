@@ -2,7 +2,6 @@ package store
 
 import (
 	"fmt"
-	"path/filepath"
 
 	storecache "github.com/thanos-io/thanos/pkg/store/cache"
 	"gopkg.in/yaml.v2"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/storage"
 )
 
 func (r *Store) statefulSet() (runtime.Object, resources.Operation, error) {
@@ -93,29 +93,16 @@ func (r *Store) statefulSet() (runtime.Object, resources.Operation, error) {
 		})
 	}
 
-	storage := &v1alpha1.Storage{}
-
-	if err := r.Client.Get(r.Context, types.NamespacedName{Namespace: r.store.Spec.Storage.Namespace, Name: r.store.Spec.Storage.Name}, storage); err != nil {
+	var objstoreConfig string
+	storageInstance := &v1alpha1.Storage{}
+	err := r.Client.Get(r.Context, types.NamespacedName{Namespace: r.store.Spec.Storage.Namespace, Name: r.store.Spec.Storage.Name}, storageInstance)
+	if err != nil {
 		return nil, "", err
 	}
-	osVol := corev1.Volume{
-		Name: storage.Name,
-		VolumeSource: corev1.VolumeSource{
-			Secret: &corev1.SecretVolumeSource{
-				SecretName: "secret-" + storage.Name,
-				Items: []corev1.KeyToPath{{
-					Key:  resources.SecretBucketKey,
-					Path: resources.SecretBucketKey,
-				}},
-			},
-		},
+	objstoreConfig, err = storage.New(r.BaseReconciler, storageInstance).String()
+	if err != nil {
+		return nil, "", err
 	}
-
-	sts.Spec.Template.Spec.Volumes = append(sts.Spec.Template.Spec.Volumes, osVol)
-	container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
-		Name:      osVol.Name,
-		MountPath: filepath.Join(secretsDir, storage.Name),
-	})
 
 	// index cache config
 	if cacheConfig := r.store.Spec.IndexCacheConfig; cacheConfig != nil {
@@ -160,7 +147,7 @@ func (r *Store) statefulSet() (runtime.Object, resources.Operation, error) {
 	if r.store.Spec.MaxTime != "" {
 		container.Args = append(container.Args, "--max-time="+r.store.Spec.MaxTime)
 	}
-	container.Args = append(container.Args, "--objstore.config-file="+filepath.Join(secretsDir, storage.Name, resources.SecretBucketKey))
+	container.Args = append(container.Args, "--objstore.config="+objstoreConfig)
 
 	for name, value := range r.store.Spec.Flags {
 		container.Args = append(container.Args, fmt.Sprintf("--%s=%s", name, value))

@@ -2,7 +2,6 @@ package compactor
 
 import (
 	"fmt"
-	"path/filepath"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/storage"
 )
 
 func (r *Compactor) statefulSet() (runtime.Object, resources.Operation, error) {
@@ -85,29 +85,16 @@ func (r *Compactor) statefulSet() (runtime.Object, resources.Operation, error) {
 		})
 	}
 
-	storage := &v1alpha1.Storage{}
-	err := r.Client.Get(r.Context, types.NamespacedName{Namespace: r.compactor.Spec.Storage.Namespace, Name: r.compactor.Spec.Storage.Name}, storage)
+	var objstoreConfig string
+	storageInstance := &v1alpha1.Storage{}
+	err := r.Client.Get(r.Context, types.NamespacedName{Namespace: r.compactor.Spec.Storage.Namespace, Name: r.compactor.Spec.Storage.Name}, storageInstance)
 	if err != nil {
 		return nil, "", err
 	}
-
-	osVol := corev1.Volume{
-		Name: storage.Name,
-		VolumeSource: corev1.VolumeSource{
-			Secret: &corev1.SecretVolumeSource{
-				SecretName: "secret-" + storage.Name,
-				Items: []corev1.KeyToPath{{
-					Key:  resources.SecretBucketKey,
-					Path: resources.SecretBucketKey,
-				}},
-			},
-		},
+	objstoreConfig, err = storage.New(r.BaseReconciler, storageInstance).String()
+	if err != nil {
+		return nil, "", err
 	}
-	sts.Spec.Template.Spec.Volumes = append(sts.Spec.Template.Spec.Volumes, osVol)
-	container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
-		Name:      osVol.Name,
-		MountPath: filepath.Join(secretsDir, storage.Name),
-	})
 
 	if r.compactor.Spec.LogLevel != "" {
 		container.Args = append(container.Args, "--log.level="+r.compactor.Spec.LogLevel)
@@ -119,7 +106,7 @@ func (r *Compactor) statefulSet() (runtime.Object, resources.Operation, error) {
 	if r.compactor.Spec.DownsamplingDisable != nil {
 		container.Args = append(container.Args, fmt.Sprintf("--downsampling.disable=%v", r.compactor.Spec.DownsamplingDisable))
 	}
-	container.Args = append(container.Args, "--objstore.config-file="+filepath.Join(secretsDir, storage.Name, resources.SecretBucketKey))
+	container.Args = append(container.Args, "--objstore.config="+objstoreConfig)
 	if retention := r.compactor.Spec.Retention; retention != nil {
 		if retention.RetentionRaw != "" {
 			container.Args = append(container.Args, fmt.Sprintf("--retention.resolution-raw=%s", retention.RetentionRaw))

@@ -19,6 +19,11 @@ func New(reconciler resources.BaseReconciler, storage *monitoringv1alpha1.Storag
 
 func (s *Storage) Reconcile() error {
 	return s.ReconcileResources([]resources.Resource{
-		s.secret,
+		s.updateHashAnnotation,
 	})
+}
+
+func (s *Storage) String() (string, error) {
+	body, err := s.parseObjStoreConfig()
+	return string(body), err
 }
