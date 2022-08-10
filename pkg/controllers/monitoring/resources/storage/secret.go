@@ -1,53 +1,65 @@
 package storage
 
 import (
+	"crypto/md5"
+	"encoding/hex"
+
 	yaml "gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/pointer"
+	"k8s.io/apimachinery/pkg/types"
 
-	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
 )
 
-func (s *Storage) secret() (runtime.Object, resources.Operation, error) {
-	buff, err := parseObjStorageConfig(&s.storage.Spec)
+var LabelNameStorageHash = "monitoring.paodin.io/storage-hash"
+
+// updateHashAnnotation generate the hash with objstoreConfig to write to the annotation. When the secret update hash changes, the storage update event is triggered.
+func (s *Storage) updateHashAnnotation() (runtime.Object, resources.Operation, error) {
+
+	objStoreConfig, err := s.parseObjStoreConfig()
 	if err != nil {
 		return nil, "", err
 	}
-	ls := make(map[string]string, 1)
-	ls[monitoringv1alpha1.MonitoringPaodinStorage] = s.storage.Namespace + "." + s.storage.Name
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: s.storage.Namespace,
-			Name:      "secret-" + s.storage.Name,
-			Labels:    ls,
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion: s.storage.APIVersion,
-					Kind:       s.storage.Kind,
-					Name:       s.storage.Name,
-					UID:        s.storage.UID,
-					Controller: pointer.BoolPtr(true),
-				},
-			},
-		},
-		Type: corev1.SecretTypeOpaque,
-		Data: map[string][]byte{
-			resources.SecretBucketKey: buff,
-		},
+	c := md5.New()
+	c.Write(objStoreConfig)
+	hashStr := hex.EncodeToString(c.Sum(nil))
+
+	if s.storage.Annotations == nil {
+		s.storage.Annotations = make(map[string]string)
+	}
+	if v, ok := s.storage.Annotations[LabelNameStorageHash]; !ok || v != hashStr {
+		s.storage.Annotations[LabelNameStorageHash] = hashStr
+		return s.storage, resources.OperationCreateOrUpdate, nil
 	}
 
-	return secret, resources.OperationCreateOrUpdate, nil
+	return nil, "", nil
 }
 
-func parseObjStorageConfig(storageConfig *monitoringv1alpha1.StorageSpec) ([]byte, error) {
+func (s *Storage) parseObjStoreConfig() ([]byte, error) {
 	bucket := &BucketConfig{}
 
-	if storageConfig.S3 != nil {
+	if s.storage.Spec.S3 != nil {
+		akSecert := &corev1.Secret{}
+		if err := s.Client.Get(s.Context, types.NamespacedName{
+			Name:      s.storage.Spec.S3.AccessKeySecretRef.Name,
+			Namespace: s.storage.Namespace,
+		}, akSecert); err != nil {
+			return nil, err
+		}
+		s.storage.Spec.S3.AccessKey = string(akSecert.Data[s.storage.Spec.S3.AccessKeySecretRef.Key])
+
+		skSecret := &corev1.Secret{}
+		if err := s.Client.Get(s.Context, types.NamespacedName{
+			Name:      s.storage.Spec.S3.SecretKeySecretRef.Name,
+			Namespace: s.storage.Namespace,
+		}, skSecret); err != nil {
+			return nil, err
+		}
+		s.storage.Spec.S3.SecretKey = string(skSecret.Data[s.storage.Spec.S3.SecretKeySecretRef.Key])
+
 		bucket.Type = S3
-		bucket.Config = *storageConfig.S3
+		bucket.Config = *s.storage.Spec.S3
 	}
 
 	return yaml.Marshal(bucket)

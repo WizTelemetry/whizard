@@ -2,7 +2,6 @@ package ingester
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/prometheus/common/model"
 	appsv1 "k8s.io/api/apps/v1"
@@ -14,6 +13,7 @@ import (
 
 	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
+	storage "github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/storage"
 )
 
 func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
@@ -105,31 +105,17 @@ func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
 		})
 	}
 
-	storage := &monitoringv1alpha1.Storage{}
+	var objstoreConfig string
+	storageInstance := &monitoringv1alpha1.Storage{}
 	if r.ingester.Spec.Storage != nil {
-		err := r.Client.Get(r.Context, types.NamespacedName{Namespace: r.ingester.Spec.Storage.Namespace, Name: r.ingester.Spec.Storage.Name}, storage)
+		err := r.Client.Get(r.Context, types.NamespacedName{Namespace: r.ingester.Spec.Storage.Namespace, Name: r.ingester.Spec.Storage.Name}, storageInstance)
 		if err != nil {
 			return nil, "", err
 		}
-	}
-
-	if storage != nil && storage.Name != "" {
-		sts.Spec.Template.Spec.Volumes = append(sts.Spec.Template.Spec.Volumes, corev1.Volume{
-			Name: storage.Name,
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: "secret-" + storage.Name,
-					Items: []corev1.KeyToPath{{
-						Key:  resources.SecretBucketKey,
-						Path: resources.SecretBucketKey,
-					}},
-				},
-			},
-		})
-		container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
-			Name:      storage.Name,
-			MountPath: filepath.Join(secretsDir, storage.Name),
-		})
+		objstoreConfig, err = storage.New(r.BaseReconciler, storageInstance).String()
+		if err != nil {
+			return nil, "", err
+		}
 	}
 
 	if r.ingester.Spec.LogLevel != "" {
@@ -144,8 +130,8 @@ func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
 	if r.ingester.Spec.LocalTsdbRetention != "" {
 		container.Args = append(container.Args, "--tsdb.retention="+r.ingester.Spec.LocalTsdbRetention)
 	}
-	if storage != nil && storage.Name != "" {
-		container.Args = append(container.Args, "--objstore.config-file="+filepath.Join(secretsDir, storage.Name, resources.SecretBucketKey))
+	if objstoreConfig != "" {
+		container.Args = append(container.Args, "--objstore.config="+objstoreConfig)
 	} else {
 		// set tsdb.max-block-duration by localTsdbRetention to enable block compact when using only local storage
 		maxBlockDuration, err := model.ParseDuration("31d")

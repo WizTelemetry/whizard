@@ -4966,8 +4966,21 @@ spec:
               S3:
                 description: Config stores the configuration for s3 bucket.
                 properties:
-                  accessKey:
-                    type: string
+                  accessKeyRef:
+                    description: SecretKeySelector selects a key of a Secret.
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be a valid secret key.
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
                   awsSdkAuth:
                     type: boolean
                   bucket:
@@ -5035,8 +5048,21 @@ spec:
                     type: object
                   region:
                     type: string
-                  secretKey:
-                    type: string
+                  secretKeyRef:
+                    description: SecretKeySelector selects a key of a Secret.
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be a valid secret key.
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
                   signatureVersion2:
                     type: boolean
                   sseConfig:
@@ -5061,10 +5087,10 @@ spec:
                         type: boolean
                     type: object
                 required:
-                - accessKey
+                - accessKeyRef
                 - bucket
                 - endpoint
-                - secretKey
+                - secretKeyRef
                 type: object
             type: object
           status:
@@ -6090,12 +6116,8 @@ rules:
   resources:
   - secrets
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - ""
@@ -6496,10 +6518,10 @@ spec:
         resources:
           limits:
             cpu: 100m
-            memory: 30Mi
+            memory: 300Mi
           requests:
             cpu: 100m
-            memory: 20Mi
+            memory: 200Mi
         securityContext:
           allowPrivilegeEscalation: false
       securityContext:

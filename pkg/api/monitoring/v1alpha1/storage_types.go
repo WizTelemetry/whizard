@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/prometheus/common/model"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -38,18 +39,20 @@ type StorageSpec struct {
 
 // Config stores the configuration for s3 bucket.
 type S3 struct {
-	Bucket             string            `yaml:"bucket,omitempty" json:"bucket"`
-	Endpoint           string            `yaml:"endpoint,omitempty" json:"endpoint"`
-	Region             string            `yaml:"region,omitempty" json:"region,omitempty"`
-	AWSSDKAuth         bool              `yaml:"aws_sdk_auth,omitempty" json:"awsSdkAuth,omitempty"`
-	AccessKey          string            `yaml:"access_key,omitempty" json:"accessKey"`
-	Insecure           bool              `yaml:"insecure,omitempty" json:"insecure,omitempty"`
-	SignatureV2        bool              `yaml:"signature_version2,omitempty" json:"signatureVersion2,omitempty"`
-	SecretKey          string            `yaml:"secret_key,omitempty" json:"secretKey"`
-	PutUserMetadata    map[string]string `yaml:"put_user_metadata,omitempty" json:"putUserMetadata,omitempty"`
-	HTTPConfig         S3HTTPConfig      `yaml:"http_config,omitempty" json:"httpConfig,omitempty"`
-	TraceConfig        S3TraceConfig     `yaml:"trace,omitempty" json:"trace,omitempty"`
-	ListObjectsVersion string            `yaml:"list_objects_version,omitempty" json:"listObjectsVersion,omitempty"`
+	Bucket             string                    `yaml:"bucket,omitempty" json:"bucket"`
+	Endpoint           string                    `yaml:"endpoint,omitempty" json:"endpoint"`
+	Region             string                    `yaml:"region,omitempty" json:"region,omitempty"`
+	AWSSDKAuth         bool                      `yaml:"aws_sdk_auth,omitempty" json:"awsSdkAuth,omitempty"`
+	AccessKey          string                    `yaml:"access_key,omitempty" json:"-"`
+	AccessKeySecretRef *corev1.SecretKeySelector `yaml:"-" json:"accessKeyRef"`
+	Insecure           bool                      `yaml:"insecure,omitempty" json:"insecure,omitempty"`
+	SignatureV2        bool                      `yaml:"signature_version2,omitempty" json:"signatureVersion2,omitempty"`
+	SecretKey          string                    `yaml:"secret_key,omitempty" json:"-"`
+	SecretKeySecretRef *corev1.SecretKeySelector `yaml:"-" json:"secretKeyRef"`
+	PutUserMetadata    map[string]string         `yaml:"put_user_metadata,omitempty" json:"putUserMetadata,omitempty"`
+	HTTPConfig         S3HTTPConfig              `yaml:"http_config,omitempty" json:"httpConfig,omitempty"`
+	TraceConfig        S3TraceConfig             `yaml:"trace,omitempty" json:"trace,omitempty"`
+	ListObjectsVersion string                    `yaml:"list_objects_version,omitempty" json:"listObjectsVersion,omitempty"`
 	// PartSize used for multipart upload. Only used if uploaded object size is known and larger than configured PartSize.
 	// NOTE we need to make sure this number does not produce more parts than 10 000.
 	PartSize    uint64      `yaml:"part_size,omitempty" json:"partSize,omitempty"`
