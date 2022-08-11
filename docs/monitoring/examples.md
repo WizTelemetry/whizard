@@ -51,6 +51,24 @@ Follow the following steps to deploy components:
 
 1. On host cluster, create Storage for object storage config: 
 
+  &#8195;&#8195;First, prepare the secret for the Storage.
+
+  ```shell
+  cat <<EOF | kubectl apply -f -
+  apiVersion: v1
+  kind: Secret
+  metadata:
+    name: storage-secret
+    namespace: kubesphere-monitoring-system
+  type: Opaque
+  data:
+    accessKey: <your-access-key>
+    secretKey: <your-secret-key>
+  EOF
+  ```
+
+  &#8195;&#8195;Then create Storage that references the secret.
+
   ```shell
   cat <<EOF | kubectl apply -f -
   apiVersion: monitoring.paodin.io/v1alpha1
@@ -62,8 +80,12 @@ Follow the following steps to deploy components:
     S3:
       bucket: "xxxxxxxxxx"
       endpoint: "s3.pek3b.qingstor.com:443"
-      accessKey: "************"
-      secretKey: "**********************"
+      accessKeyRef: 
+        name: storage-secret
+        key: accessKey
+      secretKeyRef: 
+        name: storage-secret
+        key: secretKey
     EOF
   ```
 
@@ -103,7 +125,7 @@ Follow the following steps to deploy components:
 
 3. Controller-manager enables the KubeSphere adapter feature (default true), which creates or deletes tenant CR according to the lifecycle of KubeSphere cluster, and then automatically extends Ingester, Ruler, Store, and Compactor based on the tenant.
 
-Automatically generated Tenant CR looks like this.
+  &#8195;&#8195;Automatically generated Tenant CR looks like this.
 
 ```yaml
 apiVersion: monitoring.paodin.io/v1alpha1
