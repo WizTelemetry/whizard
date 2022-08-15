@@ -103,6 +103,11 @@ func (s *PaodinControllerManagerOptions) bindLeaderElectionFlags(l *leaderelecti
 // MergeConfig merge new config without validation
 // When misconfigured, the app should just crash directly
 func (s *PaodinControllerManagerOptions) MergeConfig(cfg *config.Config) {
-	s.KubernetesOptions = cfg.KubernetesOptions
-	s.MonitoringOptions = cfg.MonitoringOptions
+	if cfg.KubernetesOptions != nil {
+		cfg.KubernetesOptions.ApplyTo(s.KubernetesOptions)
+	}
+
+	if cfg.MonitoringOptions != nil {
+		cfg.MonitoringOptions.ApplyTo(s.MonitoringOptions)
+	}
 }

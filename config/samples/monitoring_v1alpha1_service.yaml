@@ -1,14 +1,13 @@
 apiVersion: monitoring.paodin.io/v1alpha1
 kind: Service
 metadata:
-  name: service-sample
+  name: central
   namespace: kubesphere-monitoring-system
 spec:
-  gateway: {}
-  thanos: 
-    query:
-      stores:
-      # - addresses:
-      #   - prometheus-operated:10901
-    receiveRouter: 
-      replicationFactor: 2
+  router:
+    replicationFactor: 2
+  query:
+    replicaLabelNames:
+      - prometheus_replica
+      - thanos_receive_replica
+      - thanos_ruler_replica

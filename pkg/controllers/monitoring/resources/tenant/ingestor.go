@@ -23,19 +23,20 @@ func (t *Tenant) ingester() error {
 
 	// finalizers check,  when tenant cr is deleted, ObjectMeta.GetDeletionTimestamp() is not nil, remove finalizers field and call removeTenantFromIngesterbyName()
 	if t.tenant.ObjectMeta.GetDeletionTimestamp().IsZero() {
-		if !containsString(t.tenant.ObjectMeta.Finalizers, monitoringv1alpha1.FinalizerMonitoringPaodin) {
-			t.tenant.ObjectMeta.Finalizers = append(t.tenant.ObjectMeta.Finalizers, monitoringv1alpha1.FinalizerMonitoringPaodin)
+		if !containsString(t.tenant.ObjectMeta.Finalizers, monitoringv1alpha1.FinalizerMonitoringIngester) {
+			t.tenant.ObjectMeta.Finalizers = append(t.tenant.ObjectMeta.Finalizers, monitoringv1alpha1.FinalizerMonitoringIngester)
 			return t.Client.Update(t.Context, t.tenant)
 		}
 	} else {
-		if containsString(t.tenant.ObjectMeta.Finalizers, monitoringv1alpha1.FinalizerMonitoringPaodin) {
+		if containsString(t.tenant.ObjectMeta.Finalizers, monitoringv1alpha1.FinalizerMonitoringIngester) {
 			if t.tenant.Status.Ingester != nil {
 				if err := t.removeTenantFromIngesterbyName(t.tenant.Status.Ingester.Namespace, t.tenant.Status.Ingester.Name); err != nil {
 					return err
 				}
 				t.tenant.Status.Ingester = nil
 			}
-			t.tenant.ObjectMeta.Finalizers = removeString(t.tenant.Finalizers, monitoringv1alpha1.FinalizerMonitoringPaodin)
+
+			t.tenant.ObjectMeta.Finalizers = removeString(t.tenant.Finalizers, monitoringv1alpha1.FinalizerMonitoringIngester)
 			return t.Client.Update(t.Context, t.tenant)
 		}
 	}
@@ -137,7 +138,7 @@ func (t *Tenant) ingester() error {
 	for i := 0; i < len(ingesterMapping)+1; i++ {
 		name := createIngesterInstanceName(t.tenant, strconv.Itoa(i))
 		if ingesterItem, ok := ingesterMapping[name]; ok {
-			if len(ingesterItem.Spec.Tenants) < t.DefaultTenantsPerIngester {
+			if len(ingesterItem.Spec.Tenants) < t.Options.DefaultTenantsPerIngester {
 				ingester = ingesterItem
 				addTenantToIngesterInstance(t.tenant, ingester)
 				break
@@ -184,7 +185,7 @@ func (t *Tenant) removeTenantFromIngesterbyName(namespace, name string) error {
 					annotation = make(map[string]string)
 				}
 				annotation[resources.LabelNameIngesterState] = "deleting"
-				annotation[resources.LabelNameIngesterDeletingTime] = strconv.Itoa(int(time.Now().Add(t.DefaultIngesterRetentionPeriod).Unix()))
+				annotation[resources.LabelNameIngesterDeletingTime] = strconv.Itoa(int(time.Now().Add(t.Options.DefaultIngesterRetentionPeriod).Unix()))
 				ingester.Annotations = annotation
 			}
 

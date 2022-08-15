@@ -33,8 +33,13 @@ func NewControllerManagerCommand() *cobra.Command {
 	if err == nil {
 		// make sure LeaderElection is not nil
 		// override paodin controller manager options
-		s.KubernetesOptions = conf.KubernetesOptions
-		s.MonitoringOptions = conf.MonitoringOptions
+		if conf.KubernetesOptions != nil {
+			conf.KubernetesOptions.ApplyTo(s.KubernetesOptions)
+		}
+
+		if conf.MonitoringOptions != nil {
+			conf.MonitoringOptions.ApplyTo(s.MonitoringOptions)
+		}
 	} else {
 		klog.Fatal("Failed to load configuration from disk", err)
 	}
@@ -154,11 +159,10 @@ func run(s *options.PaodinControllerManagerOptions, ctx context.Context) error {
 	if err != nil {
 		klog.Fatalf("unable to set up overall controller manager: %v", err)
 	}
-	apis.AddToScheme(mgr.GetScheme())
-	clusterv1alpha1.AddToScheme(mgr.GetScheme())
+	_ = apis.AddToScheme(mgr.GetScheme())
+	_ = clusterv1alpha1.AddToScheme(mgr.GetScheme())
 	_ = apiextensions.AddToScheme(mgr.GetScheme())
-
-	promv1.AddToScheme(mgr.GetScheme())
+	_ = promv1.AddToScheme(mgr.GetScheme())
 
 	// register common meta types into schemas.
 	metav1.AddToGroupVersion(mgr.GetScheme(), metav1.SchemeGroupVersion)

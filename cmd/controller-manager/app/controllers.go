@@ -2,8 +2,6 @@ package app
 
 import (
 	"context"
-	"time"
-
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
@@ -31,6 +29,7 @@ func addControllers(mgr manager.Manager, client k8s.Client, informerFactory info
 		Client:             mgr.GetClient(),
 		Scheme:             mgr.GetScheme(),
 		Context:            ctx,
+		Options:            cmOptions.MonitoringOptions.Store,
 	}).SetupWithManager(mgr); err != nil {
 		klog.Errorf("Unable to create Store controller: %v", err)
 		return err
@@ -41,6 +40,7 @@ func addControllers(mgr manager.Manager, client k8s.Client, informerFactory info
 		Client:             mgr.GetClient(),
 		Scheme:             mgr.GetScheme(),
 		Context:            ctx,
+		Options:            cmOptions.MonitoringOptions.Compactor,
 	}).SetupWithManager(mgr); err != nil {
 		klog.Errorf("Unable to create Compactor controller: %v", err)
 		return err
@@ -68,14 +68,12 @@ func addControllers(mgr manager.Manager, client k8s.Client, informerFactory info
 		return err
 	}
 
-	d, _ := time.ParseDuration(cmOptions.MonitoringOptions.DefaultIngesterRetentionPeriod)
 	if err := (&monitoring.TenantReconciler{
-		DefaulterValidator:             monitoring.CreateTenantDefaulterValidator(*cmOptions.MonitoringOptions),
-		Client:                         mgr.GetClient(),
-		Scheme:                         mgr.GetScheme(),
-		Context:                        ctx,
-		DefaultTenantsPerIngester:      cmOptions.MonitoringOptions.DefaultTenantsPerIngester,
-		DefaultIngesterRetentionPeriod: d,
+		DefaulterValidator: monitoring.CreateTenantDefaulterValidator(*cmOptions.MonitoringOptions),
+		Client:             mgr.GetClient(),
+		Scheme:             mgr.GetScheme(),
+		Context:            ctx,
+		Options:            cmOptions.MonitoringOptions,
 	}).SetupWithManager(mgr); err != nil {
 		klog.Errorf("Unable to create Tenant controller: %v", err)
 		return err
