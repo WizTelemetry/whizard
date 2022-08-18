@@ -89,7 +89,7 @@ func (t *Tenant) compactor() error {
 		return nil
 	}
 
-	// when tenant.Labels don't contain Service, remove the bindings to compactor
+	// when tenant.Labels don't contain Storage, remove the bindings to compactor
 	if v, ok := t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage]; !ok || v == "" || v == monitoringv1alpha1.MonitoringLocalStorage {
 		klog.V(3).Infof("Tenant [%s]'s Storage is empty. compactor does not need to be created", t.tenant.Name)
 		return nil

@@ -55,7 +55,7 @@ func (t *Tenant) store() error {
 		return err
 	}
 
-	unionMap(currentStores, expectStores)
+	symmetricDifference(currentStores, expectStores)
 
 	for _, v := range currentStores {
 		store := v.(*monitoringv1alpha1.Store)
@@ -148,7 +148,7 @@ func sortTenantsByStorageAndService(ctx context.Context, c client.Client) (map[s
 	return storageMap, nil
 }
 
-func unionMap(m1, m2 map[string]interface{}) {
+func symmetricDifference(m1, m2 map[string]interface{}) {
 	for k := range m1 {
 		if _, ok := m2[k]; ok {
 			delete(m1, k)

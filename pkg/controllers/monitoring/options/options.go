@@ -18,7 +18,7 @@ const (
 	PaodinDefaultService                 = "kubesphere-monitoring-system.central"
 	PaodinDefaultTenantsPerIngester      = 3
 	PaodinDefaultIngesterRetentionPeriod = time.Hour * 3
-	PaodinDefaultTenantsPerCompactor     = 3
+	PaodinDefaultTenantsPerCompactor     = 10
 
 	DefaultStoreMinReplicas = 2
 	DefaultStoreMaxReplicas = 20
