@@ -1178,6 +1178,11 @@ spec:
               image:
                 description: Image is the thanos image with tag/version
                 type: string
+              imagePullPolicy:
+                description: Image pull policy. One of Always, Never, IfNotPresent.
+                  Defaults to Always if :latest tag is specified, or IfNotPresent
+                  otherwise. Cannot be updated.
+                type: string
               logFormat:
                 description: 'Log format to use. Possible options: logfmt or json'
                 type: string
@@ -1246,6 +1251,12 @@ spec:
                   namespace:
                     type: string
                 type: object
+              tenants:
+                description: Tenants if not empty indicates current config is for
+                  hard tenants; otherwise, it is for soft tenants.
+                items:
+                  type: string
+                type: array
               tolerations:
                 description: If specified, the pod's tolerations.
                 items:

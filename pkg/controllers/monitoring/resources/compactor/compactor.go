@@ -1,16 +1,11 @@
 package compactor
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
-
 	"github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
-)
-
-const (
-	storageDir = "/thanos"
-	secretsDir = "/etc/thanos/secrets"
+	"github.com/kubesphere/paodin/pkg/util"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 )
 
 type Compactor struct {
@@ -29,11 +24,8 @@ func (r *Compactor) labels() map[string]string {
 	labels := r.BaseLabels()
 	labels[resources.LabelNameAppName] = resources.AppNameCompactor
 	labels[resources.LabelNameAppManagedBy] = r.compactor.Name
+	util.AppendLabel(labels, r.compactor.Labels)
 	return labels
-}
-
-func (r *Compactor) name(nameSuffix ...string) string {
-	return resources.QualifiedName(resources.AppNameCompactor, r.compactor.Name, nameSuffix...)
 }
 
 func (r *Compactor) meta(name string) metav1.ObjectMeta {

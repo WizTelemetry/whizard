@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"path/filepath"
 
+	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/ingester"
+	"github.com/kubesphere/paodin/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/ingester"
 )
 
 func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
@@ -121,7 +121,7 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 		return nil, resources.OperationCreateOrUpdate, err
 	}
 	for _, item := range storeList.Items {
-		storeSvcName := resources.QualifiedName(resources.AppNameStore, item.Name, resources.ServiceNameSuffixOperated)
+		storeSvcName := util.Join("-", item.Name, resources.ServiceNameSuffixOperated)
 		endpoint := fmt.Sprintf("%s.%s.svc:%d", storeSvcName, item.Namespace, resources.ThanosGRPCPort)
 		queryContainer.Args = append(queryContainer.Args, "--endpoint="+endpoint)
 	}

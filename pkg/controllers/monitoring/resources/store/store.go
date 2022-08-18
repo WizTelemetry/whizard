@@ -1,29 +1,25 @@
 package store
 
 import (
-	"fmt"
-
+	"github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/options"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/paodin/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
-
-	"github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
-)
-
-var (
-	storageDir = "/thanos"
-	secretsDir = "/etc/thanos/secrets"
 )
 
 type Store struct {
 	resources.BaseReconciler
 	store *v1alpha1.Store
+	options.StoreOptions
 }
 
-func New(reconciler resources.BaseReconciler, instance *v1alpha1.Store) *Store {
+func New(reconciler resources.BaseReconciler, instance *v1alpha1.Store, o options.StoreOptions) *Store {
 	return &Store{
 		BaseReconciler: reconciler,
 		store:          instance,
+		StoreOptions:   o,
 	}
 }
 
@@ -31,11 +27,8 @@ func (r *Store) labels() map[string]string {
 	labels := r.BaseLabels()
 	labels[resources.LabelNameAppName] = resources.AppNameStore
 	labels[resources.LabelNameAppManagedBy] = r.store.Name
+	util.AppendLabel(labels, r.store.Labels)
 	return labels
-}
-
-func (r *Store) name(nameSuffix ...string) string {
-	return resources.QualifiedName(resources.AppNameStore, r.store.Name, nameSuffix...)
 }
 
 func (r *Store) meta(name string) metav1.ObjectMeta {
@@ -59,19 +52,10 @@ func (r *Store) OwnerReferences() []metav1.OwnerReference {
 	}
 }
 
-func (r *Store) GrpcAddrs() []string {
-	var addrs []string
-	if r.store == nil {
-		return addrs
-	}
-	addrs = append(addrs, fmt.Sprintf("%s.%s.svc:%d",
-		r.name(resources.ServiceNameSuffixOperated), r.store.Namespace, resources.ThanosGRPCPort))
-	return addrs
-}
-
 func (r *Store) Reconcile() error {
 	return r.ReconcileResources([]resources.Resource{
 		r.statefulSet,
+		r.horizontalPodAutoscaler,
 		r.service,
 	})
 }

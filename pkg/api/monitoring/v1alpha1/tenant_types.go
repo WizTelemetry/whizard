@@ -26,7 +26,6 @@ type TenantSpec struct {
 }
 
 type TenantStatus struct {
-	Store     *ObjectReference `json:"store,omitempty"`
 	Ruler     *ObjectReference `json:"ruler,omitempty"`
 	Compactor *ObjectReference `json:"compactor,omitempty"`
 	Ingester  *ObjectReference `json:"ingester,omitempty"`

@@ -30,7 +30,10 @@ const (
 	MonitoringPaodinStorage = "monitoring.paodin.io/storage"
 	MonitoringPaodinTenant  = "monitoring.paodin.io/tenant"
 
-	FinalizerMonitoringPaodin = "finalizers.monitoring.paodin.io"
+	FinalizerMonitoringIngester  = "finalizers.monitoring.paodin.io/ingester"
+	FinalizerMonitoringCompactor = "finalizers.monitoring.paodin.io/compactor"
+
+	MonitoringLocalStorage = "default_storage.local"
 )
 
 type StorageSpec struct {

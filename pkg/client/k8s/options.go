@@ -81,6 +81,21 @@ func (k *KubernetesOptions) Validate() []error {
 
 func (k *KubernetesOptions) ApplyTo(options *KubernetesOptions) {
 
+	if k.KubeConfig != "" {
+		options.KubeConfig = k.KubeConfig
+	}
+
+	if k.Master != "" {
+		options.Master = k.Master
+	}
+
+	if k.QPS != 0 {
+		options.QPS = k.QPS
+	}
+
+	if k.Burst != 0 {
+		options.Burst = k.Burst
+	}
 }
 
 func (k *KubernetesOptions) AddFlags(fs *pflag.FlagSet, c *KubernetesOptions) {

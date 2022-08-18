@@ -20,8 +20,11 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
+	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/options"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/tenant"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -31,11 +34,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/options"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/tenant"
 )
 
 // TenantReconciler reconciles a Tenant object
@@ -45,8 +43,7 @@ type TenantReconciler struct {
 	Scheme  *runtime.Scheme
 	Context context.Context
 
-	DefaultTenantsPerIngester      int
-	DefaultIngesterRetentionPeriod time.Duration
+	Options *options.Options
 }
 
 //+kubebuilder:rbac:groups=monitoring.paodin.io,resources=tenants,verbs=get;list;watch;create;update;patch;delete
@@ -80,9 +77,14 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, err
 	}
 
-	instance, err = r.tenantValidator(instance)
+	needToUpdate := false
+	instance, needToUpdate, err = r.tenantValidator(instance)
 	if err != nil {
 		return ctrl.Result{}, err
+	}
+
+	if needToUpdate {
+		return ctrl.Result{}, r.Client.Update(r.Context, instance)
 	}
 
 	baseReconciler := resources.BaseReconciler{
@@ -91,7 +93,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		Scheme:  r.Scheme,
 		Context: ctx,
 	}
-	if err := tenant.New(baseReconciler, instance, r.DefaultTenantsPerIngester, r.DefaultIngesterRetentionPeriod).Reconcile(); err != nil {
+	if err := tenant.New(baseReconciler, instance, r.Options).Reconcile(); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -174,74 +176,60 @@ func (r *TenantReconciler) mapToTenantbyStorage(o client.Object) []reconcile.Req
 
 type TenantDefaulterValidator func(tenant *monitoringv1alpha1.Tenant) (*monitoringv1alpha1.Tenant, error)
 
-func CreateTenantDefaulterValidator(opt options.Options) TenantDefaulterValidator {
+func CreateTenantDefaulterValidator(_ options.Options) TenantDefaulterValidator {
 	return func(tenant *monitoringv1alpha1.Tenant) (*monitoringv1alpha1.Tenant, error) {
 		return tenant, nil
 	}
 }
 
-func (r *TenantReconciler) tenantValidator(tenant *monitoringv1alpha1.Tenant) (*monitoringv1alpha1.Tenant, error) {
+func (r *TenantReconciler) tenantValidator(tenant *monitoringv1alpha1.Tenant) (*monitoringv1alpha1.Tenant, bool, error) {
+	needToUpdate := false
 	if tenant.Labels == nil {
 		tenant.Labels = make(map[string]string, 2)
 	}
 
 	if v, ok := tenant.Labels[monitoringv1alpha1.MonitoringPaodinService]; !ok || v == "" {
-		return tenant, nil
+		return tenant, false, nil
 	}
 
-	if _, ok := tenant.Labels[monitoringv1alpha1.MonitoringPaodinService]; ok && len(strings.Split(tenant.Labels[monitoringv1alpha1.MonitoringPaodinService], ".")) != 2 {
-		return nil, fmt.Errorf("tenant [%s]'s Service field [%s] is invalid", tenant.Name, tenant.Labels[monitoringv1alpha1.MonitoringPaodinService])
+	v, ok := tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage]
+	if ok && len(strings.Split(tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage], ".")) != 2 {
+		return nil, false, fmt.Errorf("tenant [%s]'s Storage field [%s] is invalid", tenant.Name, tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage])
 	}
-	if _, ok := tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage]; ok && len(strings.Split(tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage], ".")) != 2 {
-		return nil, fmt.Errorf("tenant [%s]'s Storage field [%s] is invalid", tenant.Name, tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage])
+
+	// check tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] field
+	if tenant.Spec.Storage != nil {
+		if value := fmt.Sprintf("%s.%s", tenant.Spec.Storage.Namespace, tenant.Spec.Storage.Name); value != v {
+			tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] = value
+			needToUpdate = true
+		}
+	} else {
+		service := &monitoringv1alpha1.Service{}
+		serviceNamespacedName := strings.Split(tenant.Labels[monitoringv1alpha1.MonitoringPaodinService], ".")
+		if err := r.Client.Get(r.Context, types.NamespacedName{
+			Namespace: serviceNamespacedName[0],
+			Name:      serviceNamespacedName[1],
+		}, service); err != nil {
+			return nil, false, err
+		}
+		if service.Spec.Storage != nil {
+			if value := fmt.Sprintf("%s.%s", service.Spec.Storage.Namespace, service.Spec.Storage.Name); value != v {
+				tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] = value
+				needToUpdate = true
+			}
+		} else {
+			// The associated Storage CR could not be found, use local storage
+			if v, ok := tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage]; !ok || v != monitoringv1alpha1.MonitoringLocalStorage {
+				tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] = monitoringv1alpha1.MonitoringLocalStorage
+				needToUpdate = true
+			}
+		}
 	}
 
 	if tenant.Spec.Tenant == "" {
 		tenant.Spec.Tenant = tenant.Name
+		needToUpdate = true
 	}
 
-	if v, ok := tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage]; !ok || v == "" {
-		// Fill in tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] field
-		if tenant.Spec.Storage != nil {
-			tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] = fmt.Sprintf("%s.%s", tenant.Spec.Storage.Namespace, tenant.Spec.Storage.Name)
-		} else {
-			service := &monitoringv1alpha1.Service{}
-			serviceNamespacedName := strings.Split(tenant.Labels[monitoringv1alpha1.MonitoringPaodinService], ".")
-			if err := r.Client.Get(r.Context, types.NamespacedName{
-				Namespace: serviceNamespacedName[0],
-				Name:      serviceNamespacedName[1],
-			}, service); err != nil {
-				return nil, err
-			}
-			if service.Spec.Storage != nil {
-				tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] = fmt.Sprintf("%s.%s", service.Spec.Storage.Namespace, service.Spec.Storage.Name)
-			}
-		}
-
-		// The associated Storage CR could not be found, use local storage
-		if v, ok := tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage]; !ok || v == "" {
-			tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] = "default_storage.local"
-		}
-	} else {
-		// check tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] field
-		if tenant.Spec.Storage != nil {
-			if v != fmt.Sprintf("%s.%s", tenant.Spec.Storage.Namespace, tenant.Spec.Storage.Name) {
-				tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] = fmt.Sprintf("%s.%s", tenant.Spec.Storage.Namespace, tenant.Spec.Storage.Name)
-			}
-		} else {
-			service := &monitoringv1alpha1.Service{}
-			serviceNamespacedName := strings.Split(tenant.Labels[monitoringv1alpha1.MonitoringPaodinService], ".")
-			if err := r.Client.Get(r.Context, types.NamespacedName{
-				Namespace: serviceNamespacedName[0],
-				Name:      serviceNamespacedName[1],
-			}, service); err != nil {
-				return nil, err
-			}
-			if service.Spec.Storage != nil && v != fmt.Sprintf("%s.%s", service.Spec.Storage.Namespace, service.Spec.Storage.Name) {
-				tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] = fmt.Sprintf("%s.%s", service.Spec.Storage.Namespace, service.Spec.Storage.Name)
-			}
-		}
-	}
-
-	return tenant, nil
+	return tenant, needToUpdate, nil
 }

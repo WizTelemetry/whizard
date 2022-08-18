@@ -20,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/api/autoscaling/v2beta2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -28,6 +29,14 @@ import (
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+
+const (
+	FinalizerMonitoringPaodinDeletePVC = "finalizers.monitoring.paodin.io/deletePVC"
+
+	DefaultTenantHeader    = "PAODIN-TENANT"
+	DefaultTenantId        = "default-tenant"
+	DefaultTenantLabelName = "tenant_id"
+)
 
 // ServiceSpec defines the desired state of a Service
 type ServiceSpec struct {
@@ -235,21 +244,6 @@ type ServiceList struct {
 	Items           []Service `json:"items"`
 }
 
-// IndexCacheConfig specifies the index cache config.
-type IndexCacheConfig struct {
-	Type CacheProvider `json:"type"`
-
-	InMemoryIndexCacheConfig *InMemoryIndexCacheConfig `json:"inMemory,omitempty"`
-}
-
-// InMemoryIndexCacheConfig holds the in-memory index cache config.
-type InMemoryIndexCacheConfig struct {
-	// MaxSize represents overall maximum number of bytes cache can contain. ie. 250MB
-	MaxSize string `json:"max_size,omitempty" yaml:"max_size,omitempty"`
-	// MaxItemSize represents maximum size of single item. ie. 125MB
-	MaxItemSize string `json:"max_item_size,omitempty" yaml:"max_item_size,omitempty"`
-}
-
 // KubernetesVolume defines the configured volume for a instance.
 type KubernetesVolume struct {
 	EmptyDir              *corev1.EmptyDirVolumeSource  `json:"emptyDir,omitempty"`
@@ -266,6 +260,44 @@ type Retention struct {
 	Retention1h Duration `json:"retention1h,omitempty"`
 }
 
+// IndexCacheConfig specifies the index cache config.
+type IndexCacheConfig struct {
+	*InMemoryIndexCacheConfig `json:"inMemory,omitempty" yaml:"inMemory,omitempty"`
+}
+
+type InMemoryIndexCacheConfig struct {
+	// MaxSize represents overall maximum number of bytes cache can contain.
+	MaxSize string `json:"maxSize" yaml:"maxSize"`
+}
+
+type AutoScaler struct {
+	// minReplicas is the lower limit for the number of replicas to which the autoscaler
+	// can scale down.  It defaults to 1 pod.  minReplicas is allowed to be 0 if the
+	// alpha feature gate HPAScaleToZero is enabled and at least one Object or External
+	// metric is configured.  Scaling is active as long as at least one metric value is
+	// available.
+	// +optional
+	MinReplicas *int32 `json:"minReplicas,omitempty" yaml:"minReplicas,omitempty"`
+	// maxReplicas is the upper limit for the number of replicas to which the autoscaler can scale up.
+	// It cannot be less that minReplicas.
+	MaxReplicas int32 `json:"maxReplicas" yaml:"maxReplicas"`
+	// metrics contains the specifications for which to use to calculate the
+	// desired replica count (the maximum replica count across all metrics will
+	// be used).  The desired replica count is calculated multiplying the
+	// ratio between the target value and the current value by the current
+	// number of pods.  Ergo, metrics used must decrease as the pod count is
+	// increased, and vice-versa.  See the individual metric source types for
+	// more information about how each type of metric must respond.
+	// If not set, the default metric will be set to 80% average CPU utilization.
+	// +optional
+	Metrics []v2beta2.MetricSpec `json:"metrics,omitempty" yaml:"metrics,omitempty"`
+	// behavior configures the scaling behavior of the target
+	// in both Up and Down directions (scaleUp and scaleDown fields respectively).
+	// If not set, the default HPAScalingRules for scale up and scale down are used.
+	// +optional
+	Behavior *v2beta2.HorizontalPodAutoscalerBehavior `json:"behavior,omitempty" yaml:"behavior,omitempty"`
+}
+
 type StoreSpec struct {
 	// If specified, the pod's scheduling constraints.
 	Affinity *corev1.Affinity `json:"affinity,omitempty"`
@@ -280,6 +312,12 @@ type StoreSpec struct {
 
 	// Image is the thanos image with tag/version
 	Image string `json:"image,omitempty"`
+	// Image pull policy.
+	// One of Always, Never, IfNotPresent.
+	// Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
+	// Cannot be updated.
+	// +optional
+	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 	// Log filtering level. Possible options: error, warn, info, debug
 	LogLevel string `json:"logLevel,omitempty"`
 	// Log format to use. Possible options: logfmt or json
@@ -300,6 +338,8 @@ type StoreSpec struct {
 
 	// DataVolume specifies how volume shall be used
 	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
+
+	Scaler *AutoScaler `json:"scaler,omitempty"`
 }
 
 // StoreStatus defines the observed state of Store
@@ -344,6 +384,12 @@ type CompactorSpec struct {
 
 	// Image is the thanos image with tag/version
 	Image string `json:"image,omitempty"`
+	// Image pull policy.
+	// One of Always, Never, IfNotPresent.
+	// Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
+	// Cannot be updated.
+	// +optional
+	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 	// Log filtering level. Possible options: error, warn, info, debug
 	LogLevel string `json:"logLevel,omitempty"`
 	// Log format to use. Possible options: logfmt or json
@@ -361,6 +407,9 @@ type CompactorSpec struct {
 
 	// DataVolume specifies how volume shall be used
 	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
+
+	// Tenants if not empty indicates current config is for hard tenants; otherwise, it is for soft tenants.
+	Tenants []string `json:"tenants,omitempty"`
 }
 
 // CompactorStatus defines the observed state of Compactor
