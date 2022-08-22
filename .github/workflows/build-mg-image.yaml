@@ -63,4 +63,4 @@ jobs:
         run: |
           tag=$(cat VERSION | tr -d " \t\n\r")
           make docker-build-monitoring-gateway -e REPO=${{ env.REPO }} -e TAG=$tag
-          docker push ${{ env.REPO }}/paodin-monitoring-gateway:$tag
+          docker push ${{ env.REPO }}/whizard-monitoring-gateway:$tag

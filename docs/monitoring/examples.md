@@ -2,7 +2,7 @@
 
 Refer to the following example for multi-cluster monitoring of KubeSphere platform.
 
-> Please firstly refer to [here](../README.md#quickstart) to install paodin-controller-manager.
+> Please firstly refer to [here](../README.md#quickstart) to install whizard-controller-manager.
 
 ## Scattered
 
@@ -22,7 +22,7 @@ Follow the following steps to deploy components:
 
   ```shell
   cat <<EOF | kubectl apply -f -
-  apiVersion: monitoring.paodin.io/v1alpha1
+  apiVersion: monitoring.whizard.io/v1alpha1
   kind: Service
   metadata:
     name: scattered
@@ -71,7 +71,7 @@ Follow the following steps to deploy components:
 
   ```shell
   cat <<EOF | kubectl apply -f -
-  apiVersion: monitoring.paodin.io/v1alpha1
+  apiVersion: monitoring.whizard.io/v1alpha1
   kind: Storage
   metadata:
     name: default
@@ -93,7 +93,7 @@ Follow the following steps to deploy components:
 
   ```shell
   cat <<EOF | kubectl apply -f -
-  apiVersion: monitoring.paodin.io/v1alpha1
+  apiVersion: monitoring.whizard.io/v1alpha1
   kind: Service
   metadata:
     name: central
@@ -109,8 +109,8 @@ Follow the following steps to deploy components:
     query:
       replicaLabelNames:
       - prometheus_replica
-      - thanos_receive_replica
-      - thanos_ruler_replica
+      - receive_replica
+      - ruler_replica
     router:
       replicationFactor: 2
     queryFrontend:
@@ -128,11 +128,11 @@ Follow the following steps to deploy components:
   &#8195;&#8195;Automatically generated Tenant CR looks like this.
 
 ```yaml
-apiVersion: monitoring.paodin.io/v1alpha1
+apiVersion: monitoring.whizard.io/v1alpha1
 kind: Tenant
 metadata:
   labels:
-    monitoring.paodin.io/service: kubesphere-monitoring-system.central
+    monitoring.whizard.io/service: kubesphere-monitoring-system.central
   name: host
 spec:
   storage:
@@ -155,24 +155,24 @@ cat <<EOF | kubectl apply -f -
   kind: Deployment
   metadata:
     labels:
-      app.kubernetes.io/name: paodin-monitoring-agent-proxy
-      component: paodin
-    name: paodin-monitoring-agent-proxy
+      app.kubernetes.io/name: whizard-monitoring-agent-proxy
+      component: whizard
+    name: whizard-monitoring-agent-proxy
     namespace: kubesphere-monitoring-system
   spec:
     replicas: 1
     selector:
       matchLabels:
-        app.kubernetes.io/name: paodin-monitoring-agent-proxy
-        component: paodin
+        app.kubernetes.io/name: whizard-monitoring-agent-proxy
+        component: whizard
     template:
       metadata:
         labels:
-          app.kubernetes.io/name: paodin-monitoring-agent-proxy
-          component: paodin
+          app.kubernetes.io/name: whizard-monitoring-agent-proxy
+          component: whizard
       spec:
         containers:
-        - image: kubesphere/paodin-monitoring-agent-proxy:latest
+        - image: kubesphere/whizard-monitoring-agent-proxy:latest
           args: 
             - --gateway.address="<gateway_address>"
             - --tenant="<cluster_name>"
@@ -192,14 +192,14 @@ cat <<EOF | kubectl apply -f -
   kind: Service
   metadata:
     labels:
-      app.kubernetes.io/name: paodin-monitoring-agent-proxy
-      component: paodin
-    name: paodin-monitoring-agent-proxy
+      app.kubernetes.io/name: whizard-monitoring-agent-proxy
+      component: whizard
+    name: whizard-monitoring-agent-proxy
     namespace: kubesphere-monitoring-system
   spec:
     selector:
-      app.kubernetes.io/name: paodin-monitoring-agent-proxy
-      component: paodin
+      app.kubernetes.io/name: whizard-monitoring-agent-proxy
+      component: whizard
     ports:
     - port: 9090
       protocol: TCP
@@ -211,7 +211,7 @@ EOF
 5. On all clusters, configure Prometheus to write to agent-proxy:  
 
   ```shell
-  kubectl -n kubesphere-monitoring-system patch prometheus k8s --patch='{"spec":{"remoteWrite":[{"url":"http://paodin-monitoring-agent-proxy.kubesphere-monitoring-system.svc:9090/api/v1/receive"}]}}' --type=merge
+  kubectl -n kubesphere-monitoring-system patch prometheus k8s --patch='{"spec":{"remoteWrite":[{"url":"http://whizard-monitoring-agent-proxy.kubesphere-monitoring-system.svc:9090/api/v1/receive"}]}}' --type=merge
   ```
 
 6. On member clusters, configure ks-apiserver to read from agent-proxy:  
@@ -224,12 +224,12 @@ EOF
     kubesphere.yaml: |
       ...
       monitoring:
-        endpoint: http://paodin-monitoring-agent-proxy.kubesphere-monitoring-system.svc:9090
+        endpoint: http://whizard-monitoring-agent-proxy.kubesphere-monitoring-system.svc:9090
         ...
       ...
   ...
   ```
 
-7. On host cluster, configure ks-apiserver to read from paodin-apiserver
+7. On host cluster, configure ks-apiserver to read from whizard-apiserver
 
   todo;

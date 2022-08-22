@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: storages.monitoring.paodin.io
+  name: storages.monitoring.whizard.io
 spec:
-  group: monitoring.paodin.io
+  group: monitoring.whizard.io
   names:
     kind: Storage
     listKind: StorageList

@@ -3,44 +3,9 @@ package resources
 import (
 	"strings"
 
+	"github.com/kubesphere/whizard/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-)
-
-const (
-	ThanosGRPCPort        = 10901
-	ThanosHTTPPort        = 10902
-	ThanosRemoteWritePort = 19291
-
-	ThanosGRPCPortName        = "grpc"
-	ThanosHTTPPortName        = "http"
-	ThanosRemoteWritePortName = "remote-write"
-
-	ReplicaLabelNamePrometheus    = "prometheus_replica"
-	ReplicaLabelNameThanosReceive = "thanos_receive_replica"
-	ReplicaLabelNameThanosRuler   = "thanos_ruler_replica"
-
-	AppNameGateway       = "paodin-monitoring-gateway"
-	AppNameQuery         = "query"
-	AppNameQueryFrontend = "query-frontend"
-	AppNameRouter        = "router"
-	AppNameIngester      = "ingester"
-	AppNameRuler         = "ruler"
-	AppNameStore         = "store"
-	AppNameCompactor     = "compactor"
-
-	ServiceNameSuffixOperated = "operated"
-
-	LabelNameAppComponent = "app.kubernetes.io/component"
-	LabelNameAppName      = "app.kubernetes.io/name"
-	LableNameAppInstance  = "app.kubernetes.io/instance"
-	LabelNameAppManagedBy = "app.kubernetes.io/managed-by"
-	LabelNameAppPartOf    = "app.kubernetes.io/part-of"
-
-	LabelNameIngesterState        = "monitoring.paodin.io/ingester-state"
-	LabelNameIngesterDeletingTime = "monitoring.paodin.io/ingester-deleting-time"
-
-	SecretBucketKey = "bucket.yml"
 )
 
 func QualifiedName(appName, instanceName string, suffix ...string) string {
@@ -51,7 +16,7 @@ func QualifiedName(appName, instanceName string, suffix ...string) string {
 	return name
 }
 
-func ThanosDefaultLivenessProbe() *corev1.Probe {
+func DefaultLivenessProbe() *corev1.Probe {
 	return &corev1.Probe{
 		FailureThreshold: 4,
 		PeriodSeconds:    30,
@@ -59,13 +24,13 @@ func ThanosDefaultLivenessProbe() *corev1.Probe {
 			HTTPGet: &corev1.HTTPGetAction{
 				Scheme: "HTTP",
 				Path:   "/-/healthy",
-				Port:   intstr.FromString(ThanosHTTPPortName),
+				Port:   intstr.FromString(constants.HTTPPortName),
 			},
 		},
 	}
 }
 
-func ThanosDefaultReadinessProbe() *corev1.Probe {
+func DefaultReadinessProbe() *corev1.Probe {
 	return &corev1.Probe{
 		FailureThreshold: 20,
 		PeriodSeconds:    5,
@@ -73,7 +38,7 @@ func ThanosDefaultReadinessProbe() *corev1.Probe {
 			HTTPGet: &corev1.HTTPGetAction{
 				Scheme: "HTTP",
 				Path:   "/-/ready",
-				Port:   intstr.FromString(ThanosHTTPPortName),
+				Port:   intstr.FromString(constants.HTTPPortName),
 			},
 		},
 	}

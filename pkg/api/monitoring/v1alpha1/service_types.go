@@ -30,14 +30,6 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-const (
-	FinalizerMonitoringPaodinDeletePVC = "finalizers.monitoring.paodin.io/deletePVC"
-
-	DefaultTenantHeader    = "PAODIN-TENANT"
-	DefaultTenantId        = "default-tenant"
-	DefaultTenantLabelName = "tenant_id"
-)
-
 // ServiceSpec defines the desired state of a Service
 type ServiceSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
@@ -52,7 +44,7 @@ type ServiceSpec struct {
 
 	Storage *ObjectReference `json:"storage,omitempty"`
 
-	// Gateway to proxy and auth requests to Query and Router defined in Thanos.
+	// Gateway to proxy and auth requests to Query and Router.
 	Gateway *Gateway `json:"gateway,omitempty"`
 
 	// Query component querys from the backends such as Ingester and Store by automated discovery.
@@ -103,7 +95,7 @@ type Query struct {
 	// Number of replicas for a component
 	Replicas *int32 `json:"replicas,omitempty"`
 
-	// Image is the thanos image with tag/version
+	// Image is the image with tag/version
 	Image string `json:"image,omitempty"`
 	// Log filtering level. Possible options: error, warn, info, debug
 	LogLevel string `json:"logLevel,omitempty"`
@@ -126,13 +118,12 @@ type Query struct {
 
 type QueryStores struct {
 	// Address is the addresses of StoreApi server, which may be prefixed with 'dns+' or 'dnssrv+' to detect StoreAPI servers through respective DNS lookups.
-	// For more info, see https://thanos.io/tip/thanos/service-discovery.md/#dns-service-discovery
 	Addresses []string `json:"addresses,omitempty"`
 	// Secret containing the CA cert to use for StoreApi connections
 	CASecret *corev1.SecretKeySelector `json:"caSecret,omitempty"`
 }
 
-// EnvoySpec defines the desired state of envoy proxy sidecar which delegates requests to the secure thanos stores
+// EnvoySpec defines the desired state of envoy proxy sidecar which delegates requests to the secure stores
 type EnvoySpec struct {
 	// Image is the envoy image with tag/version
 	Image string `json:"image,omitempty"`
@@ -152,7 +143,7 @@ type Router struct {
 	// Number of replicas for a component.
 	Replicas *int32 `json:"replicas,omitempty"`
 
-	// Image is the thanos image with tag/version
+	// Image is the image with tag/version
 	Image string `json:"image,omitempty"`
 	// Log filtering level. Possible options: error, warn, info, debug
 	LogLevel string `json:"logLevel,omitempty"`
@@ -178,7 +169,7 @@ type QueryFrontend struct {
 	// Number of replicas for a component
 	Replicas *int32 `json:"replicas,omitempty"`
 
-	// Image is the thanos image with tag/version
+	// Image is the image with tag/version
 	Image string `json:"image,omitempty"`
 	// Log filtering level. Possible options: error, warn, info, debug
 	LogLevel string `json:"logLevel,omitempty"`
@@ -310,7 +301,7 @@ type StoreSpec struct {
 	// Number of replicas for a component
 	Replicas *int32 `json:"replicas,omitempty"`
 
-	// Image is the thanos image with tag/version
+	// Image is the image with tag/version
 	Image string `json:"image,omitempty"`
 	// Image pull policy.
 	// One of Always, Never, IfNotPresent.
@@ -382,7 +373,7 @@ type CompactorSpec struct {
 	// Number of replicas for a component
 	Replicas *int32 `json:"replicas,omitempty"`
 
-	// Image is the thanos image with tag/version
+	// Image is the image with tag/version
 	Image string `json:"image,omitempty"`
 	// Image pull policy.
 	// One of Always, Never, IfNotPresent.
@@ -456,7 +447,7 @@ type IngesterSpec struct {
 	// Number of replicas for a component.
 	Replicas *int32 `json:"replicas,omitempty"`
 
-	// Image is the thanos image with tag/version
+	// Image is the image with tag/version
 	Image string `json:"image,omitempty"`
 	// Log filtering level. Possible options: error, warn, info, debug
 	LogLevel string `json:"logLevel,omitempty"`
@@ -522,7 +513,7 @@ type RulerSpec struct {
 	// Number of replicas for a component.
 	Replicas *int32 `json:"replicas,omitempty"`
 
-	// Image is the thanos image with tag/version
+	// Image is the image with tag/version
 	Image string `json:"image,omitempty"`
 	// Log filtering level. Possible options: error, warn, info, debug
 	LogLevel string `json:"logLevel,omitempty"`
@@ -547,18 +538,12 @@ type RulerSpec struct {
 	Tenant string `json:"tenant,omitempty"`
 
 	// Labels configure the external label pairs to Ruler. A default replica label
-	// `thanos_ruler_replica` will be always added  as a label with the value of the pod's name and it will be dropped in the alerts.
+	// `ruler_replica` will be always added  as a label with the value of the pod's name and it will be dropped in the alerts.
 	Labels map[string]string `json:"labels,omitempty"`
 	// AlertDropLabels configure the label names which should be dropped in Ruler alerts.
-	// The replica label `thanos_ruler_replica` will always be dropped in alerts.
+	// The replica label `ruler_replica` will always be dropped in alerts.
 	AlertDropLabels []string `json:"alertDropLabels,omitempty"`
-	// Define URLs to send alerts to Alertmanager.  For Thanos v0.10.0 and higher,
-	// AlertManagersConfig should be used instead.  Note: this field will be ignored
-	// if AlertManagersConfig is specified.
-	// Maps to the `alertmanagers.url` arg.
-	AlertManagersURL []string `json:"alertmanagersUrl,omitempty"`
-	// Define configuration for connecting to alertmanager.  Only available with thanos v0.10.0
-	// and higher.  Maps to the `alertmanagers.config` arg.
+	// Define configuration for connecting to alertmanager. Maps to the `alertmanagers.config` arg.
 	AlertManagersConfig *corev1.SecretKeySelector `json:"alertmanagersConfig,omitempty"`
 	// Interval between consecutive evaluations. Default: `30s`
 	// +kubebuilder:default:="30s"
@@ -689,7 +674,7 @@ func init() {
 
 func ManagedLabelByService(service metav1.Object) map[string]string {
 	return map[string]string{
-		"monitoring.paodin.io/service": service.GetNamespace() + "." + service.GetName(),
+		"monitoring.whizard.io/service": service.GetNamespace() + "." + service.GetName(),
 	}
 }
 
@@ -699,7 +684,7 @@ func ServiceNamespacedName(managedByService metav1.Object) *types.NamespacedName
 		return nil
 	}
 
-	namespacedName := ls["monitoring.paodin.io/service"]
+	namespacedName := ls["monitoring.whizard.io/service"]
 	arr := strings.Split(namespacedName, ".")
 	if len(arr) != 2 {
 		return nil
@@ -713,7 +698,7 @@ func ServiceNamespacedName(managedByService metav1.Object) *types.NamespacedName
 
 func ManagedLabelByRuleGroup(ruleGroup metav1.Object) map[string]string {
 	return map[string]string{
-		"monitoring.paodin.io/rule-group": ruleGroup.GetName(),
+		"monitoring.whizard.io/rule-group": ruleGroup.GetName(),
 	}
 }
 
@@ -722,5 +707,5 @@ func RuleGroupName(managedByRuleGroup metav1.Object) string {
 	if ls == nil {
 		return ""
 	}
-	return ls["monitoring.paodin.io/rule-group"]
+	return ls["monitoring.whizard.io/rule-group"]
 }

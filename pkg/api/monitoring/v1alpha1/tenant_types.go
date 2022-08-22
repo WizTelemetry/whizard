@@ -71,8 +71,8 @@ type TenantList struct {
 
 	type TenantGroupSpec struct {
 		TenantGroupId string           `json:"tenantGroupId"`
-		PaodinService *ObjectReference `json:"paodinService"`
-		PaodinStorage *ObjectReference `json:"paodinStorage"`
+		WhizardService *ObjectReference `json:"whizardService"`
+		WhizardStorage *ObjectReference `json:"whizardStorage"`
 	}
 
 	type TenantGroupStatus struct {

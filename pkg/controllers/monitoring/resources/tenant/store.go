@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
+	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
@@ -29,13 +30,13 @@ func (t *Tenant) store() error {
 			continue
 		}
 
-		serviceNamespacedName := store.Labels[monitoringv1alpha1.MonitoringPaodinService]
+		serviceNamespacedName := store.Labels[constants.ServiceLabelKey]
 		if serviceNamespacedName == "" {
 			klog.V(3).Infof("Store [%s.%s] Service mismatch", store.Namespace, store.Name)
 			continue
 		}
 
-		storageNamespacedName := store.Labels[monitoringv1alpha1.MonitoringPaodinStorage]
+		storageNamespacedName := store.Labels[constants.StorageLabelKey]
 		if storageNamespacedName == "" {
 			klog.V(3).Infof("Store [%s.%s] Storage mismatch", store.Namespace, store.Name)
 			continue
@@ -68,11 +69,11 @@ func (t *Tenant) store() error {
 
 	for _, v := range expectStores {
 		m := v.(map[string]string)
-		serviceNamespacedName := strings.Split(m[monitoringv1alpha1.MonitoringPaodinService], ".")
-		storageNamespacedName := strings.Split(m[monitoringv1alpha1.MonitoringPaodinStorage], ".")
+		serviceNamespacedName := strings.Split(m[constants.ServiceLabelKey], ".")
+		storageNamespacedName := strings.Split(m[constants.StorageLabelKey], ".")
 		store := &monitoringv1alpha1.Store{
 			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: fmt.Sprintf("store-%s-%s-", serviceNamespacedName[1], storageNamespacedName[1]),
+				GenerateName: fmt.Sprintf("%s-%s-%s-", constants.AppNameStore, serviceNamespacedName[1], storageNamespacedName[1]),
 				Namespace:    serviceNamespacedName[0],
 				Labels:       m,
 			},
@@ -84,8 +85,8 @@ func (t *Tenant) store() error {
 
 		klog.V(3).Infof("Create store[%s.%s] for Service[%s] Storage[%s]",
 			store.Namespace, store.Name,
-			m[monitoringv1alpha1.MonitoringPaodinService],
-			m[monitoringv1alpha1.MonitoringPaodinStorage])
+			m[constants.ServiceLabelKey],
+			m[constants.StorageLabelKey])
 	}
 
 	return nil
@@ -105,12 +106,12 @@ func sortTenantsByStorageAndService(ctx context.Context, c client.Client) (map[s
 			continue
 		}
 
-		if tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] == monitoringv1alpha1.MonitoringLocalStorage {
+		if tenant.Labels[constants.StorageLabelKey] == constants.LocalStorage {
 			klog.V(3).Infof("ignore tenant %s with local storage", tenant.Name)
 			continue
 		}
 
-		serviceNamespacedName := tenant.Labels[monitoringv1alpha1.MonitoringPaodinService]
+		serviceNamespacedName := tenant.Labels[constants.ServiceLabelKey]
 		if serviceNamespacedName == "" {
 			klog.V(3).Infof("ignore tenant %s without service", tenant.Name)
 			continue
@@ -140,8 +141,8 @@ func sortTenantsByStorageAndService(ctx context.Context, c client.Client) (map[s
 		}
 
 		storageMap[serviceNamespacedName+storageNamespacedName] = map[string]string{
-			monitoringv1alpha1.MonitoringPaodinService: serviceNamespacedName,
-			monitoringv1alpha1.MonitoringPaodinStorage: storageNamespacedName,
+			constants.ServiceLabelKey: serviceNamespacedName,
+			constants.StorageLabelKey: storageNamespacedName,
 		}
 	}
 

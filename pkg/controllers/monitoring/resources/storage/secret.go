@@ -9,10 +9,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 )
 
-var LabelNameStorageHash = "monitoring.paodin.io/storage-hash"
+var LabelNameStorageHash = "monitoring.whizard.io/storage-hash"
 
 // updateHashAnnotation generate the hash with objstoreConfig to write to the annotation. When the secret update hash changes, the storage update event is triggered.
 func (s *Storage) updateHashAnnotation() (runtime.Object, resources.Operation, error) {

@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin/pkg/util"
+	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/util"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -18,19 +19,19 @@ func (t *Tenant) compactor() error {
 
 	// finalizers check,  when tenant cr is deleted, ObjectMeta.GetDeletionTimestamp() is not nil, remove finalizers field and call removeTenantFromCompactorByName()
 	if t.tenant.ObjectMeta.GetDeletionTimestamp().IsZero() {
-		if !containsString(t.tenant.ObjectMeta.Finalizers, monitoringv1alpha1.FinalizerMonitoringCompactor) {
-			t.tenant.ObjectMeta.Finalizers = append(t.tenant.ObjectMeta.Finalizers, monitoringv1alpha1.FinalizerMonitoringCompactor)
+		if !containsString(t.tenant.ObjectMeta.Finalizers, constants.FinalizerCompactor) {
+			t.tenant.ObjectMeta.Finalizers = append(t.tenant.ObjectMeta.Finalizers, constants.FinalizerCompactor)
 			return t.Client.Update(t.Context, t.tenant)
 		}
 	} else {
-		if containsString(t.tenant.ObjectMeta.Finalizers, monitoringv1alpha1.FinalizerMonitoringCompactor) {
+		if containsString(t.tenant.ObjectMeta.Finalizers, constants.FinalizerCompactor) {
 			if t.tenant.Status.Compactor != nil {
 				if err := t.removeTenantFromCompactorByName(t.tenant.Status.Compactor.Namespace, t.tenant.Status.Compactor.Name); err != nil {
 					return err
 				}
 				t.tenant.Status.Compactor = nil
 			}
-			t.tenant.ObjectMeta.Finalizers = removeString(t.tenant.Finalizers, monitoringv1alpha1.FinalizerMonitoringCompactor)
+			t.tenant.ObjectMeta.Finalizers = removeString(t.tenant.Finalizers, constants.FinalizerCompactor)
 			return t.Client.Update(t.Context, t.tenant)
 		}
 	}
@@ -56,12 +57,12 @@ func (t *Tenant) compactor() error {
 			needResetCompactor = true
 		}
 
-		if v, ok := compactor.Labels[monitoringv1alpha1.MonitoringPaodinService]; !ok || v != t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService] {
+		if v, ok := compactor.Labels[constants.ServiceLabelKey]; !ok || v != t.tenant.Labels[constants.ServiceLabelKey] {
 			klog.V(3).Infof("Tenant [%s] and compactor [%s]'s Service mismatch, need to reset compactor", t.tenant.Name, compactor.Name)
 			needResetCompactor = true
 		}
 
-		if v, ok := compactor.Labels[monitoringv1alpha1.MonitoringPaodinStorage]; !ok || v != t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] {
+		if v, ok := compactor.Labels[constants.StorageLabelKey]; !ok || v != t.tenant.Labels[constants.StorageLabelKey] {
 			klog.V(3).Infof("Tenant [%s] and compactor [%s]'s Storage mismatch, need to reset compactor", t.tenant.Name, compactor.Name)
 			needResetCompactor = true
 		}
@@ -84,22 +85,22 @@ func (t *Tenant) compactor() error {
 	}
 
 	// when tenant.Labels don't contain Service, remove the bindings to compactor
-	if v, ok := t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService]; !ok || v == "" {
+	if v, ok := t.tenant.Labels[constants.ServiceLabelKey]; !ok || v == "" {
 		klog.V(3).Infof("Tenant [%s]'s Service is empty. compactor does not need to be created", t.tenant.Name)
 		return nil
 	}
 
 	// when tenant.Labels don't contain Storage, remove the bindings to compactor
-	if v, ok := t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage]; !ok || v == "" || v == monitoringv1alpha1.MonitoringLocalStorage {
+	if v, ok := t.tenant.Labels[constants.StorageLabelKey]; !ok || v == "" || v == constants.LocalStorage {
 		klog.V(3).Infof("Tenant [%s]'s Storage is empty. compactor does not need to be created", t.tenant.Name)
 		return nil
 	}
 
 	var compactorList monitoringv1alpha1.CompactorList
 	ls := make(map[string]string, 2)
-	ls[monitoringv1alpha1.MonitoringPaodinService] = t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService]
-	ls[monitoringv1alpha1.MonitoringPaodinStorage] = t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage]
-	serviceNamespacedName := strings.Split(t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService], ".")
+	ls[constants.ServiceLabelKey] = t.tenant.Labels[constants.ServiceLabelKey]
+	ls[constants.StorageLabelKey] = t.tenant.Labels[constants.StorageLabelKey]
+	serviceNamespacedName := strings.Split(t.tenant.Labels[constants.ServiceLabelKey], ".")
 	err := t.Client.List(t.Context, &compactorList, &client.ListOptions{
 		Namespace:     serviceNamespacedName[0],
 		LabelSelector: labels.SelectorFromSet(ls),
@@ -152,14 +153,14 @@ func (t *Tenant) compactor() error {
 
 func createCompactorInstance(tenant *monitoringv1alpha1.Tenant) *monitoringv1alpha1.Compactor {
 	label := make(map[string]string, 2)
-	label[monitoringv1alpha1.MonitoringPaodinService] = tenant.Labels[monitoringv1alpha1.MonitoringPaodinService]
-	label[monitoringv1alpha1.MonitoringPaodinStorage] = tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage]
+	label[constants.ServiceLabelKey] = tenant.Labels[constants.ServiceLabelKey]
+	label[constants.StorageLabelKey] = tenant.Labels[constants.StorageLabelKey]
 
-	serviceNamespacedName := strings.Split(tenant.Labels[monitoringv1alpha1.MonitoringPaodinService], ".")
-	storageNamespacedName := strings.Split(tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage], ".")
+	serviceNamespacedName := strings.Split(tenant.Labels[constants.ServiceLabelKey], ".")
+	storageNamespacedName := strings.Split(tenant.Labels[constants.StorageLabelKey], ".")
 	return &monitoringv1alpha1.Compactor{
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: fmt.Sprintf("compactor-%s-%s-", serviceNamespacedName[1], storageNamespacedName[1]),
+			GenerateName: fmt.Sprintf("%s-%s-%s-", constants.AppNameCompactor, serviceNamespacedName[1], storageNamespacedName[1]),
 			Namespace:    serviceNamespacedName[0],
 			Labels:       label,
 		},

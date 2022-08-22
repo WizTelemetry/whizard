@@ -6,6 +6,11 @@ import (
 	"path"
 	"path/filepath"
 
+	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/query"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/router"
 	promoperator "github.com/prometheus-operator/prometheus-operator/pkg/operator"
 	promcommonconfig "github.com/prometheus/common/config"
 	promconfig "github.com/prometheus/prometheus/config"
@@ -16,11 +21,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-
-	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/query"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/router"
 )
 
 func (r *Ruler) statefulSet(ruleConfigMapNames []string) (runtime.Object, resources.Operation, error) {
@@ -31,7 +31,7 @@ func (r *Ruler) statefulSet(ruleConfigMapNames []string) (runtime.Object, resour
 		Selector: &metav1.LabelSelector{
 			MatchLabels: r.labels(),
 		},
-		ServiceName: r.name(resources.ServiceNameSuffixOperated),
+		ServiceName: r.name(constants.ServiceNameSuffix),
 		Template: corev1.PodTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
 				Labels: r.labels(),
@@ -52,17 +52,17 @@ func (r *Ruler) statefulSet(ruleConfigMapNames []string) (runtime.Object, resour
 		Ports: []corev1.ContainerPort{
 			{
 				Protocol:      corev1.ProtocolTCP,
-				Name:          resources.ThanosGRPCPortName,
-				ContainerPort: resources.ThanosGRPCPort,
+				Name:          constants.GRPCPortName,
+				ContainerPort: constants.GRPCPort,
 			},
 			{
 				Protocol:      corev1.ProtocolTCP,
-				Name:          resources.ThanosHTTPPortName,
-				ContainerPort: resources.ThanosHTTPPort,
+				Name:          constants.HTTPPortName,
+				ContainerPort: constants.HTTPPort,
 			},
 		},
-		LivenessProbe:  resources.ThanosDefaultLivenessProbe(),
-		ReadinessProbe: resources.ThanosDefaultReadinessProbe(),
+		LivenessProbe:  resources.DefaultLivenessProbe(),
+		ReadinessProbe: resources.DefaultReadinessProbe(),
 		Env: []corev1.EnvVar{
 			{
 				Name: "POD_NAME",
@@ -139,10 +139,6 @@ func (r *Ruler) statefulSet(ruleConfigMapNames []string) (runtime.Object, resour
 				SecretKeyRef: r.ruler.Spec.AlertManagersConfig,
 			},
 		})
-	} else if len(r.ruler.Spec.AlertManagersURL) > 0 {
-		for _, url := range r.ruler.Spec.AlertManagersURL {
-			container.Args = append(container.Args, fmt.Sprintf("--alertmanagers.url=%s", url))
-		}
 	}
 
 	if r.ruler.Spec.LogLevel != "" {
@@ -151,13 +147,13 @@ func (r *Ruler) statefulSet(ruleConfigMapNames []string) (runtime.Object, resour
 	if r.ruler.Spec.LogFormat != "" {
 		container.Args = append(container.Args, "--log.format="+r.ruler.Spec.LogFormat)
 	}
-	container.Args = append(container.Args, fmt.Sprintf(`--label=%s="$(POD_NAME)"`, resources.ReplicaLabelNameThanosRuler))
+	container.Args = append(container.Args, fmt.Sprintf(`--label=%s="$(POD_NAME)"`, constants.RulerReplicaLabelName))
 	for k, v := range r.ruler.Spec.Labels {
 		container.Args = append(container.Args, fmt.Sprintf(`--label=%s="%s"`, k, v))
 	}
 	container.Args = append(container.Args, fmt.Sprintf("--data-dir=%s", storageDir))
 	container.Args = append(container.Args, fmt.Sprintf("--rule-file=%s/*/*.yaml", rulesDir))
-	container.Args = append(container.Args, fmt.Sprintf("--alert.label-drop=%s", resources.ReplicaLabelNameThanosRuler))
+	container.Args = append(container.Args, fmt.Sprintf("--alert.label-drop=%s", constants.RulerReplicaLabelName))
 	for _, lb := range r.ruler.Spec.AlertDropLabels {
 		container.Args = append(container.Args, fmt.Sprintf("--alert.label-drop=%s", lb))
 	}
@@ -268,7 +264,7 @@ func (r *Ruler) statefulSet(ruleConfigMapNames []string) (runtime.Object, resour
 		promoperator.ReloaderResources(reloaderConfig),
 		promoperator.ReloaderURL(url.URL{
 			Scheme: "http",
-			Host:   fmt.Sprintf("localhost:%d", resources.ThanosHTTPPort),
+			Host:   fmt.Sprintf("localhost:%d", constants.HTTPPort),
 			Path:   path.Clean("/-/reload"),
 		}),
 		promoperator.ListenLocal(true),

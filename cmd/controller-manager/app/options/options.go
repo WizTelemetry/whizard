@@ -10,12 +10,12 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog/v2"
 
-	"github.com/kubesphere/paodin/pkg/client/k8s"
-	"github.com/kubesphere/paodin/pkg/controllers/config"
-	monitoring "github.com/kubesphere/paodin/pkg/controllers/monitoring/options"
+	"github.com/kubesphere/whizard/pkg/client/k8s"
+	"github.com/kubesphere/whizard/pkg/controllers/config"
+	monitoring "github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
 )
 
-type PaodinControllerManagerOptions struct {
+type ControllerManagerOptions struct {
 	KubernetesOptions *k8s.KubernetesOptions
 	MonitoringOptions *monitoring.Options
 
@@ -27,8 +27,8 @@ type PaodinControllerManagerOptions struct {
 	HealthProbeBindAddress string
 }
 
-func NewPaodinControllerManagerOptions() *PaodinControllerManagerOptions {
-	return &PaodinControllerManagerOptions{
+func NewControllerManagerOptions() *ControllerManagerOptions {
+	return &ControllerManagerOptions{
 		KubernetesOptions: k8s.NewKubernetesOptions(),
 		MonitoringOptions: monitoring.NewOptions(),
 
@@ -45,7 +45,7 @@ func NewPaodinControllerManagerOptions() *PaodinControllerManagerOptions {
 	}
 }
 
-func (s *PaodinControllerManagerOptions) Flags() cliflag.NamedFlagSets {
+func (s *ControllerManagerOptions) Flags() cliflag.NamedFlagSets {
 	fss := cliflag.NamedFlagSets{}
 	s.KubernetesOptions.AddFlags(fss.FlagSet("kubernetes"), s.KubernetesOptions)
 	s.MonitoringOptions.AddFlags(fss.FlagSet("monitoring"), s.MonitoringOptions)
@@ -77,14 +77,14 @@ func (s *PaodinControllerManagerOptions) Flags() cliflag.NamedFlagSets {
 	return fss
 }
 
-func (s *PaodinControllerManagerOptions) Validate() []error {
+func (s *ControllerManagerOptions) Validate() []error {
 	var errs []error
 	errs = append(errs, s.KubernetesOptions.Validate()...)
 	errs = append(errs, s.MonitoringOptions.Validate()...)
 	return errs
 }
 
-func (s *PaodinControllerManagerOptions) bindLeaderElectionFlags(l *leaderelection.LeaderElectionConfig, fs *pflag.FlagSet) {
+func (s *ControllerManagerOptions) bindLeaderElectionFlags(l *leaderelection.LeaderElectionConfig, fs *pflag.FlagSet) {
 	fs.DurationVar(&l.LeaseDuration, "leader-elect-lease-duration", l.LeaseDuration, ""+
 		"The duration that non-leader candidates will wait after observing a leadership "+
 		"renewal until attempting to acquire leadership of a led but unrenewed leader "+
@@ -102,7 +102,7 @@ func (s *PaodinControllerManagerOptions) bindLeaderElectionFlags(l *leaderelecti
 
 // MergeConfig merge new config without validation
 // When misconfigured, the app should just crash directly
-func (s *PaodinControllerManagerOptions) MergeConfig(cfg *config.Config) {
+func (s *ControllerManagerOptions) MergeConfig(cfg *config.Config) {
 	if cfg.KubernetesOptions != nil {
 		cfg.KubernetesOptions.ApplyTo(s.KubernetesOptions)
 	}

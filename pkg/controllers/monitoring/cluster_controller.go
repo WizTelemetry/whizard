@@ -19,21 +19,21 @@ package monitoring
 import (
 	"context"
 
+	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/util"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
+	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin/pkg/util"
-	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 )
 
 // ClusterReconciler reconciles a Service object
@@ -45,7 +45,7 @@ type ClusterReconciler struct {
 }
 
 //+kubebuilder:rbac:groups=cluster.kubesphere.io,resources=clusters,verbs=get;list;watch
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=tenants,verbs=verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=tenants,verbs=verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -105,7 +105,7 @@ func (r *ClusterReconciler) mapToTenantFunc(o client.Object) []reconcile.Request
 func (r *ClusterReconciler) createTenantInstance(cluster *clusterv1alpha1.Cluster) *monitoringv1alpha1.Tenant {
 
 	label := make(map[string]string, 1)
-	label[monitoringv1alpha1.MonitoringPaodinService] = r.KubesphereAdapterDefaultService
+	label[constants.ServiceLabelKey] = r.KubesphereAdapterDefaultService
 	return &monitoringv1alpha1.Tenant{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   cluster.Name,

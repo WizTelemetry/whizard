@@ -9,9 +9,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: compactors.monitoring.paodin.io
+  name: compactors.monitoring.whizard.io
 spec:
-  group: monitoring.paodin.io
+  group: monitoring.whizard.io
   names:
     kind: Compactor
     listKind: CompactorList
@@ -699,7 +699,7 @@ spec:
                 description: Flags is a list of key/value that could be used to set strategy parameters.
                 type: object
               image:
-                description: Image is the thanos image with tag/version
+                description: Image is the image with tag/version
                 type: string
               imagePullPolicy:
                 description: Image pull policy. One of Always, Never, IfNotPresent. Defaults to Always if :latest tag is specified, or IfNotPresent otherwise. Cannot be updated.
@@ -814,9 +814,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: ingesters.monitoring.paodin.io
+  name: ingesters.monitoring.whizard.io
 spec:
-  group: monitoring.paodin.io
+  group: monitoring.whizard.io
   names:
     kind: Ingester
     listKind: IngesterList
@@ -1502,7 +1502,7 @@ spec:
                 description: Flags is a list of key/value that could be used to set strategy parameters.
                 type: object
               image:
-                description: Image is the thanos image with tag/version
+                description: Image is the image with tag/version
                 type: string
               localTsdbRetention:
                 description: LocalTsdbRetention configs how long to retain raw samples on local storage.
@@ -1602,9 +1602,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: rulegroups.monitoring.paodin.io
+  name: rulegroups.monitoring.whizard.io
 spec:
-  group: monitoring.paodin.io
+  group: monitoring.whizard.io
   names:
     kind: RuleGroup
     listKind: RuleGroupList
@@ -1654,9 +1654,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: rulers.monitoring.paodin.io
+  name: rulers.monitoring.whizard.io
 spec:
-  group: monitoring.paodin.io
+  group: monitoring.whizard.io
   names:
     kind: Ruler
     listKind: RulerList
@@ -2142,12 +2142,12 @@ spec:
                     type: object
                 type: object
               alertDropLabels:
-                description: AlertDropLabels configure the label names which should be dropped in Ruler alerts. The replica label `thanos_ruler_replica` will always be dropped in alerts.
+                description: AlertDropLabels configure the label names which should be dropped in Ruler alerts. The replica label `ruler_replica` will always be dropped in alerts.
                 items:
                   type: string
                 type: array
               alertmanagersConfig:
-                description: Define configuration for connecting to alertmanager.  Only available with thanos v0.10.0 and higher.  Maps to the `alertmanagers.config` arg.
+                description: Define configuration for connecting to alertmanager. Maps to the `alertmanagers.config` arg.
                 properties:
                   key:
                     description: The key of the secret to select from.  Must be a valid secret key.
@@ -2161,11 +2161,6 @@ spec:
                 required:
                 - key
                 type: object
-              alertmanagersUrl:
-                description: 'Define URLs to send alerts to Alertmanager.  For Thanos v0.10.0 and higher, AlertManagersConfig should be used instead.  Note: this field will be ignored if AlertManagersConfig is specified. Maps to the `alertmanagers.url` arg.'
-                items:
-                  type: string
-                type: array
               dataVolume:
                 description: DataVolume specifies how volume shall be used
                 properties:
@@ -2372,12 +2367,12 @@ spec:
                 description: Flags is a list of key/value that could be used to set strategy parameters.
                 type: object
               image:
-                description: Image is the thanos image with tag/version
+                description: Image is the image with tag/version
                 type: string
               labels:
                 additionalProperties:
                   type: string
-                description: Labels configure the external label pairs to Ruler. A default replica label `thanos_ruler_replica` will be always added  as a label with the value of the pod's name and it will be dropped in the alerts.
+                description: Labels configure the external label pairs to Ruler. A default replica label `ruler_replica` will be always added  as a label with the value of the pod's name and it will be dropped in the alerts.
                 type: object
               logFormat:
                 description: 'Log format to use. Possible options: logfmt or json'
@@ -2584,9 +2579,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: rules.monitoring.paodin.io
+  name: rules.monitoring.whizard.io
 spec:
-  group: monitoring.paodin.io
+  group: monitoring.whizard.io
   names:
     kind: Rule
     listKind: RuleList
@@ -2655,9 +2650,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: services.monitoring.paodin.io
+  name: services.monitoring.whizard.io
 spec:
-  group: monitoring.paodin.io
+  group: monitoring.whizard.io
   names:
     kind: Service
     listKind: ServiceList
@@ -2685,7 +2680,7 @@ spec:
                 description: Default tenant ID to use when none is provided via a header.
                 type: string
               gateway:
-                description: Gateway to proxy and auth requests to Query and Router defined in Thanos.
+                description: Gateway to proxy and auth requests to Query and Router.
                 properties:
                   affinity:
                     description: If specified, the pod's scheduling constraints.
@@ -3717,7 +3712,7 @@ spec:
                     description: Flags is a list of key/value that could be used to set strategy parameters.
                     type: object
                   image:
-                    description: Image is the thanos image with tag/version
+                    description: Image is the image with tag/version
                     type: string
                   logFormat:
                     description: 'Log format to use. Possible options: logfmt or json'
@@ -3771,7 +3766,7 @@ spec:
                     items:
                       properties:
                         addresses:
-                          description: Address is the addresses of StoreApi server, which may be prefixed with 'dns+' or 'dnssrv+' to detect StoreAPI servers through respective DNS lookups. For more info, see https://thanos.io/tip/thanos/service-discovery.md/#dns-service-discovery
+                          description: Address is the addresses of StoreApi server, which may be prefixed with 'dns+' or 'dnssrv+' to detect StoreAPI servers through respective DNS lookups.
                           items:
                             type: string
                           type: array
@@ -4312,7 +4307,7 @@ spec:
                     description: Flags is a list of key/value that could be used to set strategy parameters.
                     type: object
                   image:
-                    description: Image is the thanos image with tag/version
+                    description: Image is the image with tag/version
                     type: string
                   logFormat:
                     description: 'Log format to use. Possible options: logfmt or json'
@@ -4845,7 +4840,7 @@ spec:
                     description: Flags is a list of key/value that could be used to set strategy parameters.
                     type: object
                   image:
-                    description: Image is the thanos image with tag/version
+                    description: Image is the image with tag/version
                     type: string
                   logFormat:
                     description: 'Log format to use. Possible options: logfmt or json'
@@ -4947,9 +4942,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: storages.monitoring.paodin.io
+  name: storages.monitoring.whizard.io
 spec:
-  group: monitoring.paodin.io
+  group: monitoring.whizard.io
   names:
     kind: Storage
     listKind: StorageList
@@ -5121,9 +5116,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: stores.monitoring.paodin.io
+  name: stores.monitoring.whizard.io
 spec:
-  group: monitoring.paodin.io
+  group: monitoring.whizard.io
   names:
     kind: Store
     listKind: StoreList
@@ -5808,7 +5803,7 @@ spec:
                 description: Flags is a list of key/value that could be used to set strategy parameters.
                 type: object
               image:
-                description: Image is the thanos image with tag/version
+                description: Image is the image with tag/version
                 type: string
               imagePullPolicy:
                 description: Image pull policy. One of Always, Never, IfNotPresent. Defaults to Always if :latest tag is specified, or IfNotPresent otherwise. Cannot be updated.
@@ -6329,9 +6324,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: tenants.monitoring.paodin.io
+  name: tenants.monitoring.whizard.io
 spec:
-  group: monitoring.paodin.io
+  group: monitoring.whizard.io
   names:
     kind: Tenant
     listKind: TenantList
@@ -6403,13 +6398,13 @@ status:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: paodin-controller-manager
+  name: whizard-controller-manager
   namespace: kubesphere-monitoring-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: paodin-leader-election-role
+  name: whizard-leader-election-role
   namespace: kubesphere-monitoring-system
 rules:
 - apiGroups:
@@ -6448,7 +6443,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   creationTimestamp: null
-  name: paodin-manager-role
+  name: whizard-manager-role
 rules:
 - apiGroups:
   - apps
@@ -6559,7 +6554,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - alertingrules
   verbs:
@@ -6567,7 +6562,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - compactors
   verbs:
@@ -6579,13 +6574,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - compactors/finalizers
   verbs:
   - update
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - compactors/status
   verbs:
@@ -6593,7 +6588,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - ingesters
   verbs:
@@ -6605,13 +6600,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - ingesters/finalizers
   verbs:
   - update
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - ingesters/status
   verbs:
@@ -6619,7 +6614,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - rulegroups
   verbs:
@@ -6627,7 +6622,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - rulers
   verbs:
@@ -6639,13 +6634,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - rulers/finalizers
   verbs:
   - update
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - rulers/status
   verbs:
@@ -6653,7 +6648,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - rules
   verbs:
@@ -6661,7 +6656,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - service
   verbs:
@@ -6669,7 +6664,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - services
   verbs:
@@ -6681,13 +6676,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - services/finalizers
   verbs:
   - update
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - services/status
   verbs:
@@ -6695,7 +6690,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - storage
   verbs:
@@ -6703,7 +6698,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - storages
   verbs:
@@ -6715,7 +6710,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - stores
   verbs:
@@ -6727,13 +6722,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - stores/finalizers
   verbs:
   - update
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - stores/status
   verbs:
@@ -6741,7 +6736,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - tenants
   verbs:
@@ -6754,13 +6749,13 @@ rules:
   - verbs=get
   - watch
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - tenants/finalizers
   verbs:
   - update
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - tenants/status
   verbs:
@@ -6784,7 +6779,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: paodin-metrics-reader
+  name: whizard-metrics-reader
 rules:
 - nonResourceURLs:
   - /metrics
@@ -6794,7 +6789,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: paodin-proxy-role
+  name: whizard-proxy-role
 rules:
 - apiGroups:
   - authentication.k8s.io
@@ -6812,41 +6807,41 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: paodin-leader-election-rolebinding
+  name: whizard-leader-election-rolebinding
   namespace: kubesphere-monitoring-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: paodin-leader-election-role
+  name: whizard-leader-election-role
 subjects:
 - kind: ServiceAccount
-  name: paodin-controller-manager
+  name: whizard-controller-manager
   namespace: kubesphere-monitoring-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: paodin-manager-rolebinding
+  name: whizard-manager-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: paodin-manager-role
+  name: whizard-manager-role
 subjects:
 - kind: ServiceAccount
-  name: paodin-controller-manager
+  name: whizard-controller-manager
   namespace: kubesphere-monitoring-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: paodin-proxy-rolebinding
+  name: whizard-proxy-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: paodin-proxy-role
+  name: whizard-proxy-role
 subjects:
 - kind: ServiceAccount
-  name: paodin-controller-manager
+  name: whizard-controller-manager
   namespace: kubesphere-monitoring-system
 ---
 apiVersion: v1
@@ -6862,10 +6857,10 @@ data:
       port: 9443
     leaderElection:
       leaderElect: true
-      resourceName: paodin-controller-manager-leader-election
+      resourceName: whizard-controller-manager-leader-election
 kind: ConfigMap
 metadata:
-  name: paodin-manager-config
+  name: whizard-manager-config
   namespace: kubesphere-monitoring-system
 ---
 apiVersion: v1
@@ -6873,7 +6868,7 @@ kind: Service
 metadata:
   labels:
     control-plane: controller-manager
-  name: paodin-controller-manager-metrics-service
+  name: whizard-controller-manager-metrics-service
   namespace: kubesphere-monitoring-system
 spec:
   ports:
@@ -6887,20 +6882,20 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: paodin-controller-manager
+    app: whizard-controller-manager
     control-plane: controller-manager
-  name: paodin-controller-manager
+  name: whizard-controller-manager
   namespace: kubesphere-monitoring-system
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: paodin-controller-manager
+      app: whizard-controller-manager
       control-plane: controller-manager
   template:
     metadata:
       labels:
-        app: paodin-controller-manager
+        app: whizard-controller-manager
         control-plane: controller-manager
     spec:
       containers:
@@ -6920,7 +6915,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: kubesphere/paodin-controller-manager:latest
+        image: kubesphere/whizard-controller-manager:latest
         livenessProbe:
           httpGet:
             path: /healthz
@@ -6945,5 +6940,5 @@ spec:
           allowPrivilegeEscalation: false
       securityContext:
         runAsNonRoot: true
-      serviceAccountName: paodin-controller-manager
+      serviceAccountName: whizard-controller-manager
       terminationGracePeriodSeconds: 10

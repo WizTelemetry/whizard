@@ -115,7 +115,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - alertingrules
   verbs:
@@ -123,7 +123,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - compactors
   verbs:
@@ -135,13 +135,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - compactors/finalizers
   verbs:
   - update
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - compactors/status
   verbs:
@@ -149,7 +149,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - ingesters
   verbs:
@@ -161,13 +161,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - ingesters/finalizers
   verbs:
   - update
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - ingesters/status
   verbs:
@@ -175,7 +175,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - rulegroups
   verbs:
@@ -183,7 +183,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - rulers
   verbs:
@@ -195,13 +195,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - rulers/finalizers
   verbs:
   - update
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - rulers/status
   verbs:
@@ -209,7 +209,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - rules
   verbs:
@@ -217,7 +217,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - service
   verbs:
@@ -225,7 +225,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - services
   verbs:
@@ -237,13 +237,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - services/finalizers
   verbs:
   - update
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - services/status
   verbs:
@@ -251,7 +251,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - storage
   verbs:
@@ -259,7 +259,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - storages
   verbs:
@@ -271,7 +271,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - stores
   verbs:
@@ -283,13 +283,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - stores/finalizers
   verbs:
   - update
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - stores/status
   verbs:
@@ -297,7 +297,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - tenants
   verbs:
@@ -310,13 +310,13 @@ rules:
   - verbs=get
   - watch
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - tenants/finalizers
   verbs:
   - update
 - apiGroups:
-  - monitoring.paodin.io
+  - monitoring.whizard.io
   resources:
   - tenants/status
   verbs:

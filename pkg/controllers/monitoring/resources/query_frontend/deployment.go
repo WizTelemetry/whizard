@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/query"
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/query"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -56,12 +57,12 @@ func (q *QueryFrontend) deployment() (runtime.Object, resources.Operation, error
 		Ports: []corev1.ContainerPort{
 			{
 				Protocol:      corev1.ProtocolTCP,
-				Name:          resources.ThanosHTTPPortName,
-				ContainerPort: resources.ThanosHTTPPort,
+				Name:          constants.HTTPPortName,
+				ContainerPort: constants.HTTPPort,
 			},
 		},
-		LivenessProbe:  resources.ThanosDefaultLivenessProbe(),
-		ReadinessProbe: resources.ThanosDefaultReadinessProbe(),
+		LivenessProbe:  resources.DefaultLivenessProbe(),
+		ReadinessProbe: resources.DefaultReadinessProbe(),
 		VolumeMounts: []corev1.VolumeMount{{
 			Name:      cacheConfigVol.Name,
 			MountPath: configDir,

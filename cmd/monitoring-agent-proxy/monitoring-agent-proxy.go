@@ -7,7 +7,7 @@ import (
 	"github.com/thanos-io/thanos/pkg/logging"
 	thanos_tls "github.com/thanos-io/thanos/pkg/tls"
 
-	monitoringagentproxy "github.com/kubesphere/paodin/pkg/monitoring-agent-proxy"
+	monitoringagentproxy "github.com/kubesphere/whizard/pkg/monitoring-agent-proxy"
 )
 
 var cli struct {
@@ -22,7 +22,7 @@ var cli struct {
 	ServerTlsClientCa string `default:"" help:"TLS CA to verify clients against. If no client CA is specified, there is no client verification on server side. (tls.NoClientCert)"`
 
 	MonitorGateway struct {
-		Address            string `default:"" help:"Address to connect paodin monitor-gateway"`
+		Address            string `default:"" help:"Address to connect whizard monitor-gateway"`
 		ClientTlsKey       string `default:"" help:"TLS Key for HTTP client, leave blank to skip verify."`
 		ClientTlsCert      string `default:"" help:"TLS Certificate for HTTP client, leave blank to skip verify."`
 		ServerTlsClientCa  string `default:"" help:"TLS CA to verify clients against. If no client CA is specified, there is no client verification on server side. (tls.NoClientCert)"`

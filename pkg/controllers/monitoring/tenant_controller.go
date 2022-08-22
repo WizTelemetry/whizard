@@ -21,10 +21,11 @@ import (
 	"fmt"
 	"strings"
 
-	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/options"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/tenant"
+	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/tenant"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -46,13 +47,13 @@ type TenantReconciler struct {
 	Options *options.Options
 }
 
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=tenants,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=tenants/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=tenants/finalizers,verbs=update
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=service,verbs=get;list;watch
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=storage,verbs=get;list;watch
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=ingesters,verbs=get;list;watch
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=rulers,verbs=get;list;watch
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=tenants,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=tenants/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=tenants/finalizers,verbs=update
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=service,verbs=get;list;watch
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=storage,verbs=get;list;watch
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=ingesters,verbs=get;list;watch
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=rulers,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -118,7 +119,7 @@ func (r *TenantReconciler) mapToTenantbyLabelFunc(o client.Object) []reconcile.R
 
 	labels := o.GetLabels()
 	var tenantsName []string
-	if tenants, ok := labels[monitoringv1alpha1.MonitoringPaodinTenant]; ok {
+	if tenants, ok := labels[constants.TenantLabelKey]; ok {
 		tenantsName = strings.Split(tenants, ".")
 	}
 
@@ -188,24 +189,24 @@ func (r *TenantReconciler) tenantValidator(tenant *monitoringv1alpha1.Tenant) (*
 		tenant.Labels = make(map[string]string, 2)
 	}
 
-	if v, ok := tenant.Labels[monitoringv1alpha1.MonitoringPaodinService]; !ok || v == "" {
+	if v, ok := tenant.Labels[constants.ServiceLabelKey]; !ok || v == "" {
 		return tenant, false, nil
 	}
 
-	v, ok := tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage]
-	if ok && len(strings.Split(tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage], ".")) != 2 {
-		return nil, false, fmt.Errorf("tenant [%s]'s Storage field [%s] is invalid", tenant.Name, tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage])
+	v, ok := tenant.Labels[constants.StorageLabelKey]
+	if ok && len(strings.Split(tenant.Labels[constants.StorageLabelKey], ".")) != 2 {
+		return nil, false, fmt.Errorf("tenant [%s]'s Storage field [%s] is invalid", tenant.Name, tenant.Labels[constants.StorageLabelKey])
 	}
 
-	// check tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] field
+	// check tenant.Labels[monitoringv1alpha1.StorageLabelKey] field
 	if tenant.Spec.Storage != nil {
 		if value := fmt.Sprintf("%s.%s", tenant.Spec.Storage.Namespace, tenant.Spec.Storage.Name); value != v {
-			tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] = value
+			tenant.Labels[constants.StorageLabelKey] = value
 			needToUpdate = true
 		}
 	} else {
 		service := &monitoringv1alpha1.Service{}
-		serviceNamespacedName := strings.Split(tenant.Labels[monitoringv1alpha1.MonitoringPaodinService], ".")
+		serviceNamespacedName := strings.Split(tenant.Labels[constants.ServiceLabelKey], ".")
 		if err := r.Client.Get(r.Context, types.NamespacedName{
 			Namespace: serviceNamespacedName[0],
 			Name:      serviceNamespacedName[1],
@@ -214,13 +215,13 @@ func (r *TenantReconciler) tenantValidator(tenant *monitoringv1alpha1.Tenant) (*
 		}
 		if service.Spec.Storage != nil {
 			if value := fmt.Sprintf("%s.%s", service.Spec.Storage.Namespace, service.Spec.Storage.Name); value != v {
-				tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] = value
+				tenant.Labels[constants.StorageLabelKey] = value
 				needToUpdate = true
 			}
 		} else {
 			// The associated Storage CR could not be found, use local storage
-			if v, ok := tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage]; !ok || v != monitoringv1alpha1.MonitoringLocalStorage {
-				tenant.Labels[monitoringv1alpha1.MonitoringPaodinStorage] = monitoringv1alpha1.MonitoringLocalStorage
+			if v, ok := tenant.Labels[constants.StorageLabelKey]; !ok || v != constants.LocalStorage {
+				tenant.Labels[constants.StorageLabelKey] = constants.LocalStorage
 				needToUpdate = true
 			}
 		}

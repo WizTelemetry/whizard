@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/storage"
-	"github.com/kubesphere/paodin/pkg/util"
+	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/storage"
+	"github.com/kubesphere/whizard/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,7 +18,7 @@ import (
 )
 
 const (
-	storageDir = "/thanos"
+	storageDir = "/whizard"
 
 	mainContainerName = "store"
 
@@ -61,13 +62,13 @@ func (r *Store) statefulSet() (runtime.Object, resources.Operation, error) {
 			Ports: []corev1.ContainerPort{
 				{
 					Protocol:      corev1.ProtocolTCP,
-					Name:          resources.ThanosGRPCPortName,
-					ContainerPort: resources.ThanosGRPCPort,
+					Name:          constants.GRPCPortName,
+					ContainerPort: constants.GRPCPort,
 				},
 				{
 					Protocol:      corev1.ProtocolTCP,
-					Name:          resources.ThanosHTTPPortName,
-					ContainerPort: resources.ThanosHTTPPort,
+					Name:          constants.HTTPPortName,
+					ContainerPort: constants.HTTPPort,
 				},
 			},
 		}
@@ -78,11 +79,11 @@ func (r *Store) statefulSet() (runtime.Object, resources.Operation, error) {
 	util.AddVolume(sts, container, r.store.Spec.DataVolume, tsdbVolumeName, storageDir)
 
 	if container.LivenessProbe == nil {
-		container.LivenessProbe = resources.ThanosDefaultLivenessProbe()
+		container.LivenessProbe = resources.DefaultLivenessProbe()
 	}
 
 	if container.ReadinessProbe == nil {
-		container.ReadinessProbe = resources.ThanosDefaultReadinessProbe()
+		container.ReadinessProbe = resources.DefaultReadinessProbe()
 	}
 
 	container.Resources = r.store.Spec.Resources
@@ -102,7 +103,7 @@ func (r *Store) megerArgs(container *corev1.Container) error {
 	defaultArgs := []string{"store", fmt.Sprintf("--data-dir=%s", storageDir)}
 
 	storageInstance := &v1alpha1.Storage{}
-	namespaceName := strings.Split(r.store.Labels[v1alpha1.MonitoringPaodinStorage], ".")
+	namespaceName := strings.Split(r.store.Labels[constants.StorageLabelKey], ".")
 	if err := r.Client.Get(r.Context, client.ObjectKey{Name: namespaceName[1], Namespace: namespaceName[0]}, storageInstance); err != nil {
 		return err
 	}

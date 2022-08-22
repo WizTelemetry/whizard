@@ -22,6 +22,12 @@ import (
 	"strconv"
 	"time"
 
+	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/ingester"
+	"github.com/prometheus/common/model"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -33,12 +39,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/options"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/ingester"
-	"github.com/prometheus/common/model"
 )
 
 // IngesterReconciler reconciles a Ingester object
@@ -49,10 +49,10 @@ type IngesterReconciler struct {
 	Context context.Context
 }
 
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=ingesters,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=ingesters/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=ingesters/finalizers,verbs=update
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=services,verbs=get;list;watch
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=ingesters,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=ingesters/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=ingesters/finalizers,verbs=update
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=services,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
 
@@ -80,8 +80,8 @@ func (r *IngesterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	// recycle ingester by using the RequeueAfter event
-	if v, ok := instance.Annotations[resources.LabelNameIngesterState]; ok && v == "deleting" && len(instance.Spec.Tenants) == 0 {
-		if deletingTime, ok := instance.Annotations[resources.LabelNameIngesterDeletingTime]; ok {
+	if v, ok := instance.Annotations[constants.LabelNameIngesterState]; ok && v == "deleting" && len(instance.Spec.Tenants) == 0 {
+		if deletingTime, ok := instance.Annotations[constants.LabelNameIngesterDeletingTime]; ok {
 			i, err := strconv.ParseInt(deletingTime, 10, 64)
 			if err == nil {
 				d := time.Since(time.Unix(i, 0))
@@ -163,7 +163,7 @@ func CreateIngesterDefaulterValidator(opt options.Options) IngesterDefaulterVali
 		}
 
 		if ingester.Spec.Image == "" {
-			ingester.Spec.Image = opt.ThanosImage
+			ingester.Spec.Image = opt.WhizardImage
 		}
 		if ingester.Spec.Replicas == nil || *ingester.Spec.Replicas < 0 {
 			ingester.Spec.Replicas = &replicas

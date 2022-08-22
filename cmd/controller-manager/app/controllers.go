@@ -2,17 +2,17 @@ package app
 
 import (
 	"context"
+
+	"github.com/kubesphere/whizard/cmd/controller-manager/app/options"
+	"github.com/kubesphere/whizard/pkg/client/k8s"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring"
+	"github.com/kubesphere/whizard/pkg/informers"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-
-	"github.com/kubesphere/paodin/cmd/controller-manager/app/options"
-	"github.com/kubesphere/paodin/pkg/client/k8s"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring"
-	"github.com/kubesphere/paodin/pkg/informers"
 )
 
 func addControllers(mgr manager.Manager, client k8s.Client, informerFactory informers.InformerFactory,
-	cmOptions *options.PaodinControllerManagerOptions, ctx context.Context) error {
+	cmOptions *options.ControllerManagerOptions, ctx context.Context) error {
 
 	if err := (&monitoring.ServiceReconciler{
 		DefaulterValidator: monitoring.CreateServiceDefaulterValidator(*cmOptions.MonitoringOptions),

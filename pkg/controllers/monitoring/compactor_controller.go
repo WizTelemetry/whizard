@@ -19,11 +19,12 @@ package monitoring
 import (
 	"context"
 
-	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/options"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/compactor"
-	"github.com/kubesphere/paodin/pkg/util"
+	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/compactor"
+	"github.com/kubesphere/whizard/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -48,9 +49,9 @@ type CompactorReconciler struct {
 	Options options.CompactorOptions
 }
 
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=compactors,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=compactors/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=compactors/finalizers,verbs=update
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=compactors,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=compactors/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=compactors/finalizers,verbs=update
 //+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
 
@@ -79,7 +80,7 @@ func (r *CompactorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	if instance.GetDeletionTimestamp().IsZero() {
 		if len(instance.Finalizers) == 0 {
-			instance.Finalizers = append(instance.Finalizers, monitoringv1alpha1.FinalizerMonitoringPaodinDeletePVC)
+			instance.Finalizers = append(instance.Finalizers, constants.FinalizerDeletePVC)
 		}
 	} else {
 		if err := util.DeletePVC(r.Context, r.Client, instance); err != nil {
@@ -128,7 +129,7 @@ func (r *CompactorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *CompactorReconciler) mapToCompatorByStorage(obj client.Object) []reconcile.Request {
 	compactorList := &monitoringv1alpha1.CompactorList{}
 
-	if err := r.List(r.Context, compactorList, client.MatchingLabels{monitoringv1alpha1.MonitoringPaodinStorage: obj.GetNamespace() + "." + obj.GetName()}); err != nil {
+	if err := r.List(r.Context, compactorList, client.MatchingLabels{constants.StorageLabelKey: obj.GetNamespace() + "." + obj.GetName()}); err != nil {
 		klog.Errorf("Enqueue Compactor request from storage [%s.%s] failed, %s", obj.GetNamespace(), obj.GetName(), err)
 		return nil
 	}
@@ -154,7 +155,7 @@ func CreateCompactorDefaulterValidator(opt options.Options) CompactorDefaulterVa
 	return func(compactor *monitoringv1alpha1.Compactor) (*monitoringv1alpha1.Compactor, error) {
 
 		if compactor.Spec.Image == "" {
-			compactor.Spec.Image = opt.ThanosImage
+			compactor.Spec.Image = opt.WhizardImage
 		}
 
 		if compactor.Spec.ImagePullPolicy == "" {

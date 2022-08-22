@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: compactors.monitoring.paodin.io
+  name: compactors.monitoring.whizard.io
 spec:
-  group: monitoring.paodin.io
+  group: monitoring.whizard.io
   names:
     kind: Compactor
     listKind: CompactorList
@@ -1176,7 +1176,7 @@ spec:
                   strategy parameters.
                 type: object
               image:
-                description: Image is the thanos image with tag/version
+                description: Image is the image with tag/version
                 type: string
               imagePullPolicy:
                 description: Image pull policy. One of Always, Never, IfNotPresent.

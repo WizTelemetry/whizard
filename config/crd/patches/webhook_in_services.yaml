@@ -2,7 +2,7 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: services.monitoring.paodin.io
+  name: services.monitoring.whizard.io
 spec:
   conversion:
     strategy: Webhook

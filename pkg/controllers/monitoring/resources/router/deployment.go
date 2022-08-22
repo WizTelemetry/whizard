@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -56,22 +57,22 @@ func (r *Router) deployment() (runtime.Object, resources.Operation, error) {
 		Ports: []corev1.ContainerPort{
 			{
 				Protocol:      corev1.ProtocolTCP,
-				Name:          resources.ThanosGRPCPortName,
-				ContainerPort: resources.ThanosGRPCPort,
+				Name:          constants.GRPCPortName,
+				ContainerPort: constants.GRPCPort,
 			},
 			{
 				Protocol:      corev1.ProtocolTCP,
-				Name:          resources.ThanosHTTPPortName,
-				ContainerPort: resources.ThanosHTTPPort,
+				Name:          constants.HTTPPortName,
+				ContainerPort: constants.HTTPPort,
 			},
 			{
 				Protocol:      corev1.ProtocolTCP,
-				Name:          resources.ThanosRemoteWritePortName,
-				ContainerPort: resources.ThanosRemoteWritePort,
+				Name:          constants.RemoteWritePortName,
+				ContainerPort: constants.RemoteWritePort,
 			},
 		},
-		LivenessProbe:  resources.ThanosDefaultLivenessProbe(),
-		ReadinessProbe: resources.ThanosDefaultReadinessProbe(),
+		LivenessProbe:  resources.DefaultLivenessProbe(),
+		ReadinessProbe: resources.DefaultReadinessProbe(),
 		VolumeMounts: []corev1.VolumeMount{{
 			Name:      hashringsVol.Name,
 			MountPath: configDir,
@@ -94,7 +95,7 @@ func (r *Router) deployment() (runtime.Object, resources.Operation, error) {
 	if r.router.LogFormat != "" {
 		container.Args = append(container.Args, "--log.format="+r.router.LogFormat)
 	}
-	container.Args = append(container.Args, `--label=thanos_receive_replica="$(POD_NAME)"`)
+	container.Args = append(container.Args, fmt.Sprintf("--label=%s=\"$(POD_NAME)\"", constants.ReceiveReplicaLabelName))
 	container.Args = append(container.Args, "--receive.hashrings-file="+filepath.Join(configDir, hashringsFile))
 	if r.router.ReplicationFactor != nil {
 		container.Args = append(container.Args, fmt.Sprintf("--receive.replication-factor=%d", *r.router.ReplicationFactor))
@@ -113,7 +114,6 @@ func (r *Router) deployment() (runtime.Object, resources.Operation, error) {
 	for name, value := range r.router.Flags {
 		if name == "receive.local-endpoint" {
 			// ignoring these flags to make receiver run with router mode
-			// refer to https://github.com/thanos-io/thanos/blob/release-0.26/cmd/thanos/receive.go#L816
 			continue
 		}
 		container.Args = append(container.Args, fmt.Sprintf("--%s=%s", name, value))

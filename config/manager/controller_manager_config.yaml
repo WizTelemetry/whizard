@@ -8,4 +8,4 @@ webhook:
   port: 9443
 leaderElection:
   leaderElect: true
-  resourceName: paodin-controller-manager-leader-election
+  resourceName: whizard-controller-manager-leader-election

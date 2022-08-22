@@ -1,10 +1,10 @@
 package resources
 
 import (
+	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
-
-	"github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
 )
 
 type StoreBaseReconciler struct {
@@ -15,8 +15,8 @@ type StoreBaseReconciler struct {
 
 func (r *StoreBaseReconciler) BaseLabels() map[string]string {
 	return map[string]string{
-		LabelNameAppManagedBy: r.Store.Name,
-		LabelNameAppPartOf:    "store",
+		constants.LabelNameAppManagedBy: r.Store.Name,
+		constants.LabelNameAppPartOf:    "store",
 	}
 }
 

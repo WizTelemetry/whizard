@@ -35,7 +35,7 @@ When a delete event is received, the tenant is removed from the Ingestor and the
 When ingestor's Tennats are empty, it will be reclaimed:
 
 * When the tenant is empty condition is triggered, the ingestor is not deleted immediately.
-* First add two labels to ingestor, "monitoring.paodin.io/ingestor-state=deleting" and "monitoring.paodin.io/ingestor-deleting-time=`time.Now() + defaultIngestorRetentionPeriod`".
+* First add two labels to ingestor, "monitoring.whizard.io/ingestor-state=deleting" and "monitoring.whizard.io/ingestor-deleting-time=`time.Now() + defaultIngestorRetentionPeriod`".
 * If it is used by another tenant during the `defaultIngestorRetentionPeriod`, the label is updated.
 * If tenant is not in use after `defaultIngestorRetentionPeriod`, delete it.
 * `defaultIngestorRetentionPeriod` can be updated from the command line or configuration file, The default 3 h.

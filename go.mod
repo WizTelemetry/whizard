@@ -1,4 +1,4 @@
-module github.com/kubesphere/paodin
+module github.com/kubesphere/whizard
 
 go 1.17
 

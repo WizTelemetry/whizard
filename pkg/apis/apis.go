@@ -1,4 +1,4 @@
-// Package apis contains Paodin API groups.
+// Package apis contains Whizard API groups.
 package apis
 
 import (

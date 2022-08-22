@@ -1,8 +1,9 @@
 package store
 
 import (
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/paodin/pkg/util"
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -11,7 +12,7 @@ import (
 )
 
 func (r *Store) service() (runtime.Object, resources.Operation, error) {
-	var s = &corev1.Service{ObjectMeta: r.meta(util.Join("-", r.store.Name, resources.ServiceNameSuffixOperated))}
+	var s = &corev1.Service{ObjectMeta: r.meta(util.Join("-", r.store.Name, constants.ServiceNameSuffix))}
 
 	if err := r.Client.Get(r.Context, client.ObjectKeyFromObject(s), s); err != nil {
 		if !util.IsNotFound(err) {
@@ -25,15 +26,15 @@ func (r *Store) service() (runtime.Object, resources.Operation, error) {
 	ports := []corev1.ServicePort{
 		{
 			Protocol:   corev1.ProtocolTCP,
-			Name:       resources.ThanosGRPCPortName,
-			Port:       resources.ThanosGRPCPort,
-			TargetPort: intstr.FromInt(resources.ThanosGRPCPort),
+			Name:       constants.GRPCPortName,
+			Port:       constants.GRPCPort,
+			TargetPort: intstr.FromInt(constants.GRPCPort),
 		},
 		{
 			Protocol:   corev1.ProtocolTCP,
-			Name:       resources.ThanosHTTPPortName,
-			Port:       resources.ThanosHTTPPort,
-			TargetPort: intstr.FromInt(resources.ThanosHTTPPort),
+			Name:       constants.HTTPPortName,
+			Port:       constants.HTTPPort,
+			TargetPort: intstr.FromInt(constants.HTTPPort),
 		},
 	}
 

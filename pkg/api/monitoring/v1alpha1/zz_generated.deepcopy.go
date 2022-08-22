@@ -1031,11 +1031,6 @@ func (in *RulerSpec) DeepCopyInto(out *RulerSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
-	if in.AlertManagersURL != nil {
-		in, out := &in.AlertManagersURL, &out.AlertManagersURL
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	}
 	if in.AlertManagersConfig != nil {
 		in, out := &in.AlertManagersConfig, &out.AlertManagersConfig
 		*out = new(v1.SecretKeySelector)

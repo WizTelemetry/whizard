@@ -8,7 +8,7 @@ import (
 	"github.com/thanos-io/thanos/pkg/logging"
 	thanos_tls "github.com/thanos-io/thanos/pkg/tls"
 
-	monitoringgateway "github.com/kubesphere/paodin/pkg/monitoring-gateway"
+	monitoringgateway "github.com/kubesphere/whizard/pkg/monitoring-gateway"
 )
 
 var cli struct {
@@ -29,7 +29,7 @@ var cli struct {
 		Address string `default:"" help:"Address to send query requests."`
 	} `embed:"" prefix:"query."`
 	Tenant struct {
-		Header    string `default:"THANOS-TENANT" help:"Http header to determine tenant for requests"`
+		Header    string `default:"WHIZARD-TENANT" help:"Http header to determine tenant for requests"`
 		LabelName string `default:"tenant_id" help:"Label name through which the tenant will be announced"`
 	} `embed:"" prefix:"tenant."`
 }
