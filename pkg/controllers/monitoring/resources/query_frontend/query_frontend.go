@@ -3,13 +3,14 @@ package query_frontend
 import (
 	"fmt"
 
-	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
+	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
-	configDir       = "/etc/thanos"
+	configDir       = "/etc/whizard"
 	cacheConfigFile = "cache-config.yaml"
 )
 
@@ -27,13 +28,13 @@ func New(reconciler resources.ServiceBaseReconciler) *QueryFrontend {
 
 func (q *QueryFrontend) labels() map[string]string {
 	labels := q.BaseLabels()
-	labels[resources.LabelNameAppName] = resources.AppNameQueryFrontend
-	labels[resources.LabelNameAppManagedBy] = q.Service.Name
+	labels[constants.LabelNameAppName] = constants.AppNameQueryFrontend
+	labels[constants.LabelNameAppManagedBy] = q.Service.Name
 	return labels
 }
 
 func (q *QueryFrontend) name(nameSuffix ...string) string {
-	return resources.QualifiedName(resources.AppNameQueryFrontend, q.Service.Name, nameSuffix...)
+	return resources.QualifiedName(constants.AppNameQueryFrontend, q.Service.Name, nameSuffix...)
 }
 
 func (q *QueryFrontend) meta(name string) metav1.ObjectMeta {
@@ -48,7 +49,7 @@ func (q *QueryFrontend) meta(name string) metav1.ObjectMeta {
 
 func (q *QueryFrontend) HttpAddr() string {
 	return fmt.Sprintf("http://%s.%s.svc:%d",
-		q.name(resources.ServiceNameSuffixOperated), q.Service.Namespace, resources.ThanosHTTPPort)
+		q.name(constants.ServiceNameSuffix), q.Service.Namespace, constants.HTTPPort)
 }
 
 func (q *QueryFrontend) Reconcile() error {

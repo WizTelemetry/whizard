@@ -19,10 +19,11 @@ package monitoring
 import (
 	"context"
 
-	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/options"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/store"
+	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/store"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
 	corev1 "k8s.io/api/core/v1"
@@ -48,9 +49,9 @@ type StoreReconciler struct {
 	Options options.StoreOptions
 }
 
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=stores,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=stores/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=stores/finalizers,verbs=update
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=stores,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=stores/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=stores/finalizers,verbs=update
 //+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=autoscaling,resources=horizontalpodautoscalers,verbs=get;list;watch;create;update;patch;delete
@@ -112,7 +113,7 @@ func (r *StoreReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *StoreReconciler) mapToStoreByStorage(obj client.Object) []reconcile.Request {
 	storeList := &monitoringv1alpha1.StoreList{}
 
-	if err := r.List(r.Context, storeList, client.MatchingLabels{monitoringv1alpha1.MonitoringPaodinStorage: obj.GetNamespace() + "." + obj.GetName()}); err != nil {
+	if err := r.List(r.Context, storeList, client.MatchingLabels{constants.StorageLabelKey: obj.GetNamespace() + "." + obj.GetName()}); err != nil {
 		klog.Errorf("Enqueue store request from storage [%s.%s] failed, %s", obj.GetNamespace(), obj.GetName(), err)
 		return nil
 	}

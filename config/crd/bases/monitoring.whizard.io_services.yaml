@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: services.monitoring.paodin.io
+  name: services.monitoring.whizard.io
 spec:
-  group: monitoring.paodin.io
+  group: monitoring.whizard.io
   names:
     kind: Service
     listKind: ServiceList
@@ -41,8 +41,7 @@ spec:
                   header.
                 type: string
               gateway:
-                description: Gateway to proxy and auth requests to Query and Router
-                  defined in Thanos.
+                description: Gateway to proxy and auth requests to Query and Router.
                 properties:
                   affinity:
                     description: If specified, the pod's scheduling constraints.
@@ -1916,7 +1915,7 @@ spec:
                       set strategy parameters.
                     type: object
                   image:
-                    description: Image is the thanos image with tag/version
+                    description: Image is the image with tag/version
                     type: string
                   logFormat:
                     description: 'Log format to use. Possible options: logfmt or json'
@@ -1979,8 +1978,7 @@ spec:
                         addresses:
                           description: Address is the addresses of StoreApi server,
                             which may be prefixed with 'dns+' or 'dnssrv+' to detect
-                            StoreAPI servers through respective DNS lookups. For more
-                            info, see https://thanos.io/tip/thanos/service-discovery.md/#dns-service-discovery
+                            StoreAPI servers through respective DNS lookups.
                           items:
                             type: string
                           type: array
@@ -2953,7 +2951,7 @@ spec:
                       set strategy parameters.
                     type: object
                   image:
-                    description: Image is the thanos image with tag/version
+                    description: Image is the image with tag/version
                     type: string
                   logFormat:
                     description: 'Log format to use. Possible options: logfmt or json'
@@ -3915,7 +3913,7 @@ spec:
                       set strategy parameters.
                     type: object
                   image:
-                    description: Image is the thanos image with tag/version
+                    description: Image is the image with tag/version
                     type: string
                   logFormat:
                     description: 'Log format to use. Possible options: logfmt or json'

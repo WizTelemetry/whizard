@@ -3,8 +3,8 @@ package options
 import (
 	"time"
 
-	"github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin/pkg/util"
+	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/util"
 	"github.com/spf13/pflag"
 	"k8s.io/api/autoscaling/v2beta2"
 	corev1 "k8s.io/api/core/v1"
@@ -12,13 +12,13 @@ import (
 )
 
 const (
-	ThanosDefaultImage                   = "thanosio/thanos:v0.26.0"
-	EnvoyDefaultImage                    = "envoyproxy/envoy:v1.20.2"
-	PaodinMonitoringGatewayDefaultImage  = "kubesphere/paodin-monitoring-gateway:latest"
-	PaodinDefaultService                 = "kubesphere-monitoring-system.central"
-	PaodinDefaultTenantsPerIngester      = 3
-	PaodinDefaultIngesterRetentionPeriod = time.Hour * 3
-	PaodinDefaultTenantsPerCompactor     = 10
+	DefaultWhizardImage            = "thanosio/thanos:v0.26.0"
+	DefaultEnvoyImage              = "envoyproxy/envoy:v1.20.2"
+	DefaultGatewayImage            = "kubesphere/whizard-monitoring-gateway:latest"
+	DefaultService                 = "kubesphere-monitoring-system.central"
+	DefaultTenantsPerIngester      = 3
+	DefaultIngesterRetentionPeriod = time.Hour * 3
+	DefaultTenantsPerCompactor     = 10
 
 	DefaultStoreMinReplicas = 2
 	DefaultStoreMaxReplicas = 20
@@ -33,7 +33,7 @@ var PrometheusConfigReloaderDefaultConfig = PrometheusConfigReloaderConfig{
 }
 
 var RulerQueryProxyDefaultConfig = RulerQueryProxyConfig{
-	Image:         PaodinMonitoringGatewayDefaultImage,
+	Image:         DefaultGatewayImage,
 	CPURequest:    "100m",
 	MemoryRequest: "50Mi",
 	CPULimit:      "100m",
@@ -135,7 +135,7 @@ func (o *CommonOptions) ApplyTo(options *CommonOptions) {
 }
 
 func (o *CommonOptions) AddFlags(fs *pflag.FlagSet, c *CommonOptions, prefix string) {
-	fs.StringVar(&c.Image, prefix+".image", c.Image, "Thanos image with tag/version")
+	fs.StringVar(&c.Image, prefix+".image", c.Image, "Image with tag/version")
 	fs.StringVar(&c.LogLevel, prefix+".log.level", c.LogLevel, "Log filtering level")
 	fs.StringVar(&c.LogFormat, prefix+".log.format", c.LogLevel, "Log format to use. Possible options: logfmt or json")
 }
@@ -263,7 +263,7 @@ func defaultStoreOptions() StoreOptions {
 
 	return StoreOptions{
 		CommonOptions: CommonOptions{
-			Image: ThanosDefaultImage,
+			Image: DefaultWhizardImage,
 			Resources: corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
 					corev1.ResourceCPU:    resource.MustParse("100m"),
@@ -355,9 +355,9 @@ func (o *StoreOptions) AddFlags(_ *pflag.FlagSet, _ *StoreOptions) {
 }
 
 type Options struct {
-	ThanosImage                  string `json:"thanosImage,omitempty" yaml:"thanosImage,omitempty"`
-	EnvoyImage                   string `json:"envoyImage,omitempty" yaml:"envoyImage,omitempty"`
-	PaodinMonitoringGatewayImage string `json:"paodinMonitoringGatewayImage,omitempty" yaml:"paodinMonitoringGatewayImage,omitempty"`
+	WhizardImage string `json:"whizardImage,omitempty" yaml:"whizardImage,omitempty"`
+	EnvoyImage   string `json:"envoyImage,omitempty" yaml:"envoyImage,omitempty"`
+	GatewayImage string `json:"gatewayImage,omitempty" yaml:"gGatewayImage,omitempty"`
 
 	EnableKubeSphereAdapter        bool          `json:"enableKubeSphereAdapter,omitempty" yaml:"enableKubeSphereAdapter,omitempty"`
 	KubeSphereAdapterService       string        `json:"kubeSphereAdapterService,omitempty" yaml:"kubeSphereAdapterService,omitempty"`
@@ -373,17 +373,17 @@ type Options struct {
 
 func NewOptions() *Options {
 	return &Options{
-		ThanosImage:                    ThanosDefaultImage,
-		EnvoyImage:                     EnvoyDefaultImage,
-		PaodinMonitoringGatewayImage:   PaodinMonitoringGatewayDefaultImage,
-		DefaultTenantsPerIngester:      PaodinDefaultTenantsPerIngester,
-		DefaultIngesterRetentionPeriod: PaodinDefaultIngesterRetentionPeriod,
+		WhizardImage:                   DefaultWhizardImage,
+		EnvoyImage:                     DefaultEnvoyImage,
+		GatewayImage:                   DefaultGatewayImage,
+		DefaultTenantsPerIngester:      DefaultTenantsPerIngester,
+		DefaultIngesterRetentionPeriod: DefaultIngesterRetentionPeriod,
 		EnableKubeSphereAdapter:        true,
-		KubeSphereAdapterService:       PaodinDefaultService,
+		KubeSphereAdapterService:       DefaultService,
 		PrometheusConfigReloader:       PrometheusConfigReloaderDefaultConfig,
 		RulerQueryProxy:                RulerQueryProxyDefaultConfig,
 		Compactor: CompactorOptions{
-			DefaultTenantsPerCompactor: PaodinDefaultTenantsPerCompactor,
+			DefaultTenantsPerCompactor: DefaultTenantsPerCompactor,
 		},
 		Store: defaultStoreOptions(),
 	}
@@ -398,14 +398,14 @@ func (o *Options) Validate() []error {
 }
 
 func (o *Options) ApplyTo(options *Options) {
-	if o.ThanosImage != "" {
-		options.ThanosImage = o.ThanosImage
+	if o.WhizardImage != "" {
+		options.WhizardImage = o.WhizardImage
 	}
 	if o.EnvoyImage != "" {
 		options.EnvoyImage = o.EnvoyImage
 	}
-	if o.PaodinMonitoringGatewayImage != "" {
-		options.PaodinMonitoringGatewayImage = o.PaodinMonitoringGatewayImage
+	if o.GatewayImage != "" {
+		options.GatewayImage = o.GatewayImage
 	}
 	if o.DefaultTenantsPerIngester != 0 {
 		options.DefaultTenantsPerIngester = o.DefaultTenantsPerIngester
@@ -424,13 +424,13 @@ func (o *Options) ApplyTo(options *Options) {
 }
 
 func (o *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
-	fs.StringVar(&c.ThanosImage, "thanos-image", ThanosDefaultImage, "Thanos image with tag/version")
-	fs.StringVar(&c.EnvoyImage, "envoy-image", EnvoyDefaultImage, "Envoy image with tag/version")
-	fs.StringVar(&c.PaodinMonitoringGatewayImage, "paodin-monitoring-gateway-image", PaodinMonitoringGatewayDefaultImage, "Paodin monitoring gateway image with tag/version")
-	fs.IntVar(&c.DefaultTenantsPerIngester, "defaultTenantsPerIngester", PaodinDefaultTenantsPerIngester, "Paodin default tenant count per ingester. (default 3)")
-	fs.DurationVar(&c.DefaultIngesterRetentionPeriod, "defaultIngesterRetentionPeriod", PaodinDefaultIngesterRetentionPeriod, "Paodin default ingester retention period. (default 2h)")
+	fs.StringVar(&c.WhizardImage, "whizard-image", DefaultWhizardImage, "Whizard image with tag/version")
+	fs.StringVar(&c.EnvoyImage, "envoy-image", DefaultEnvoyImage, "Envoy image with tag/version")
+	fs.StringVar(&c.GatewayImage, "gateway-image", DefaultGatewayImage, "Whizard monitoring gateway image with tag/version")
+	fs.IntVar(&c.DefaultTenantsPerIngester, "defaultTenantsPerIngester", DefaultTenantsPerIngester, "Whizard default tenant count per ingester. (default 3)")
+	fs.DurationVar(&c.DefaultIngesterRetentionPeriod, "defaultIngesterRetentionPeriod", DefaultIngesterRetentionPeriod, "Whizard default ingester retention period. (default 2h)")
 	fs.BoolVar(&c.EnableKubeSphereAdapter, "enableKubeSphereAdapter", true, "Enable KubeSphere adapter. (default true)")
-	fs.StringVar(&c.KubeSphereAdapterService, "kubeSphereAdapterService", PaodinDefaultService, "Default service for tenants generated by kubesphere adapter, format is namespace.name")
+	fs.StringVar(&c.KubeSphereAdapterService, "kubeSphereAdapterService", DefaultService, "Default service for tenants generated by kubesphere adapter, format is namespace.name")
 
 	fs.StringVar(&c.PrometheusConfigReloader.Image, "prometheus-config-reloader-image",
 		PrometheusConfigReloaderDefaultConfig.Image, "Prometheus Config Reloader image with tag/version")

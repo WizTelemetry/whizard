@@ -1,4 +1,4 @@
-apiVersion: monitoring.paodin.io/v1alpha1
+apiVersion: monitoring.whizard.io/v1alpha1
 kind: Service
 metadata:
   name: central
@@ -9,5 +9,5 @@ spec:
   query:
     replicaLabelNames:
       - prometheus_replica
-      - thanos_receive_replica
-      - thanos_ruler_replica
+      - receive_replica
+      - ruler_replica

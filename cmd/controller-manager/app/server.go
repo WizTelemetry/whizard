@@ -18,21 +18,21 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
-	"github.com/kubesphere/paodin/cmd/controller-manager/app/options"
-	"github.com/kubesphere/paodin/pkg/apis"
-	"github.com/kubesphere/paodin/pkg/client/k8s"
-	"github.com/kubesphere/paodin/pkg/controllers/config"
-	"github.com/kubesphere/paodin/pkg/informers"
+	"github.com/kubesphere/whizard/cmd/controller-manager/app/options"
+	"github.com/kubesphere/whizard/pkg/apis"
+	"github.com/kubesphere/whizard/pkg/client/k8s"
+	"github.com/kubesphere/whizard/pkg/controllers/config"
+	"github.com/kubesphere/whizard/pkg/informers"
 	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 )
 
 func NewControllerManagerCommand() *cobra.Command {
-	// Here will create a default paodin controller manager options
-	s := options.NewPaodinControllerManagerOptions()
+	// Here will create a default whizard controller manager options
+	s := options.NewControllerManagerOptions()
 	conf, err := config.TryLoadFromDisk()
 	if err == nil {
 		// make sure LeaderElection is not nil
-		// override paodin controller manager options
+		// override whizard controller manager options
 		if conf.KubernetesOptions != nil {
 			conf.KubernetesOptions.ApplyTo(s.KubernetesOptions)
 		}
@@ -47,7 +47,7 @@ func NewControllerManagerCommand() *cobra.Command {
 	// Initialize command to run our controllers later
 	cmd := &cobra.Command{
 		Use:   "controller-manager",
-		Short: `Paodin controller manager`,
+		Short: `Whizard controller manager`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if errs := s.Validate(); len(errs) != 0 {
 				klog.Error(utilerrors.NewAggregate(errs))
@@ -77,7 +77,7 @@ func NewControllerManagerCommand() *cobra.Command {
 
 	versionCmd := &cobra.Command{
 		Use:   "version",
-		Short: "Print the version of Paodin controller",
+		Short: "Print the version of Whizard controller",
 		Run: func(cmd *cobra.Command, args []string) {
 			// cmd.Println(version.Get())
 		},
@@ -88,7 +88,7 @@ func NewControllerManagerCommand() *cobra.Command {
 	return cmd
 }
 
-func Run(s *options.PaodinControllerManagerOptions, configCh <-chan config.Config, ctx context.Context) error {
+func Run(s *options.ControllerManagerOptions, configCh <-chan config.Config, ctx context.Context) error {
 	ictx, cancelFunc := context.WithCancel(context.TODO())
 	errCh := make(chan error)
 	defer close(errCh)
@@ -122,7 +122,7 @@ func Run(s *options.PaodinControllerManagerOptions, configCh <-chan config.Confi
 	}
 }
 
-func run(s *options.PaodinControllerManagerOptions, ctx context.Context) error {
+func run(s *options.ControllerManagerOptions, ctx context.Context) error {
 	// Init k8s client
 	kubernetesClient, err := k8s.NewKubernetesClient(s.KubernetesOptions)
 	if err != nil {
@@ -145,7 +145,7 @@ func run(s *options.PaodinControllerManagerOptions, ctx context.Context) error {
 
 	if s.LeaderElect {
 		mgrOptions.LeaderElection = s.LeaderElect
-		mgrOptions.LeaderElectionID = "paodin-controller-manager-leader-election"
+		mgrOptions.LeaderElectionID = "whizard-controller-manager-leader-election"
 		mgrOptions.LeaseDuration = &s.LeaderElection.LeaseDuration
 		mgrOptions.RetryPeriod = &s.LeaderElection.RetryPeriod
 		mgrOptions.RenewDeadline = &s.LeaderElection.RenewDeadline

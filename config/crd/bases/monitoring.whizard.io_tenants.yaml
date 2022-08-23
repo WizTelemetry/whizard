@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: tenants.monitoring.paodin.io
+  name: tenants.monitoring.whizard.io
 spec:
-  group: monitoring.paodin.io
+  group: monitoring.whizard.io
   names:
     kind: Tenant
     listKind: TenantList

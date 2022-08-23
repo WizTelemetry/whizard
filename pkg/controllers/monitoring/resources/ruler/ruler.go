@@ -3,20 +3,20 @@ package ruler
 import (
 	"fmt"
 
+	"github.com/kubesphere/whizard/pkg/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 
-	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/options"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
+	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 )
 
 const (
-	configDir       = "/etc/thanos"
-	rulesDir        = configDir + "/rules"
-	storageDir      = "/thanos"
-	remoteWriteFile = "remote-write.yaml"
+	configDir  = "/etc/whizard"
+	rulesDir   = configDir + "/rules"
+	storageDir = "/whizard"
 )
 
 type Ruler struct {
@@ -39,13 +39,13 @@ func New(reconciler resources.BaseReconciler, ruler *monitoringv1alpha1.Ruler,
 
 func (r *Ruler) labels() map[string]string {
 	labels := r.BaseLabels()
-	labels[resources.LabelNameAppName] = resources.AppNameRuler
-	labels[resources.LabelNameAppManagedBy] = r.ruler.Name
+	labels[constants.LabelNameAppName] = constants.AppNameRuler
+	labels[constants.LabelNameAppManagedBy] = r.ruler.Name
 	return labels
 }
 
 func (r *Ruler) name(nameSuffix ...string) string {
-	return resources.QualifiedName(resources.AppNameRuler, r.ruler.Name, nameSuffix...)
+	return resources.QualifiedName(constants.AppNameRuler, r.ruler.Name, nameSuffix...)
 }
 
 func (r *Ruler) meta(name string) metav1.ObjectMeta {
@@ -72,7 +72,7 @@ func (r *Ruler) OwnerReferences() []metav1.OwnerReference {
 
 func (r *Ruler) HttpAddr() string {
 	return fmt.Sprintf("http://%s.%s.svc:%d",
-		r.name(resources.ServiceNameSuffixOperated), r.ruler.Namespace, resources.ThanosHTTPPort)
+		r.name(constants.ServiceNameSuffix), r.ruler.Namespace, constants.HTTPPort)
 }
 
 func (r *Ruler) Reconcile() error {

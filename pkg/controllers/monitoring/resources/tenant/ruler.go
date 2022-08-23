@@ -3,14 +3,14 @@ package tenant
 import (
 	"strings"
 
+	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/util"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
-
-	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin/pkg/util"
 )
 
 func (t *Tenant) ruler() error {
@@ -30,7 +30,7 @@ func (t *Tenant) ruler() error {
 		} else {
 			var needResetRuler bool = false
 			// todo: more ruler check
-			if v, ok := ruler.Labels[monitoringv1alpha1.MonitoringPaodinService]; !ok || v != t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService] {
+			if v, ok := ruler.Labels[constants.ServiceLabelKey]; !ok || v != t.tenant.Labels[constants.ServiceLabelKey] {
 				klog.V(3).Infof("Tenant [%s] and ruler [%s]'s Service mismatch, need to reset ingester", t.tenant.Name, ruler.Name)
 				needResetRuler = true
 			}
@@ -44,7 +44,7 @@ func (t *Tenant) ruler() error {
 	}
 
 	// when tenant.Labels don't contain Service, remove the bindings to ingester and ruler
-	if v, ok := t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService]; !ok || v == "" {
+	if v, ok := t.tenant.Labels[constants.ServiceLabelKey]; !ok || v == "" {
 		klog.V(3).Infof("Tenant [%s]'s Service is empty. ruler does not need to be created", t.tenant.Name)
 		if t.tenant.Status.Ruler != nil && ruler != nil {
 			if err := t.Client.Delete(t.Context, ruler); err != nil {
@@ -70,12 +70,11 @@ func (t *Tenant) ruler() error {
 func (t *Tenant) createOrUpdateRulerinstance() *monitoringv1alpha1.Ruler {
 
 	label := make(map[string]string, 2)
-	label[monitoringv1alpha1.MonitoringPaodinTenant] = t.tenant.Name
-	label[monitoringv1alpha1.MonitoringPaodinService] = t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService]
+	label[constants.TenantLabelKey] = t.tenant.Name
+	label[constants.ServiceLabelKey] = t.tenant.Labels[constants.ServiceLabelKey]
 
-	serviceNamespacedName := strings.Split(t.tenant.Labels[monitoringv1alpha1.MonitoringPaodinService], ".")
+	serviceNamespacedName := strings.Split(t.tenant.Labels[constants.ServiceLabelKey], ".")
 
-	// todo: thanosruler config
 	return &monitoringv1alpha1.Ruler{ObjectMeta: metav1.ObjectMeta{
 		Name:      t.tenant.Name,
 		Namespace: serviceNamespacedName[0],

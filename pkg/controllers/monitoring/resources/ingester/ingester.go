@@ -3,16 +3,15 @@ package ingester
 import (
 	"fmt"
 
+	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
-
-	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
 )
 
 const (
-	secretsDir = "/etc/thanos/secrets"
-	storageDir = "/thanos"
+	storageDir = "/whizard"
 )
 
 type Ingester struct {
@@ -29,13 +28,13 @@ func New(reconciler resources.BaseReconciler, ingester *monitoringv1alpha1.Inges
 
 func (r *Ingester) labels() map[string]string {
 	labels := r.BaseLabels()
-	labels[resources.LabelNameAppName] = resources.AppNameIngester
-	labels[resources.LabelNameAppManagedBy] = r.ingester.Name
+	labels[constants.LabelNameAppName] = constants.AppNameIngester
+	labels[constants.LabelNameAppManagedBy] = r.ingester.Name
 	return labels
 }
 
 func (r *Ingester) name(nameSuffix ...string) string {
-	return resources.QualifiedName(resources.AppNameIngester, r.ingester.Name, nameSuffix...)
+	return resources.QualifiedName(constants.AppNameIngester, r.ingester.Name, nameSuffix...)
 }
 
 func (r *Ingester) meta(name string) metav1.ObjectMeta {
@@ -69,7 +68,7 @@ func (r *Ingester) GrpcAddrs() []string {
 	}
 	for i := range addrs {
 		addrs[i] = fmt.Sprintf("%s-%d.%s.%s.svc:%d",
-			r.name(), i, r.name(resources.ServiceNameSuffixOperated), r.ingester.Namespace, resources.ThanosGRPCPort)
+			r.name(), i, r.name(constants.ServiceNameSuffix), r.ingester.Namespace, constants.GRPCPort)
 	}
 	return addrs
 }

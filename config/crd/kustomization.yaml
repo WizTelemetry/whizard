@@ -2,15 +2,15 @@
 # since it depends on service name and namespace that are out of this kustomize package.
 # It should be run by config/default
 resources:
-- bases/monitoring.paodin.io_services.yaml
-- bases/monitoring.paodin.io_stores.yaml
-- bases/monitoring.paodin.io_compactors.yaml
-- bases/monitoring.paodin.io_ingesters.yaml
-- bases/monitoring.paodin.io_rulers.yaml
-- bases/monitoring.paodin.io_rules.yaml
-- bases/monitoring.paodin.io_rulegroups.yaml
-- bases/monitoring.paodin.io_storages.yaml
-- bases/monitoring.paodin.io_tenants.yaml
+- bases/monitoring.whizard.io_services.yaml
+- bases/monitoring.whizard.io_stores.yaml
+- bases/monitoring.whizard.io_compactors.yaml
+- bases/monitoring.whizard.io_ingesters.yaml
+- bases/monitoring.whizard.io_rulers.yaml
+- bases/monitoring.whizard.io_rules.yaml
+- bases/monitoring.whizard.io_rulegroups.yaml
+- bases/monitoring.whizard.io_storages.yaml
+- bases/monitoring.whizard.io_tenants.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

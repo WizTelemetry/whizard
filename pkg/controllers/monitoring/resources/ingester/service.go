@@ -1,14 +1,15 @@
 package ingester
 
 import (
+	"github.com/kubesphere/whizard/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 )
 
 func (r *Ingester) service() (runtime.Object, resources.Operation, error) {
-	var s = &corev1.Service{ObjectMeta: r.meta(r.name(resources.ServiceNameSuffixOperated))}
+	var s = &corev1.Service{ObjectMeta: r.meta(r.name(constants.ServiceNameSuffix))}
 
 	s.Spec = corev1.ServiceSpec{
 		ClusterIP: corev1.ClusterIPNone,
@@ -16,18 +17,18 @@ func (r *Ingester) service() (runtime.Object, resources.Operation, error) {
 		Ports: []corev1.ServicePort{
 			{
 				Protocol: corev1.ProtocolTCP,
-				Name:     resources.ThanosGRPCPortName,
-				Port:     resources.ThanosGRPCPort,
+				Name:     constants.GRPCPortName,
+				Port:     constants.GRPCPort,
 			},
 			{
 				Protocol: corev1.ProtocolTCP,
-				Name:     resources.ThanosHTTPPortName,
-				Port:     resources.ThanosHTTPPort,
+				Name:     constants.HTTPPortName,
+				Port:     constants.HTTPPort,
 			},
 			{
 				Protocol: corev1.ProtocolTCP,
-				Name:     resources.ThanosRemoteWritePortName,
-				Port:     resources.ThanosRemoteWritePort,
+				Name:     constants.RemoteWritePortName,
+				Port:     constants.RemoteWritePort,
 			},
 		},
 	}

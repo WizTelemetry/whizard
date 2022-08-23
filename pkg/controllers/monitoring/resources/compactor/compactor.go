@@ -1,9 +1,10 @@
 package compactor
 
 import (
-	"github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/paodin/pkg/util"
+	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 )
@@ -22,8 +23,8 @@ func New(reconciler resources.BaseReconciler, compactor *v1alpha1.Compactor) *Co
 
 func (r *Compactor) labels() map[string]string {
 	labels := r.BaseLabels()
-	labels[resources.LabelNameAppName] = resources.AppNameCompactor
-	labels[resources.LabelNameAppManagedBy] = r.compactor.Name
+	labels[constants.LabelNameAppName] = constants.AppNameCompactor
+	labels[constants.LabelNameAppManagedBy] = r.compactor.Name
 	util.AppendLabel(labels, r.compactor.Labels)
 	return labels
 }

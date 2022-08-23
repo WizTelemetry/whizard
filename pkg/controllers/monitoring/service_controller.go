@@ -19,6 +19,14 @@ package monitoring
 import (
 	"context"
 
+	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/gateway"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/query"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/query_frontend"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/router"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -29,14 +37,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/options"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/gateway"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/query"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/query_frontend"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/router"
 )
 
 // ServiceReconciler reconciles a Service object
@@ -47,12 +47,12 @@ type ServiceReconciler struct {
 	Context context.Context
 }
 
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=services,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=services/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=services/finalizers,verbs=update
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=ingesters,verbs=get;list;watch
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=stores,verbs=get;list;watch
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=rulers,verbs=get;list;watch
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=services,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=services/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=services/finalizers,verbs=update
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=ingesters,verbs=get;list;watch
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=stores,verbs=get;list;watch
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=rulers,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=services;configmaps;serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=deployments;statefulsets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings,verbs=get;list;watch;create;update;patch;delete
@@ -147,17 +147,17 @@ func CreateServiceDefaulterValidator(opt options.Options) ServiceDefaulterValida
 	return func(service *monitoringv1alpha1.Service) (*monitoringv1alpha1.Service, error) {
 
 		if service.Spec.TenantHeader == "" {
-			service.Spec.TenantHeader = monitoringv1alpha1.DefaultTenantHeader
+			service.Spec.TenantHeader = constants.DefaultTenantHeader
 		}
 		if service.Spec.TenantLabelName == "" {
-			service.Spec.TenantLabelName = monitoringv1alpha1.DefaultTenantLabelName
+			service.Spec.TenantLabelName = constants.DefaultTenantLabelName
 		}
 		if service.Spec.DefaultTenantId == "" {
-			service.Spec.DefaultTenantId = monitoringv1alpha1.DefaultTenantId
+			service.Spec.DefaultTenantId = constants.DefaultTenantId
 		}
 
 		if service.Spec.Gateway != nil && service.Spec.Gateway.Image == "" {
-			service.Spec.Gateway.Image = opt.PaodinMonitoringGatewayImage
+			service.Spec.Gateway.Image = opt.GatewayImage
 		}
 
 		if service.Spec.Query != nil {
@@ -165,7 +165,7 @@ func CreateServiceDefaulterValidator(opt options.Options) ServiceDefaulterValida
 				service.Spec.Query.Replicas = &replicas
 			}
 			if service.Spec.Query.Image == "" {
-				service.Spec.Query.Image = opt.ThanosImage
+				service.Spec.Query.Image = opt.WhizardImage
 			}
 			if service.Spec.Query.Envoy.Image == "" {
 				service.Spec.Query.Envoy.Image = opt.EnvoyImage
@@ -177,7 +177,7 @@ func CreateServiceDefaulterValidator(opt options.Options) ServiceDefaulterValida
 				service.Spec.Router.Replicas = &replicas
 			}
 			if service.Spec.Router.Image == "" {
-				service.Spec.Router.Image = opt.ThanosImage
+				service.Spec.Router.Image = opt.WhizardImage
 			}
 		}
 		if service.Spec.QueryFrontend != nil {
@@ -185,7 +185,7 @@ func CreateServiceDefaulterValidator(opt options.Options) ServiceDefaulterValida
 				service.Spec.QueryFrontend.Replicas = &replicas
 			}
 			if service.Spec.QueryFrontend.Image == "" {
-				service.Spec.QueryFrontend.Image = opt.ThanosImage
+				service.Spec.QueryFrontend.Image = opt.WhizardImage
 			}
 		}
 

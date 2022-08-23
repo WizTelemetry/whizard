@@ -63,4 +63,4 @@ jobs:
         run: |
           tag=$(cat VERSION | tr -d " \t\n\r")
           make docker-build-monitoring-agent-proxy -e REPO=${{ env.REPO }} -e TAG=$tag
-          docker push ${{ env.REPO }}/paodin-monitoring-agent-proxy:$tag
+          docker push ${{ env.REPO }}/whizard-monitoring-agent-proxy:$tag

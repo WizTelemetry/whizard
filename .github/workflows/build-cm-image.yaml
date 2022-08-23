@@ -63,4 +63,4 @@ jobs:
         run: |
           tag=$(cat VERSION | tr -d " \t\n\r")
           make docker-build-controller-manager -e REPO=${{ env.REPO }} -e TAG=$tag
-          docker push ${{ env.REPO }}/paodin-controller-manager:$tag
+          docker push ${{ env.REPO }}/whizard-controller-manager:$tag

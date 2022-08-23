@@ -34,10 +34,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/options"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/ruler"
+	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/ruler"
 )
 
 // RulerReconciler reconciles a Ruler object
@@ -50,12 +50,12 @@ type RulerReconciler struct {
 	Context context.Context
 }
 
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=rulers,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=rulers/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=rulers/finalizers,verbs=update
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=alertingrules,verbs=get;list;watch
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=rulegroups,verbs=get;list;watch
-//+kubebuilder:rbac:groups=monitoring.paodin.io,resources=rules,verbs=get;list;watch
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=rulers,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=rulers/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=rulers/finalizers,verbs=update
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=alertingrules,verbs=get;list;watch
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=rulegroups,verbs=get;list;watch
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=rules,verbs=get;list;watch
 //+kubebuilder:rbac:groups=monitoring.coreos.com,resources=prometheusrules,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=services;configmaps,verbs=get;list;watch;create;update;patch;delete
@@ -219,7 +219,7 @@ func CreateRulerDefaulterValidator(opt options.Options) RulerDefaulterValidator 
 	return func(ruler *monitoringv1alpha1.Ruler) (*monitoringv1alpha1.Ruler, error) {
 
 		if ruler.Spec.Image == "" {
-			ruler.Spec.Image = opt.ThanosImage
+			ruler.Spec.Image = opt.WhizardImage
 		}
 		if ruler.Spec.Replicas == nil || *ruler.Spec.Replicas < 0 {
 			ruler.Spec.Replicas = &replicas

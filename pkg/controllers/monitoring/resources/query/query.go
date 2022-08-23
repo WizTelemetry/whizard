@@ -6,14 +6,14 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
 )
 
 const (
-	configDir  = "/etc/thanos"
+	configDir  = "/etc/whizard"
 	storesFile = "store-sd.yaml"
 )
 
@@ -80,13 +80,13 @@ func (q *Query) stores() (*Stores, error) {
 
 func (q *Query) labels() map[string]string {
 	labels := q.BaseLabels()
-	labels[resources.LabelNameAppName] = resources.AppNameQuery
-	labels[resources.LabelNameAppManagedBy] = q.Service.Name
+	labels[constants.LabelNameAppName] = constants.AppNameQuery
+	labels[constants.LabelNameAppManagedBy] = q.Service.Name
 	return labels
 }
 
 func (q *Query) name(nameSuffix ...string) string {
-	return resources.QualifiedName(resources.AppNameQuery, q.Service.Name, nameSuffix...)
+	return resources.QualifiedName(constants.AppNameQuery, q.Service.Name, nameSuffix...)
 }
 
 func (q *Query) meta(name string) metav1.ObjectMeta {
@@ -101,7 +101,7 @@ func (q *Query) meta(name string) metav1.ObjectMeta {
 
 func (q *Query) HttpAddr() string {
 	return fmt.Sprintf("http://%s.%s.svc:%d",
-		q.name(resources.ServiceNameSuffixOperated), q.Service.Namespace, resources.ThanosHTTPPort)
+		q.name(constants.ServiceNameSuffix), q.Service.Namespace, constants.HTTPPort)
 }
 
 func (q *Query) Reconcile() error {

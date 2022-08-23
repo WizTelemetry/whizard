@@ -3,6 +3,10 @@ package ingester
 import (
 	"fmt"
 
+	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	storage "github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/storage"
 	"github.com/prometheus/common/model"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -10,10 +14,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-
-	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
-	storage "github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/storage"
 )
 
 func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
@@ -24,7 +24,7 @@ func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
 		Selector: &metav1.LabelSelector{
 			MatchLabels: r.labels(),
 		},
-		ServiceName: r.name(resources.ServiceNameSuffixOperated),
+		ServiceName: r.name(constants.ServiceNameSuffix),
 		Template: corev1.PodTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
 				Labels: r.labels(),
@@ -45,22 +45,22 @@ func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
 		Ports: []corev1.ContainerPort{
 			{
 				Protocol:      corev1.ProtocolTCP,
-				Name:          resources.ThanosGRPCPortName,
-				ContainerPort: resources.ThanosGRPCPort,
+				Name:          constants.GRPCPortName,
+				ContainerPort: constants.GRPCPort,
 			},
 			{
 				Protocol:      corev1.ProtocolTCP,
-				Name:          resources.ThanosHTTPPortName,
-				ContainerPort: resources.ThanosHTTPPort,
+				Name:          constants.HTTPPortName,
+				ContainerPort: constants.HTTPPort,
 			},
 			{
 				Protocol:      corev1.ProtocolTCP,
-				Name:          resources.ThanosRemoteWritePortName,
-				ContainerPort: resources.ThanosRemoteWritePort,
+				Name:          constants.RemoteWritePortName,
+				ContainerPort: constants.RemoteWritePort,
 			},
 		},
-		LivenessProbe:  resources.ThanosDefaultLivenessProbe(),
-		ReadinessProbe: resources.ThanosDefaultReadinessProbe(),
+		LivenessProbe:  resources.DefaultLivenessProbe(),
+		ReadinessProbe: resources.DefaultReadinessProbe(),
 		Env: []corev1.EnvVar{
 			{
 				Name: "POD_NAME",
@@ -124,9 +124,9 @@ func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
 	if r.ingester.Spec.LogFormat != "" {
 		container.Args = append(container.Args, "--log.format="+r.ingester.Spec.LogFormat)
 	}
-	container.Args = append(container.Args, `--label=thanos_receive_replica="$(POD_NAME)"`)
+	container.Args = append(container.Args, fmt.Sprintf("--label=%s=\"$(POD_NAME)\"", constants.ReceiveReplicaLabelName))
 	container.Args = append(container.Args, fmt.Sprintf("--tsdb.path=%s", storageDir))
-	container.Args = append(container.Args, fmt.Sprintf("--receive.local-endpoint=$(POD_NAME).%s:%d", r.name(resources.ServiceNameSuffixOperated), resources.ThanosGRPCPort))
+	container.Args = append(container.Args, fmt.Sprintf("--receive.local-endpoint=$(POD_NAME).%s:%d", r.name(constants.ServiceNameSuffix), constants.GRPCPort))
 	if r.ingester.Spec.LocalTsdbRetention != "" {
 		container.Args = append(container.Args, "--tsdb.retention="+r.ingester.Spec.LocalTsdbRetention)
 	}
@@ -177,7 +177,6 @@ func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
 	for name, value := range r.ingester.Spec.Flags {
 		if name == "receive.hashrings" || name == "receive.hashrings-file" {
 			// ignoring these flags to make receiver run with ingester mode
-			// refer to https://github.com/thanos-io/thanos/blob/release-0.26/cmd/thanos/receive.go#L816
 			continue
 		}
 		container.Args = append(container.Args, fmt.Sprintf("--%s=%s", name, value))

@@ -1,10 +1,11 @@
 package gateway
 
 import (
+	"github.com/kubesphere/whizard/pkg/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 )
 
 const (
@@ -25,12 +26,12 @@ func New(reconciler resources.ServiceBaseReconciler) *Gateway {
 
 func (g *Gateway) labels() map[string]string {
 	labels := g.BaseLabels()
-	labels[resources.LabelNameAppName] = resources.AppNameGateway
+	labels[constants.LabelNameAppName] = constants.AppNameGateway
 	return labels
 }
 
 func (g *Gateway) name(nameSuffix ...string) string {
-	return resources.QualifiedName(resources.AppNameGateway, g.Service.Name, nameSuffix...)
+	return resources.QualifiedName(constants.AppNameGateway, g.Service.Name, nameSuffix...)
 }
 
 func (g *Gateway) meta(name string) metav1.ObjectMeta {

@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: rulers.monitoring.paodin.io
+  name: rulers.monitoring.whizard.io
 spec:
-  group: monitoring.paodin.io
+  group: monitoring.whizard.io
   names:
     kind: Ruler
     listKind: RulerList
@@ -863,15 +863,14 @@ spec:
                 type: object
               alertDropLabels:
                 description: AlertDropLabels configure the label names which should
-                  be dropped in Ruler alerts. The replica label `thanos_ruler_replica`
-                  will always be dropped in alerts.
+                  be dropped in Ruler alerts. The replica label `ruler_replica` will
+                  always be dropped in alerts.
                 items:
                   type: string
                 type: array
               alertmanagersConfig:
-                description: Define configuration for connecting to alertmanager.  Only
-                  available with thanos v0.10.0 and higher.  Maps to the `alertmanagers.config`
-                  arg.
+                description: Define configuration for connecting to alertmanager.
+                  Maps to the `alertmanagers.config` arg.
                 properties:
                   key:
                     description: The key of the secret to select from.  Must be a
@@ -887,14 +886,6 @@ spec:
                 required:
                 - key
                 type: object
-              alertmanagersUrl:
-                description: 'Define URLs to send alerts to Alertmanager.  For Thanos
-                  v0.10.0 and higher, AlertManagersConfig should be used instead.  Note:
-                  this field will be ignored if AlertManagersConfig is specified.
-                  Maps to the `alertmanagers.url` arg.'
-                items:
-                  type: string
-                type: array
               dataVolume:
                 description: DataVolume specifies how volume shall be used
                 properties:
@@ -1213,15 +1204,15 @@ spec:
                   strategy parameters.
                 type: object
               image:
-                description: Image is the thanos image with tag/version
+                description: Image is the image with tag/version
                 type: string
               labels:
                 additionalProperties:
                   type: string
                 description: Labels configure the external label pairs to Ruler. A
-                  default replica label `thanos_ruler_replica` will be always added  as
-                  a label with the value of the pod's name and it will be dropped
-                  in the alerts.
+                  default replica label `ruler_replica` will be always added  as a
+                  label with the value of the pod's name and it will be dropped in
+                  the alerts.
                 type: object
               logFormat:
                 description: 'Log format to use. Possible options: logfmt or json'

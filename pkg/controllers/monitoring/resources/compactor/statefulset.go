@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/storage"
-	"github.com/kubesphere/paodin/pkg/util"
+	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/storage"
+	"github.com/kubesphere/whizard/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,7 +18,7 @@ import (
 )
 
 const (
-	storageDir = "/thanos"
+	storageDir = "/whizard"
 
 	mainContainerName = "compactor"
 	tsdbVolumeName    = "tsdb"
@@ -55,8 +56,8 @@ func (r *Compactor) statefulSet() (runtime.Object, resources.Operation, error) {
 			Resources: r.compactor.Spec.Resources,
 			Ports: []corev1.ContainerPort{
 				{
-					Name:          resources.ThanosHTTPPortName,
-					ContainerPort: resources.ThanosHTTPPort,
+					Name:          constants.HTTPPortName,
+					ContainerPort: constants.HTTPPort,
 					Protocol:      corev1.ProtocolTCP,
 				},
 			},
@@ -68,11 +69,11 @@ func (r *Compactor) statefulSet() (runtime.Object, resources.Operation, error) {
 	util.AddVolume(sts, container, r.compactor.Spec.DataVolume, tsdbVolumeName, storageDir)
 
 	if container.LivenessProbe == nil {
-		container.LivenessProbe = resources.ThanosDefaultLivenessProbe()
+		container.LivenessProbe = resources.DefaultLivenessProbe()
 	}
 
 	if container.ReadinessProbe == nil {
-		container.ReadinessProbe = resources.ThanosDefaultReadinessProbe()
+		container.ReadinessProbe = resources.DefaultReadinessProbe()
 	}
 
 	container.Resources = r.compactor.Spec.Resources
@@ -96,7 +97,7 @@ type relabelConfig struct {
 
 func (r *Compactor) createRelabelConfig() (string, error) {
 
-	namespacedName := strings.Split(r.compactor.Labels[v1alpha1.MonitoringPaodinService], ".")
+	namespacedName := strings.Split(r.compactor.Labels[constants.ServiceLabelKey], ".")
 	svc := &v1alpha1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      namespacedName[1],
@@ -109,7 +110,7 @@ func (r *Compactor) createRelabelConfig() (string, error) {
 
 	label := svc.Spec.TenantLabelName
 	if len(label) == 0 {
-		label = v1alpha1.DefaultTenantLabelName
+		label = constants.DefaultTenantLabelName
 	}
 
 	regex := ""
@@ -130,7 +131,7 @@ func (r *Compactor) megerArgs(container *corev1.Container) error {
 	defaultArgs := []string{"compact", "--wait", fmt.Sprintf("--data-dir=%s", storageDir)}
 
 	storageInstance := &v1alpha1.Storage{}
-	namespaceName := strings.Split(r.compactor.Labels[v1alpha1.MonitoringPaodinStorage], ".")
+	namespaceName := strings.Split(r.compactor.Labels[constants.StorageLabelKey], ".")
 	if err := r.Client.Get(r.Context, client.ObjectKey{Name: namespaceName[1], Namespace: namespaceName[0]}, storageInstance); err != nil {
 		return err
 	}
@@ -161,7 +162,8 @@ func (r *Compactor) megerArgs(container *corev1.Container) error {
 			defaultArgs = append(defaultArgs, fmt.Sprintf("--retention.resolution-1h=%s", retention.Retention5m))
 		}
 	}
-	defaultArgs = append(defaultArgs, "--deduplication.replica-label=receive_replica")
+	defaultArgs = append(defaultArgs, fmt.Sprintf("--deduplication.replica-label=%s", constants.ReceiveReplicaLabelName))
+	defaultArgs = append(defaultArgs, fmt.Sprintf("--deduplication.replica-label=%s", constants.RulerReplicaLabelName))
 
 	rc, err := r.createRelabelConfig()
 	if err != nil {

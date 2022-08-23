@@ -9,10 +9,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/query"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/query_frontend"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/router"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/query"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/query_frontend"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/router"
 )
 
 func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {

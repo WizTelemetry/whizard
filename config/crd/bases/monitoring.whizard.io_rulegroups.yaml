@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: rulegroups.monitoring.paodin.io
+  name: rulegroups.monitoring.whizard.io
 spec:
-  group: monitoring.paodin.io
+  group: monitoring.whizard.io
   names:
     kind: RuleGroup
     listKind: RuleGroupList

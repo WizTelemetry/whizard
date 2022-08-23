@@ -10,8 +10,8 @@ import (
 	"github.com/spf13/viper"
 	"k8s.io/klog/v2"
 
-	"github.com/kubesphere/paodin/pkg/client/k8s"
-	monitoring "github.com/kubesphere/paodin/pkg/controllers/monitoring/options"
+	"github.com/kubesphere/whizard/pkg/client/k8s"
+	monitoring "github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
 )
 
 var (
@@ -21,9 +21,9 @@ var (
 
 const (
 	// defaultConfigurationName is the default name of configuration
-	defaultConfigurationName = "paodin"
+	defaultConfigurationName = "whizard"
 	// defaultConfigurationPath the default location of the configuration file
-	defaultConfigurationPath = "/etc/paodin"
+	defaultConfigurationPath = "/etc/whizard"
 )
 
 type config struct {
@@ -69,7 +69,7 @@ func defaultConfig() *config {
 	viper.AddConfigPath(".")
 
 	// Load from Environment variables
-	viper.SetEnvPrefix("paodin")
+	viper.SetEnvPrefix("whizard")
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 

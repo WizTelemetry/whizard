@@ -19,21 +19,11 @@ package v1alpha1
 import (
 	"strings"
 
+	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/prometheus/common/model"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-)
-
-const (
-	MonitoringPaodinService = "monitoring.paodin.io/service"
-	MonitoringPaodinStorage = "monitoring.paodin.io/storage"
-	MonitoringPaodinTenant  = "monitoring.paodin.io/tenant"
-
-	FinalizerMonitoringIngester  = "finalizers.monitoring.paodin.io/ingester"
-	FinalizerMonitoringCompactor = "finalizers.monitoring.paodin.io/compactor"
-
-	MonitoringLocalStorage = "default_storage.local"
 )
 
 type StorageSpec struct {
@@ -130,7 +120,7 @@ type StorageList struct {
 
 func ManagedLabelByStorage(storage metav1.Object) map[string]string {
 	return map[string]string{
-		MonitoringPaodinStorage: storage.GetNamespace() + "." + storage.GetName(),
+		constants.StorageLabelKey: storage.GetNamespace() + "." + storage.GetName(),
 	}
 }
 
@@ -140,7 +130,7 @@ func StorageNamespacedName(managedByStorage metav1.Object) *types.NamespacedName
 		return nil
 	}
 
-	namespacedName := ls[MonitoringPaodinStorage]
+	namespacedName := ls[constants.StorageLabelKey]
 	arr := strings.Split(namespacedName, ".")
 	if len(arr) != 2 {
 		return nil

@@ -1,10 +1,11 @@
 package store
 
 import (
-	"github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/options"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/paodin/pkg/util"
+	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 )
@@ -25,8 +26,8 @@ func New(reconciler resources.BaseReconciler, instance *v1alpha1.Store, o option
 
 func (r *Store) labels() map[string]string {
 	labels := r.BaseLabels()
-	labels[resources.LabelNameAppName] = resources.AppNameStore
-	labels[resources.LabelNameAppManagedBy] = r.store.Name
+	labels[constants.LabelNameAppName] = constants.AppNameStore
+	labels[constants.LabelNameAppManagedBy] = r.store.Name
 	util.AppendLabel(labels, r.store.Labels)
 	return labels
 }

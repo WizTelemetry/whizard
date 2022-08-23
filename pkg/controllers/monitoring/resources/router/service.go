@@ -1,14 +1,14 @@
 package router
 
 import (
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
 )
 
 func (r *Router) service() (runtime.Object, resources.Operation, error) {
-	var s = &corev1.Service{ObjectMeta: r.meta(r.name(resources.ServiceNameSuffixOperated))}
+	var s = &corev1.Service{ObjectMeta: r.meta(r.name(constants.ServiceNameSuffix))}
 
 	if r.router == nil {
 		return s, resources.OperationDelete, nil
@@ -20,18 +20,18 @@ func (r *Router) service() (runtime.Object, resources.Operation, error) {
 		Ports: []corev1.ServicePort{
 			{
 				Protocol: corev1.ProtocolTCP,
-				Name:     resources.ThanosGRPCPortName,
-				Port:     resources.ThanosGRPCPort,
+				Name:     constants.GRPCPortName,
+				Port:     constants.GRPCPort,
 			},
 			{
 				Protocol: corev1.ProtocolTCP,
-				Name:     resources.ThanosHTTPPortName,
-				Port:     resources.ThanosHTTPPort,
+				Name:     constants.HTTPPortName,
+				Port:     constants.HTTPPort,
 			},
 			{
 				Protocol: corev1.ProtocolTCP,
-				Name:     resources.ThanosRemoteWritePortName,
-				Port:     resources.ThanosRemoteWritePort,
+				Name:     constants.RemoteWritePortName,
+				Port:     constants.RemoteWritePort,
 			},
 		},
 	}

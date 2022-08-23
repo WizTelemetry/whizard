@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"path/filepath"
 
-	monitoringv1alpha1 "github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources/ingester"
-	"github.com/kubesphere/paodin/pkg/util"
+	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/ingester"
+	"github.com/kubesphere/whizard/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -70,17 +71,17 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 		Ports: []corev1.ContainerPort{
 			{
 				Protocol:      corev1.ProtocolTCP,
-				Name:          resources.ThanosGRPCPortName,
-				ContainerPort: resources.ThanosGRPCPort,
+				Name:          constants.GRPCPortName,
+				ContainerPort: constants.GRPCPort,
 			},
 			{
 				Protocol:      corev1.ProtocolTCP,
-				Name:          resources.ThanosHTTPPortName,
-				ContainerPort: resources.ThanosHTTPPort,
+				Name:          constants.HTTPPortName,
+				ContainerPort: constants.HTTPPort,
 			},
 		},
-		LivenessProbe:  resources.ThanosDefaultLivenessProbe(),
-		ReadinessProbe: resources.ThanosDefaultReadinessProbe(),
+		LivenessProbe:  resources.DefaultLivenessProbe(),
+		ReadinessProbe: resources.DefaultReadinessProbe(),
 		VolumeMounts: []corev1.VolumeMount{{
 			Name:      storesConfigVol.Name,
 			MountPath: configDir,
@@ -121,8 +122,8 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 		return nil, resources.OperationCreateOrUpdate, err
 	}
 	for _, item := range storeList.Items {
-		storeSvcName := util.Join("-", item.Name, resources.ServiceNameSuffixOperated)
-		endpoint := fmt.Sprintf("%s.%s.svc:%d", storeSvcName, item.Namespace, resources.ThanosGRPCPort)
+		storeSvcName := util.Join("-", item.Name, constants.ServiceNameSuffix)
+		endpoint := fmt.Sprintf("%s.%s.svc:%d", storeSvcName, item.Namespace, constants.GRPCPort)
 		queryContainer.Args = append(queryContainer.Args, "--endpoint="+endpoint)
 	}
 
@@ -134,8 +135,8 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 		return nil, resources.OperationCreateOrUpdate, err
 	}
 	for _, item := range rulerList.Items {
-		rulerSvcName := resources.QualifiedName(resources.AppNameRuler, item.Name, resources.ServiceNameSuffixOperated)
-		endpoint := fmt.Sprintf("%s.%s.svc:%d", rulerSvcName, item.Namespace, resources.ThanosGRPCPort)
+		rulerSvcName := resources.QualifiedName(constants.AppNameRuler, item.Name, constants.ServiceNameSuffix)
+		endpoint := fmt.Sprintf("%s.%s.svc:%d", rulerSvcName, item.Namespace, constants.GRPCPort)
 		queryContainer.Args = append(queryContainer.Args, "--endpoint="+endpoint)
 	}
 

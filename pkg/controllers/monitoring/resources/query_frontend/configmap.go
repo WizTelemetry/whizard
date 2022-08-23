@@ -3,8 +3,8 @@ package query_frontend
 import (
 	"time"
 
-	"github.com/kubesphere/paodin/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/paodin/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 
 	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"

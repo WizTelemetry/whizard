@@ -1,9 +1,9 @@
 REPO ?= kubesphere
 TAG ?= latest
 
-CONTROLLER_MANAGER_IMG=${REPO}/paodin-controller-manager:${TAG}
-MONITORING_GATEWAY_IMG=${REPO}/paodin-monitoring-gateway:${TAG}
-MONITORING_AGENT_PROXY_IMG=${REPO}/paodin-monitoring-agent-proxy:${TAG}
+CONTROLLER_MANAGER_IMG=${REPO}/whizard-controller-manager:${TAG}
+MONITORING_GATEWAY_IMG=${REPO}/whizard-monitoring-gateway:${TAG}
+MONITORING_AGENT_PROXY_IMG=${REPO}/whizard-monitoring-agent-proxy:${TAG}
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
 
@@ -116,14 +116,14 @@ bundle: manifests kustomize
 
 MONITORING_TYPE_GOES=$(shell find pkg/api/monitoring -name *_types.go | tr '\n' ' ')
 docs/monitoring/api.md: tools/docgen/docgen.go $(TYPE_GOES)
-	go run github.com/kubesphere/paodin/tools/docgen $(MONITORING_TYPE_GOES) > docs/monitoring/api.md
+	go run github.com/kubesphere/whizard/tools/docgen $(MONITORING_TYPE_GOES) > docs/monitoring/api.md
 
-paodin.key:
-	openssl genrsa -des3 -passout pass:x -out paodin.pass.key 2048
-	openssl rsa -passin pass:x -in paodin.pass.key -out paodin.key
-	rm paodin.pass.key
+whizard.key:
+	openssl genrsa -des3 -passout pass:x -out whizard.pass.key 2048
+	openssl rsa -passin pass:x -in whizard.pass.key -out whizard.key
+	rm whizard.pass.key
 
-paodin.crt: paodin.key
-	openssl req -new -key paodin.key -out paodin.csr
-	openssl x509 -req -sha256 -days 365 -in paodin.csr -signkey paodin.key -out paodin.crt
-	rm paodin.csr
+whizard.crt: whizard.key
+	openssl req -new -key whizard.key -out whizard.csr
+	openssl x509 -req -sha256 -days 365 -in whizard.csr -signkey whizard.key -out whizard.crt
+	rm whizard.csr
