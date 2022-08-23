@@ -1,10 +1,10 @@
 package ruler
 
 import (
+	"crypto/md5"
 	"fmt"
 	"reflect"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/ghodss/yaml"
@@ -14,65 +14,155 @@ import (
 	"github.com/prometheus-operator/prometheus-operator/pkg/prometheus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 )
 
 var maxConfigMapDataSize = int(float64(corev1.MaxSecretSize) * 0.5)
 
-func (r *Ruler) ruleConfigMaps() (createOrUpdates []corev1.ConfigMap, deletes []corev1.ConfigMap, uses []corev1.ConfigMap, err error) {
-	var prometheusRules = make(map[string]string)
-	prometheusRules, err = r.selectPrometheusRules()
+var errResourcesFunc = func(err error) []resources.Resource {
+	return []resources.Resource{
+		func() (runtime.Object, resources.Operation, error) {
+			return nil, resources.OperationCreateOrUpdate, err
+		},
+	}
+}
+
+func (r *Ruler) ruleConfigMaps() (retResources []resources.Resource) {
+
+	prometheusRules, err := r.selectPrometheusRules()
 	if err != nil {
-		return nil, nil, nil, err
+		return errResourcesFunc(err)
 	}
 
-	var rules = make(map[string]string)
-	rules, err = r.selectRules()
+	rules, err := r.selectRules()
 	if err != nil {
-		return
+		return errResourcesFunc(err)
 	}
 
 	for k, v := range rules {
 		prometheusRules[k] = v
 	}
 
-	uses, err = r.makeRulesConfigMaps(prometheusRules)
-	if err != nil {
-		return
+	var shards = uint64(*r.ruler.Spec.Shards)
+
+	// generate rule files for each shard
+	var shardsRuleFiles = make([]map[string]string, shards)
+	for shardSn := range shardsRuleFiles {
+		shardsRuleFiles[shardSn] = make(map[string]string)
 	}
-	usesMap := make(map[string]struct{})
-	for _, useCm := range uses {
-		usesMap[useCm.Name] = struct{}{}
+	if shards > 1 {
+		for file, spec := range prometheusRules {
+			if len(spec.Groups) == 0 {
+				continue
+			}
+			var shardSpecs = make([]promv1.PrometheusRuleSpec, shards)
+			for i := range spec.Groups {
+				// generate shard sequence number by file and group name
+				name := fmt.Sprintf("%s/%s", file, spec.Groups[i].Name)
+				shardSn := sum64(md5.Sum([]byte(name))) % shards
+				shardSpecs[shardSn].Groups = append(shardSpecs[shardSn].Groups, spec.Groups[i])
+			}
+			for shardSn, shardSpec := range shardSpecs {
+				if len(shardSpec.Groups) == 0 {
+					continue
+				}
+				content, err := GenerateContent(shardSpec, r.Log)
+				if err != nil {
+					return errResourcesFunc(err)
+				}
+				shardsRuleFiles[shardSn][file] = content
+			}
+		}
+	} else {
+		for file, spec := range prometheusRules {
+			if len(spec.Groups) == 0 {
+				continue
+			}
+			content, err := GenerateContent(*spec, r.Log)
+			if err != nil {
+				return errResourcesFunc(err)
+			}
+			shardsRuleFiles[0][file] = content
+		}
+	}
+
+	// generate configmaps
+	var targets = make(map[string]*corev1.ConfigMap)
+	r.shardsRuleConfigMapNames = make([]map[string]struct{}, shards)
+	for shardSn := range shardsRuleFiles {
+		ruleFiles := shardsRuleFiles[shardSn]
+		cms, err := r.makeRulesConfigMaps(ruleFiles, shardSn)
+		if err != nil {
+			return errResourcesFunc(err)
+		}
+		for j := range cms {
+			targets[cms[j].Name] = &cms[j]
+
+			if r.shardsRuleConfigMapNames[shardSn] == nil {
+				r.shardsRuleConfigMapNames[shardSn] = make(map[string]struct{})
+			}
+			r.shardsRuleConfigMapNames[shardSn][cms[j].Name] = struct{}{}
+		}
 	}
 
 	var cmList corev1.ConfigMapList
-	err = r.Client.List(r.Context, &cmList, client.InNamespace(r.ruler.Namespace), client.MatchingLabels(r.labels()))
+	err = r.Client.List(r.Context, &cmList, client.InNamespace(r.ruler.Namespace))
 	if err != nil {
-		return nil, nil, nil, err
+		return errResourcesFunc(err)
 	}
-	currentsMap := make(map[string]corev1.ConfigMap)
-	namePrefix := r.name("rulefiles")
-	for _, currentCm := range cmList.Items {
-		if strings.HasPrefix(currentCm.Name, namePrefix) {
-			cm := currentCm
-			currentsMap[cm.Name] = cm
-			if _, ok := usesMap[cm.Name]; !ok {
-				deletes = append(deletes, cm)
+	// check configmaps to be deleted.
+	// the configmaps owned by the ruler have a name
+	// which concatenates a same name prefix, a shard sequence number and a configmap sequence number.
+	currents := make(map[string]corev1.ConfigMap)
+	namePrefix := r.name("rulefiles") + "-"
+	for i := range cmList.Items {
+		cm := cmList.Items[i]
+		if !strings.HasPrefix(cm.Name, namePrefix) {
+			continue
+		}
+		suffix := strings.TrimPrefix(cm.Name, namePrefix)
+		sns := strings.Split(suffix, "-")
+		if len(sns) != 2 {
+			continue
+		}
+		shardSn, cmSn := sns[0], sns[1]
+		if sequenceNumberRegexp.MatchString(shardSn) && sequenceNumberRegexp.MatchString(cmSn) {
+			currents[cm.Name] = cmList.Items[i]
+			if _, ok := targets[cm.Name]; !ok {
+				retResources = append(retResources, func() (runtime.Object, resources.Operation, error) {
+					return &cm, resources.OperationDelete, nil
+				})
 			}
 		}
 	}
 
-	for _, useCm := range uses {
-		if currentCm, ok := currentsMap[useCm.Name]; !ok || !reflect.DeepEqual(useCm.Data, currentCm.Data) {
-			cm := useCm
-			createOrUpdates = append(createOrUpdates, cm)
+	// create or update the targets if needed
+	for name := range targets {
+		target := targets[name]
+		if current, ok := currents[name]; !ok || !reflect.DeepEqual(target.Data, current.Data) {
+			retResources = append(retResources, func() (runtime.Object, resources.Operation, error) {
+				return target, resources.OperationCreateOrUpdate, nil
+			})
 		}
 	}
 
 	return
+}
 
+// sum64 sums the md5 hash to an uint64.
+func sum64(hash [md5.Size]byte) uint64 {
+	var s uint64
+
+	for i, b := range hash {
+		shift := uint64((md5.Size - i - 1) * 8)
+
+		s |= uint64(b) << shift
+	}
+	return s
 }
 
 type rulesWrapper struct {
@@ -93,8 +183,8 @@ func (rw rulesWrapper) Less(i, j int) bool {
 }
 
 // select rule resources and combine them to PrometheusRules (defined by prometheus-operator) struct
-func (r *Ruler) selectRules() (map[string]string, error) {
-	rules := make(map[string]string)
+func (r *Ruler) selectRules() (map[string]*promv1.PrometheusRuleSpec, error) {
+	rules := make(map[string]*promv1.PrometheusRuleSpec)
 
 	namespaces, err := r.selectNamespaces(r.ruler.Spec.RuleNamespaceSelector)
 	if err != nil {
@@ -206,11 +296,7 @@ func (r *Ruler) selectRules() (map[string]string, error) {
 		var size, count int
 		for _, groupName := range groupNames {
 			if size > maxConfigMapDataSize*90/100 {
-				content, err := yaml.Marshal(&promRule)
-				if err != nil {
-					return nil, errors.Wrap(err, "failed to marshal content")
-				}
-				rules[fmt.Sprintf("%s.rules.%d.yaml", ns, count)] = string(content)
+				rules[fmt.Sprintf("%s.rules.%d.yaml", ns, count)] = promRule.DeepCopy()
 
 				promRule = promv1.PrometheusRuleSpec{}
 				size = 0
@@ -230,11 +316,7 @@ func (r *Ruler) selectRules() (map[string]string, error) {
 
 		}
 		if size > 0 && len(promRule.Groups) > 0 {
-			content, err := yaml.Marshal(&promRule)
-			if err != nil {
-				return nil, errors.Wrap(err, "failed to marshal content")
-			}
-			rules[fmt.Sprintf("%s.rules.%d.yaml", ns, count)] = string(content)
+			rules[fmt.Sprintf("%s.rules.%d.yaml", ns, count)] = promRule.DeepCopy()
 		}
 
 	}
@@ -268,8 +350,8 @@ func (r *Ruler) selectNamespaces(nsSelector *metav1.LabelSelector) ([]string, er
 	return namespaces, nil
 }
 
-func (r *Ruler) selectPrometheusRules() (map[string]string, error) {
-	rules := make(map[string]string)
+func (r *Ruler) selectPrometheusRules() (map[string]*promv1.PrometheusRuleSpec, error) {
+	rules := make(map[string]*promv1.PrometheusRuleSpec)
 
 	namespaces, err := r.selectNamespaces(r.ruler.Spec.PrometheusRuleNamespaceSelector)
 	if err != nil {
@@ -288,17 +370,16 @@ func (r *Ruler) selectPrometheusRules() (map[string]string, error) {
 			return nil, err
 		}
 		for _, promRule := range prometheusRuleList.Items {
-			content, err := GenerateContent(promRule.Spec, r.BaseReconciler.Log)
-			if err != nil {
-				return nil, err
-			}
-			rules[fmt.Sprintf("%v-%v.yaml", promRule.Namespace, promRule.Name)] = content
+			rules[fmt.Sprintf("%v-%v.yaml", promRule.Namespace, promRule.Name)] = promRule.Spec.DeepCopy()
 		}
 	}
 
 	return rules, nil
 }
 
+// makeRulesConfigMaps refers to prometheus-operator and
+// adds a shard sequence number argument to support ruler sharding.
+//
 // makeRulesConfigMaps takes a Ruler configuration and rule files and
 // returns a list of Kubernetes ConfigMaps to be later on mounted into the
 // Ruler instance.
@@ -307,9 +388,7 @@ func (r *Ruler) selectPrometheusRules() (map[string]string, error) {
 // future this can be replaced by a more sophisticated algorithm, but for now
 // simplicity should be sufficient.
 // [1] https://en.wikipedia.org/wiki/Bin_packing_problem#First-fit_algorithm
-//
-// refer to prometheus-operator
-func (r *Ruler) makeRulesConfigMaps(ruleFiles map[string]string) ([]corev1.ConfigMap, error) {
+func (r *Ruler) makeRulesConfigMaps(ruleFiles map[string]string, shardSn int) ([]corev1.ConfigMap, error) {
 	//check if none of the rule files is too large for a single ConfigMap
 	for filename, file := range ruleFiles {
 		if len(file) > maxConfigMapDataSize {
@@ -345,7 +424,7 @@ func (r *Ruler) makeRulesConfigMaps(ruleFiles map[string]string) ([]corev1.Confi
 	ruleFileConfigMaps := []corev1.ConfigMap{}
 	for i, bucket := range buckets {
 		ruleFileConfigMaps = append(ruleFileConfigMaps, corev1.ConfigMap{
-			ObjectMeta: r.meta(r.name("rulefiles", strconv.Itoa(i))),
+			ObjectMeta: r.meta(fmt.Sprintf("%s-%d-%d", r.name("rulefiles"), shardSn, i)),
 			Data:       bucket,
 		})
 	}

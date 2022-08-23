@@ -215,6 +215,7 @@ type RulerDefaulterValidator func(ruler *monitoringv1alpha1.Ruler) (*monitoringv
 
 func CreateRulerDefaulterValidator(opt options.Options) RulerDefaulterValidator {
 	var replicas int32 = 1
+	var shards int32 = 1
 
 	return func(ruler *monitoringv1alpha1.Ruler) (*monitoringv1alpha1.Ruler, error) {
 
@@ -223,6 +224,9 @@ func CreateRulerDefaulterValidator(opt options.Options) RulerDefaulterValidator 
 		}
 		if ruler.Spec.Replicas == nil || *ruler.Spec.Replicas < 0 {
 			ruler.Spec.Replicas = &replicas
+		}
+		if ruler.Spec.Shards == nil || *ruler.Spec.Shards < 0 {
+			ruler.Spec.Shards = &shards
 		}
 
 		return ruler, nil
