@@ -96,14 +96,14 @@ func (r *StorageReconciler) mapToStoragebySecretRefFunc(o client.Object) []recon
 	}
 	for _, storage := range storageList.Items {
 		if o.GetNamespace() == storage.GetNamespace() {
-			if o.GetName() == storage.Spec.S3.AccessKeySecretRef.Name {
+			if o.GetName() == storage.Spec.S3.AccessKey.Name {
 				reqs = append(reqs, reconcile.Request{
 					NamespacedName: types.NamespacedName{
 						Namespace: storage.GetNamespace(),
 						Name:      storage.GetName(),
 					}})
 			}
-			if o.GetName() == storage.Spec.S3.SecretKeySecretRef.Name {
+			if o.GetName() == storage.Spec.S3.SecretKey.Name {
 				reqs = append(reqs, reconcile.Request{
 					NamespacedName: types.NamespacedName{
 						Namespace: storage.GetNamespace(),

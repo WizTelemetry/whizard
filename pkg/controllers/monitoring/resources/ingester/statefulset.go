@@ -90,7 +90,7 @@ func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
 			sts.Spec.VolumeClaimTemplates = append(sts.Spec.VolumeClaimTemplates, *pvc)
 			container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
 				Name:      pvc.Name,
-				MountPath: storageDir,
+				MountPath: constants.StorageDir,
 			})
 			tsdbVolume = nil
 		} else if v.EmptyDir != nil {
@@ -101,7 +101,7 @@ func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
 		sts.Spec.Template.Spec.Volumes = append(sts.Spec.Template.Spec.Volumes, *tsdbVolume)
 		container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
 			Name:      tsdbVolume.Name,
-			MountPath: storageDir,
+			MountPath: constants.StorageDir,
 		})
 	}
 
@@ -125,7 +125,7 @@ func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
 		container.Args = append(container.Args, "--log.format="+r.ingester.Spec.LogFormat)
 	}
 	container.Args = append(container.Args, fmt.Sprintf("--label=%s=\"$(POD_NAME)\"", constants.ReceiveReplicaLabelName))
-	container.Args = append(container.Args, fmt.Sprintf("--tsdb.path=%s", storageDir))
+	container.Args = append(container.Args, fmt.Sprintf("--tsdb.path=%s", constants.StorageDir))
 	container.Args = append(container.Args, fmt.Sprintf("--receive.local-endpoint=$(POD_NAME).%s:%d", r.name(constants.ServiceNameSuffix), constants.GRPCPort))
 	if r.ingester.Spec.LocalTsdbRetention != "" {
 		container.Args = append(container.Args, "--tsdb.retention="+r.ingester.Spec.LocalTsdbRetention)

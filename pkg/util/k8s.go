@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
@@ -227,63 +226,4 @@ func DeletePVC(ctx context.Context, c client.Client, obj runtime.Object) error {
 	}
 
 	return nil
-}
-
-func AddVolume(sts *appsv1.StatefulSet, container *corev1.Container, dataVolume *v1alpha1.KubernetesVolume, tsdbVolumeName, mountPath string) {
-	if dataVolume == nil {
-		return
-	}
-
-	v := dataVolume
-	if v.PersistentVolumeClaim != nil {
-		pvc := *v.PersistentVolumeClaim
-		if pvc.Name == "" {
-			pvc.Name = tsdbVolumeName
-		}
-		if pvc.Spec.AccessModes == nil {
-			pvc.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-		}
-
-		replaced := ReplaceInSlice(sts.Spec.VolumeClaimTemplates, func(v interface{}) bool {
-			p := v.(corev1.PersistentVolumeClaim)
-			return p.Name == pvc.Name
-		}, pvc)
-
-		if !replaced {
-			sts.Spec.VolumeClaimTemplates = append(sts.Spec.VolumeClaimTemplates, pvc)
-		}
-	} else if v.EmptyDir != nil {
-		volume := corev1.Volume{
-			Name: tsdbVolumeName,
-			VolumeSource: corev1.VolumeSource{
-				EmptyDir: v.EmptyDir,
-			},
-		}
-
-		replaced := ReplaceInSlice(sts.Spec.Template.Spec.Volumes, func(v interface{}) bool {
-			vol := v.(corev1.Volume)
-			return vol.Name == volume.Name
-		}, volume)
-
-		if !replaced {
-			sts.Spec.Template.Spec.Volumes = append(sts.Spec.Template.Spec.Volumes, volume)
-		}
-	}
-
-	if v.EmptyDir != nil || v.PersistentVolumeClaim != nil {
-
-		volumeMount := corev1.VolumeMount{
-			Name:      tsdbVolumeName,
-			MountPath: mountPath,
-		}
-
-		replaced := ReplaceInSlice(sts.Spec.Template.Spec.Volumes, func(v interface{}) bool {
-			vol := v.(corev1.VolumeMount)
-			return vol.Name == volumeMount.Name
-		}, volumeMount)
-
-		if !replaced {
-			container.VolumeMounts = append(container.VolumeMounts, volumeMount)
-		}
-	}
 }

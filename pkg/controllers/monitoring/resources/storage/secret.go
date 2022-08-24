@@ -3,13 +3,14 @@ package storage
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
 
-	yaml "gopkg.in/yaml.v3"
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 )
 
 var LabelNameStorageHash = "monitoring.whizard.io/storage-hash"
@@ -37,32 +38,67 @@ func (s *Storage) updateHashAnnotation() (runtime.Object, resources.Operation, e
 }
 
 func (s *Storage) parseObjStoreConfig() ([]byte, error) {
-	bucket := &BucketConfig{}
 
 	if s.storage.Spec.S3 != nil {
+		b := &BucketConfig{
+			S3,
+			*s.storage.Spec.S3,
+		}
+
+		root := &yaml.Node{}
+		bs, err := yaml.Marshal(b)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := yaml.Unmarshal(bs, root); err != nil {
+			return nil, err
+		}
+
 		akSecert := &corev1.Secret{}
 		if err := s.Client.Get(s.Context, types.NamespacedName{
-			Name:      s.storage.Spec.S3.AccessKeySecretRef.Name,
+			Name:      s.storage.Spec.S3.AccessKey.Name,
 			Namespace: s.storage.Namespace,
 		}, akSecert); err != nil {
 			return nil, err
 		}
-		s.storage.Spec.S3.AccessKey = string(akSecert.Data[s.storage.Spec.S3.AccessKeySecretRef.Key])
+		if n := findNodeByKey(root, "access_key"); n != nil {
+			n.SetString(string(akSecert.Data[s.storage.Spec.S3.AccessKey.Key]))
+		}
 
 		skSecret := &corev1.Secret{}
 		if err := s.Client.Get(s.Context, types.NamespacedName{
-			Name:      s.storage.Spec.S3.SecretKeySecretRef.Name,
+			Name:      s.storage.Spec.S3.SecretKey.Name,
 			Namespace: s.storage.Namespace,
 		}, skSecret); err != nil {
 			return nil, err
 		}
-		s.storage.Spec.S3.SecretKey = string(skSecret.Data[s.storage.Spec.S3.SecretKeySecretRef.Key])
+		if n := findNodeByKey(root, "secret_key"); n != nil {
+			n.SetString(string(skSecret.Data[s.storage.Spec.S3.SecretKey.Key]))
+		}
 
-		bucket.Type = S3
-		bucket.Config = *s.storage.Spec.S3
+		if ref := s.storage.Spec.S3.HTTPConfig.TLSConfig.CA; ref != nil {
+			if n := findNodeByKey(root, "ca_file"); n != nil {
+				n.SetString(fmt.Sprintf("%s%s/%s", constants.ConfigPath, ref.Name, ref.Key))
+			}
+		}
+
+		if ref := s.storage.Spec.S3.HTTPConfig.TLSConfig.Cert; ref != nil {
+			if n := findNodeByKey(root, "cert_file"); n != nil {
+				n.SetString(fmt.Sprintf("%s%s/%s", constants.ConfigPath, ref.Name, ref.Key))
+			}
+		}
+
+		if ref := s.storage.Spec.S3.HTTPConfig.TLSConfig.Key; ref != nil {
+			if n := findNodeByKey(root, "key_file"); n != nil {
+				n.SetString(fmt.Sprintf("%s%s/%s", constants.ConfigPath, ref.Name, ref.Key))
+			}
+		}
+
+		return yaml.Marshal(root)
 	}
 
-	return yaml.Marshal(bucket)
+	return nil, nil
 }
 
 type ObjectStorageProvider string
@@ -81,4 +117,18 @@ const (
 type BucketConfig struct {
 	Type   ObjectStorageProvider `yaml:"type"`
 	Config interface{}           `yaml:"config"`
+}
+
+func findNodeByKey(root *yaml.Node, key string) *yaml.Node {
+
+	for i := 0; i < len(root.Content); i++ {
+		if root.Content[i].Value == key && i+1 < len(root.Content) {
+			return root.Content[i+1]
+		}
+
+		if n := findNodeByKey(root.Content[i], key); n != nil {
+			return n
+		}
+	}
+	return nil
 }

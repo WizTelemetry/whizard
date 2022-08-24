@@ -36,12 +36,10 @@ type S3 struct {
 	Endpoint           string                    `yaml:"endpoint,omitempty" json:"endpoint"`
 	Region             string                    `yaml:"region,omitempty" json:"region,omitempty"`
 	AWSSDKAuth         bool                      `yaml:"aws_sdk_auth,omitempty" json:"awsSdkAuth,omitempty"`
-	AccessKey          string                    `yaml:"access_key,omitempty" json:"-"`
-	AccessKeySecretRef *corev1.SecretKeySelector `yaml:"-" json:"accessKeyRef"`
+	AccessKey          *corev1.SecretKeySelector `yaml:"access_key" json:"accessKey"`
 	Insecure           bool                      `yaml:"insecure,omitempty" json:"insecure,omitempty"`
 	SignatureV2        bool                      `yaml:"signature_version2,omitempty" json:"signatureVersion2,omitempty"`
-	SecretKey          string                    `yaml:"secret_key,omitempty" json:"-"`
-	SecretKeySecretRef *corev1.SecretKeySelector `yaml:"-" json:"secretKeyRef"`
+	SecretKey          *corev1.SecretKeySelector `yaml:"secret_key" json:"secretKey"`
 	PutUserMetadata    map[string]string         `yaml:"put_user_metadata,omitempty" json:"putUserMetadata,omitempty"`
 	HTTPConfig         S3HTTPConfig              `yaml:"http_config,omitempty" json:"httpConfig,omitempty"`
 	TraceConfig        S3TraceConfig             `yaml:"trace,omitempty" json:"trace,omitempty"`
@@ -83,12 +81,12 @@ type S3HTTPConfig struct {
 
 // TLSConfig configures the options for TLS connections.
 type TLSConfig struct {
-	// The CA cert to use for the targets.
-	CAFile string `yaml:"ca_file,omitempty" json:"caFile,omitempty"`
-	// The client cert file for the targets.
-	CertFile string `yaml:"cert_file,omitempty" json:"certFile,omitempty"`
-	// The client key file for the targets.
-	KeyFile string `yaml:"key_file,omitempty" json:"keyFile,omitempty"`
+	// The secret that including the CA cert.
+	CA *corev1.SecretKeySelector `yaml:"ca_file,omitempty" json:"ca,omitempty"`
+	// The secret that including the client cert.
+	Cert *corev1.SecretKeySelector `yaml:"cert_file,omitempty" json:"cert,omitempty"`
+	// The secret that including the client key.
+	Key *corev1.SecretKeySelector `yaml:"key_file,omitempty" json:"key,omitempty"`
 	// Used to verify the hostname for the targets.
 	ServerName string `yaml:"server_name,omitempty" json:"serverName,omitempty"`
 	// Disable target certificate validation.
