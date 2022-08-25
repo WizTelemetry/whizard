@@ -2,10 +2,11 @@ package ruler
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
 
 	"github.com/kubesphere/whizard/pkg/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
@@ -19,11 +20,16 @@ const (
 	storageDir = "/whizard"
 )
 
+var (
+	sequenceNumberRegexp = regexp.MustCompile(`^([1-9]\d*|0)$`)
+)
+
 type Ruler struct {
 	resources.BaseReconciler
-	ruler                 *monitoringv1alpha1.Ruler
-	reloaderConfig        options.PrometheusConfigReloaderConfig
-	rulerQueryProxyConfig options.RulerQueryProxyConfig
+	ruler                    *monitoringv1alpha1.Ruler
+	reloaderConfig           options.PrometheusConfigReloaderConfig
+	rulerQueryProxyConfig    options.RulerQueryProxyConfig
+	shardsRuleConfigMapNames []map[string]struct{} // rule configmaps for each shard
 }
 
 func New(reconciler resources.BaseReconciler, ruler *monitoringv1alpha1.Ruler,
@@ -70,40 +76,29 @@ func (r *Ruler) OwnerReferences() []metav1.OwnerReference {
 	}
 }
 
-func (r *Ruler) HttpAddr() string {
-	return fmt.Sprintf("http://%s.%s.svc:%d",
-		r.name(constants.ServiceNameSuffix), r.ruler.Namespace, constants.HTTPPort)
+func (r *Ruler) HttpAddrs() []string {
+	var addrs []string
+	for shardSn := 0; shardSn < int(*r.ruler.Spec.Shards); shardSn++ {
+		addrs = append(addrs, fmt.Sprintf("http://%s.%s.svc:%d",
+			r.name(strconv.Itoa(shardSn), constants.ServiceNameSuffix), r.ruler.Namespace, constants.HTTPPort))
+	}
+	return addrs
+}
+
+func (r *Ruler) GrpcAddrs() []string {
+	var addrs []string
+	for shardSn := 0; shardSn < int(*r.ruler.Spec.Shards); shardSn++ {
+		addrs = append(addrs, fmt.Sprintf("%s.%s.svc:%d",
+			r.name(strconv.Itoa(shardSn), constants.ServiceNameSuffix), r.ruler.Namespace, constants.GRPCPort))
+	}
+	return addrs
 }
 
 func (r *Ruler) Reconcile() error {
-	createOrUpdateCms, deleteCms, useCms, err := r.ruleConfigMaps()
-	if err != nil {
-		return err
-	}
-
 	var ress []resources.Resource
-	for _, cm := range createOrUpdateCms {
-		ruleCm := cm
-		ress = append(ress, func() (runtime.Object, resources.Operation, error) {
-			return &ruleCm, resources.OperationCreateOrUpdate, nil
-		})
-	}
-	for _, cm := range deleteCms {
-		ruleCm := cm
-		ress = append(ress, func() (runtime.Object, resources.Operation, error) {
-			return &ruleCm, resources.OperationDelete, nil
-		})
-	}
-	var ruleConfigMapNames []string
-	for _, cm := range useCms {
-		ruleConfigMapNames = append(ruleConfigMapNames, cm.Name)
-	}
+	ress = append(ress, r.ruleConfigMaps()...)
+	ress = append(ress, r.statefulSets()...)
+	ress = append(ress, r.services()...)
 
-	ress = append(ress, func() (runtime.Object, resources.Operation, error) {
-		return r.statefulSet(ruleConfigMapNames)
-	})
-
-	return r.ReconcileResources(append(
-		ress,
-		r.service))
+	return r.ReconcileResources(ress)
 }

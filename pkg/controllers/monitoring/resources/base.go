@@ -47,7 +47,7 @@ func (r *BaseReconciler) ReconcileResources(resources []Resource) error {
 		switch operation {
 		case OperationDelete:
 			err := r.Client.Delete(r.Context, obj.(client.Object))
-			if !apierrors.IsNotFound(err) {
+			if err != nil && !apierrors.IsNotFound(err) {
 				return err
 			}
 		case OperationCreateOrUpdate:

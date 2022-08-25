@@ -5,12 +5,9 @@ import (
 	"net/url"
 	"path"
 	"path/filepath"
+	"strconv"
+	"strings"
 
-	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/whizard/pkg/constants"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/query"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/router"
 	promoperator "github.com/prometheus-operator/prometheus-operator/pkg/operator"
 	promcommonconfig "github.com/prometheus/common/config"
 	promconfig "github.com/prometheus/prometheus/config"
@@ -21,20 +18,66 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/query"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/router"
 )
 
-func (r *Ruler) statefulSet(ruleConfigMapNames []string) (runtime.Object, resources.Operation, error) {
-	var sts = &appsv1.StatefulSet{ObjectMeta: r.meta(r.name())}
+func (r *Ruler) statefulSets() (retResources []resources.Resource) {
+	// for target statefulsets
+	var targetNames = make(map[string]struct{}, *r.ruler.Spec.Shards)
+	for i := 0; i < int(*r.ruler.Spec.Shards); i++ {
+		shardSn := i
+		targetNames[r.name(strconv.Itoa(shardSn))] = struct{}{}
+		retResources = append(retResources, func() (runtime.Object, resources.Operation, error) {
+			return r.statefulSet(shardSn)
+		})
+	}
+
+	var stsList appsv1.StatefulSetList
+	err := r.Client.List(r.Context, &stsList, client.InNamespace(r.ruler.Namespace))
+	if err != nil {
+		return errResourcesFunc(err)
+	}
+	// check statefulsets to be deleted.
+	// the statefulsets owned by the ruler have a same name prefix and a shard sequence number suffix
+	var namePrefix = r.name() + "-"
+	for i := range stsList.Items {
+		sts := stsList.Items[i]
+		if !strings.HasPrefix(sts.Name, namePrefix) {
+			continue
+		}
+		sn := strings.TrimPrefix(sts.Name, namePrefix)
+		if sequenceNumberRegexp.MatchString(sn) {
+			if _, ok := targetNames[sts.Name]; !ok {
+				retResources = append(retResources, func() (runtime.Object, resources.Operation, error) {
+					return &sts, resources.OperationDelete, nil
+				})
+			}
+		}
+	}
+	return
+}
+
+func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, error) {
+	var sts = &appsv1.StatefulSet{ObjectMeta: r.meta(r.name(strconv.Itoa(shardSn)))}
+
+	ls := r.labels()
+	ls[constants.LabelNameRulerShardSn] = strconv.Itoa(shardSn)
 
 	sts.Spec = appsv1.StatefulSetSpec{
 		Replicas: r.ruler.Spec.Replicas,
 		Selector: &metav1.LabelSelector{
-			MatchLabels: r.labels(),
+			MatchLabels: ls,
 		},
-		ServiceName: r.name(constants.ServiceNameSuffix),
+		ServiceName: r.name(strconv.Itoa(shardSn), constants.ServiceNameSuffix),
 		Template: corev1.PodTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
-				Labels: r.labels(),
+				Labels: ls,
 			},
 			Spec: corev1.PodSpec{
 				NodeSelector: r.ruler.Spec.NodeSelector,
@@ -78,7 +121,7 @@ func (r *Ruler) statefulSet(ruleConfigMapNames []string) (runtime.Object, resour
 	var watchedDirectories []string
 	var configReloaderVolumeMounts []corev1.VolumeMount
 
-	for _, cmName := range ruleConfigMapNames {
+	for cmName := range r.shardsRuleConfigMapNames[shardSn] {
 		vol := corev1.Volume{
 			Name: "configmap-" + cmName,
 			VolumeSource: corev1.VolumeSource{
@@ -179,35 +222,37 @@ func (r *Ruler) statefulSet(ruleConfigMapNames []string) (runtime.Object, resour
 			Service:        &service,
 		})
 
-		// remote write config
-		receiveRouter := router.New(resources.ServiceBaseReconciler{
-			BaseReconciler: r.BaseReconciler,
-			Service:        &service,
-		})
-		writeUrl, err := url.Parse(receiveRouter.RemoteWriteAddr() + "/api/v1/receive")
-		if err != nil {
-			return nil, resources.OperationCreateOrUpdate, err
+		if service.Spec.Router != nil {
+			// remote write config
+			receiveRouter := router.New(resources.ServiceBaseReconciler{
+				BaseReconciler: r.BaseReconciler,
+				Service:        &service,
+			})
+			writeUrl, err := url.Parse(receiveRouter.RemoteWriteAddr() + "/api/v1/receive")
+			if err != nil {
+				return nil, resources.OperationCreateOrUpdate, err
+			}
+			var rwCfg = &promconfig.RemoteWriteConfig{}
+			*rwCfg = promconfig.DefaultRemoteWriteConfig
+			if rwCfg.Headers == nil {
+				rwCfg.Headers = make(map[string]string)
+			}
+			rwCfg.Headers[service.Spec.TenantHeader] = r.ruler.Spec.Tenant
+			rwCfg.URL = &promcommonconfig.URL{URL: writeUrl}
+			var cfgs struct {
+				RemoteWriteConfigs []*promconfig.RemoteWriteConfig `yaml:"remote_write,omitempty"`
+			}
+			rwCfg.WriteRelabelConfigs = append(rwCfg.WriteRelabelConfigs, &relabel.Config{
+				Regex:  relabel.MustNewRegexp(service.Spec.TenantLabelName),
+				Action: relabel.LabelDrop,
+			})
+			cfgs.RemoteWriteConfigs = append(cfgs.RemoteWriteConfigs, rwCfg)
+			content, err := yamlv3.Marshal(&cfgs)
+			if err != nil {
+				return nil, resources.OperationCreateOrUpdate, err
+			}
+			container.Args = append(container.Args, "--remote-write.config="+string(content))
 		}
-		var rwCfg = &promconfig.RemoteWriteConfig{}
-		*rwCfg = promconfig.DefaultRemoteWriteConfig
-		if rwCfg.Headers == nil {
-			rwCfg.Headers = make(map[string]string)
-		}
-		rwCfg.Headers[service.Spec.TenantHeader] = r.ruler.Spec.Tenant
-		rwCfg.URL = &promcommonconfig.URL{URL: writeUrl}
-		var cfgs struct {
-			RemoteWriteConfigs []*promconfig.RemoteWriteConfig `yaml:"remote_write,omitempty"`
-		}
-		rwCfg.WriteRelabelConfigs = append(rwCfg.WriteRelabelConfigs, &relabel.Config{
-			Regex:  relabel.MustNewRegexp(service.Spec.TenantLabelName),
-			Action: relabel.LabelDrop,
-		})
-		cfgs.RemoteWriteConfigs = append(cfgs.RemoteWriteConfigs, rwCfg)
-		content, err := yamlv3.Marshal(&cfgs)
-		if err != nil {
-			return nil, resources.OperationCreateOrUpdate, err
-		}
-		container.Args = append(container.Args, "--remote-write.config="+string(content))
 
 		// query config
 		if r.ruler.Spec.Tenant == "" {

@@ -1019,6 +1019,11 @@ func (in *RulerSpec) DeepCopyInto(out *RulerSpec) {
 		*out = new(metav1.LabelSelector)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.Shards != nil {
+		in, out := &in.Shards, &out.Shards
+		*out = new(int32)
+		**out = **in
+	}
 	if in.Labels != nil {
 		in, out := &in.Labels, &out.Labels
 		*out = make(map[string]string, len(*in))

@@ -533,6 +533,10 @@ type RulerSpec struct {
 	// the same namespace as the Ruler object is in is used.
 	PrometheusRuleNamespaceSelector *metav1.LabelSelector `json:"prometheusRuleNamespaceSelector,omitempty"`
 
+	// Number of shards to take the hash of fully qualified name of the rule group in order to split rules.
+	// Each shard of rules will be bound to one separate statefulset.
+	Shards *int32 `json:"shards,omitempty"`
+
 	// Tenant if not empty indicates which tenant's data is evaluated for the selected rules;
 	// otherwise, it is for all tenants.
 	Tenant string `json:"tenant,omitempty"`

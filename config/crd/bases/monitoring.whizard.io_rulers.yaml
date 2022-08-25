@@ -1437,6 +1437,12 @@ spec:
                       are ANDed.
                     type: object
                 type: object
+              shards:
+                description: Number of shards to take the hash of fully qualified
+                  name of the rule group in order to split rules. Each shard of rules
+                  will be bound to one separate statefulset.
+                format: int32
+                type: integer
               tenant:
                 description: Tenant if not empty indicates which tenant's data is
                   evaluated for the selected rules; otherwise, it is for all tenants.

@@ -3,6 +3,7 @@ package query
 import (
 	"fmt"
 	"path/filepath"
+	"strconv"
 
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
@@ -127,6 +128,7 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 		queryContainer.Args = append(queryContainer.Args, "--endpoint="+endpoint)
 	}
 
+	// add ruler endpoint to query args
 	var rulerList monitoringv1alpha1.RulerList
 	if err := q.Client.List(q.Context, &rulerList,
 		client.MatchingLabels(monitoringv1alpha1.ManagedLabelByService(q.Service))); err != nil {
@@ -135,9 +137,14 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 		return nil, resources.OperationCreateOrUpdate, err
 	}
 	for _, item := range rulerList.Items {
-		rulerSvcName := resources.QualifiedName(constants.AppNameRuler, item.Name, constants.ServiceNameSuffix)
-		endpoint := fmt.Sprintf("%s.%s.svc:%d", rulerSvcName, item.Namespace, constants.GRPCPort)
-		queryContainer.Args = append(queryContainer.Args, "--endpoint="+endpoint)
+		// cancatenate the address instead of calling ruler.GrpcAddrs() to avoid interdependent collisions
+		// should be consitent with the logic of ruler.GrpcAddrs()
+		for shardSn := 0; shardSn < int(*item.Spec.Shards); shardSn++ {
+			addr := fmt.Sprintf("%s.%s.svc:%d",
+				resources.QualifiedName(constants.AppNameRuler, item.Name, strconv.Itoa(shardSn), constants.ServiceNameSuffix),
+				item.Namespace, constants.GRPCPort)
+			queryContainer.Args = append(queryContainer.Args, "--endpoint="+addr)
+		}
 	}
 
 	for name, value := range q.query.Flags {
