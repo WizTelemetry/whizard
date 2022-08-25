@@ -18,11 +18,7 @@ import (
 )
 
 const (
-	storageDir = "/whizard"
-
 	mainContainerName = "store"
-
-	tsdbVolumeName = "tsdb"
 )
 
 func (r *Store) statefulSet() (runtime.Object, resources.Operation, error) {
@@ -46,11 +42,13 @@ func (r *Store) statefulSet() (runtime.Object, resources.Operation, error) {
 	sts.Spec.Template.Spec.Affinity = r.store.Spec.Affinity
 	sts.Spec.Template.Spec.NodeSelector = r.store.Spec.NodeSelector
 	sts.Spec.Template.Spec.Tolerations = r.store.Spec.Tolerations
+	sts.Spec.Template.Spec.Volumes = []corev1.Volume{}
+	sts.Spec.VolumeClaimTemplates = []corev1.PersistentVolumeClaim{}
 
 	var container *corev1.Container
-	for _, c := range sts.Spec.Template.Spec.Containers {
-		if c.Name == mainContainerName {
-			container = &c
+	for i := 0; i < len(sts.Spec.Template.Spec.Containers); i++ {
+		if sts.Spec.Template.Spec.Containers[i].Name == mainContainerName {
+			container = &sts.Spec.Template.Spec.Containers[i]
 		}
 	}
 
@@ -76,7 +74,16 @@ func (r *Store) statefulSet() (runtime.Object, resources.Operation, error) {
 		needToAppend = true
 	}
 
-	util.AddVolume(sts, container, r.store.Spec.DataVolume, tsdbVolumeName, storageDir)
+	container.VolumeMounts = []corev1.VolumeMount{}
+	resources.AddTSDBVolume(sts, container, r.store.Spec.DataVolume)
+
+	s, err := r.createStorageResource()
+	if err != nil {
+		return nil, "", err
+	}
+	volumes, volumeMounts := s.VolumesAndVolumeMounts()
+	sts.Spec.Template.Spec.Volumes = append(sts.Spec.Template.Spec.Volumes, volumes...)
+	container.VolumeMounts = append(container.VolumeMounts, volumeMounts...)
 
 	if container.LivenessProbe == nil {
 		container.LivenessProbe = resources.DefaultLivenessProbe()
@@ -99,16 +106,24 @@ func (r *Store) statefulSet() (runtime.Object, resources.Operation, error) {
 	return sts, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(r.store, sts, r.Scheme)
 }
 
-func (r *Store) megerArgs(container *corev1.Container) error {
-	defaultArgs := []string{"store", fmt.Sprintf("--data-dir=%s", storageDir)}
-
+func (r *Store) createStorageResource() (*storage.Storage, error) {
 	storageInstance := &v1alpha1.Storage{}
 	namespaceName := strings.Split(r.store.Labels[constants.StorageLabelKey], ".")
 	if err := r.Client.Get(r.Context, client.ObjectKey{Name: namespaceName[1], Namespace: namespaceName[0]}, storageInstance); err != nil {
-		return err
+		return nil, err
 	}
 
-	objstoreConfig, err := storage.New(r.BaseReconciler, storageInstance).String()
+	return storage.New(r.BaseReconciler, storageInstance), nil
+}
+
+func (r *Store) megerArgs(container *corev1.Container) error {
+	defaultArgs := []string{"store", fmt.Sprintf("--data-dir=%s", constants.StorageDir)}
+
+	s, err := r.createStorageResource()
+	if err != nil {
+		return err
+	}
+	objstoreConfig, err := s.String()
 	if err != nil {
 		return err
 	}

@@ -10,10 +10,6 @@ import (
 	"k8s.io/utils/pointer"
 )
 
-const (
-	storageDir = "/whizard"
-)
-
 type Ingester struct {
 	resources.BaseReconciler
 	ingester *monitoringv1alpha1.Ingester

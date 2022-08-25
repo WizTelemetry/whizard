@@ -75,10 +75,6 @@ func (t *Tenant) compactor() error {
 			return err
 		}
 
-		if t.tenant.Status.Compactor != nil {
-			t.tenant.Status.Compactor = nil
-		}
-
 		klog.V(3).Infof("Reset compactor [%s] for tenant [%s]", compactor.Name, t.tenant.Name)
 
 		return t.Client.Status().Update(t.Context, t.tenant)
@@ -171,6 +167,10 @@ func createCompactorInstance(tenant *monitoringv1alpha1.Tenant) *monitoringv1alp
 }
 
 func (t *Tenant) removeTenantFromCompactorByName(namespace, name string) error {
+	if t.tenant.Status.Compactor != nil {
+		t.tenant.Status.Compactor = nil
+	}
+
 	compactor := &monitoringv1alpha1.Compactor{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,

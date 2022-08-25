@@ -41,47 +41,16 @@ func (t *Tenant) ingester() error {
 	}
 
 	// Check if ingester needs to be created or reset
-	ingester := &monitoringv1alpha1.Ingester{}
-	if t.tenant.Status.Ingester != nil {
-		err := t.Client.Get(t.Context, types.NamespacedName{
-			Namespace: t.tenant.Status.Ingester.Namespace,
-			Name:      t.tenant.Status.Ingester.Name,
-		}, ingester)
+	if need, err := t.needResetIngester(); err != nil {
+		return err
+	} else if need {
+		klog.V(3).Infof("Reset ingester [%s] for tenant [%s]", t.tenant.Status.Ingester.Name, t.tenant.Name)
+		err := t.removeTenantFromIngesterbyName(t.tenant.Status.Ingester.Namespace, t.tenant.Status.Ingester.Name)
 		if err != nil {
-			if apierrors.IsNotFound(err) {
-				klog.V(3).Infof("Cannot find ingester [%s] for tenant [%s], create one", t.tenant.Status.Ingester.Name, t.tenant.Name)
-			} else {
-				return err
-			}
-		} else {
-			var needResetIngester bool = false
-			if ok := containsString(ingester.Spec.Tenants, t.tenant.Spec.Tenant); !ok {
-				klog.V(3).Infof("Tenant [%s] and ingester [%s] mismatch, need to reset ingester", t.tenant.Name, ingester.Name)
-				needResetIngester = true
-			}
-
-			if v, ok := ingester.Labels[constants.ServiceLabelKey]; !ok || v != t.tenant.Labels[constants.ServiceLabelKey] {
-				klog.V(3).Infof("Tenant [%s] and ingester [%s]'s Service mismatch, need to reset ingester", t.tenant.Name, ingester.Name)
-				needResetIngester = true
-			}
-
-			if v, ok := ingester.Labels[constants.StorageLabelKey]; !ok || v != t.tenant.Labels[constants.TenantLabelKey] {
-				klog.V(3).Infof("Tenant [%s] and ingester [%s]'s Storage mismatch, need to reset ingester", t.tenant.Name, ingester.Name)
-				needResetIngester = true
-			}
-
-			if !needResetIngester {
-				return nil
-			} else {
-				klog.V(3).Infof("Reset ingester [%s] for tenant [%s]", ingester.Name, t.tenant.Name)
-				err := t.removeTenantFromIngesterbyName(ingester.Namespace, ingester.Name)
-				if err != nil {
-					return err
-				}
-
-				return t.Client.Status().Update(t.Context, t.tenant)
-			}
+			return err
 		}
+
+		return t.Client.Status().Update(t.Context, t.tenant)
 	}
 
 	// when tenant.Labels don't contain Service, remove the bindings to ingester and ruler
@@ -134,6 +103,7 @@ func (t *Tenant) ingester() error {
 	// create or update ingester instance.
 	// traverse ingesterMapping according to the index, if it is currently empty, create a new instance,
 	// otherwise check len(ingesterItem.Spec.Tenants) < t.DefaultTenantsPerIngester，if so, select the instance.
+	ingester := &monitoringv1alpha1.Ingester{}
 	for i := 0; i < len(ingesterMapping)+1; i++ {
 		name := createIngesterInstanceName(t.tenant, strconv.Itoa(i))
 		if ingesterItem, ok := ingesterMapping[name]; ok {
@@ -159,9 +129,49 @@ func (t *Tenant) ingester() error {
 	return t.Client.Status().Update(t.Context, t.tenant)
 }
 
-func (t *Tenant) removeTenantFromIngesterbyName(namespace, name string) error {
-	ingester := &monitoringv1alpha1.Ingester{}
+func (t *Tenant) needResetIngester() (bool, error) {
+	if t.tenant.Status.Ingester == nil {
+		return false, nil
+	}
 
+	ingester := &monitoringv1alpha1.Ingester{}
+	err := t.Client.Get(t.Context, types.NamespacedName{
+		Namespace: t.tenant.Status.Ingester.Namespace,
+		Name:      t.tenant.Status.Ingester.Name,
+	}, ingester)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return false, err
+	}
+
+	if err != nil && apierrors.IsNotFound(err) {
+		klog.V(3).Infof("Cannot find ingester [%s] for tenant [%s], need to reset ingester", t.tenant.Status.Ingester.Name, t.tenant.Name)
+		return true, nil
+	}
+
+	if ok := containsString(ingester.Spec.Tenants, t.tenant.Spec.Tenant); !ok {
+		klog.V(3).Infof("Tenant [%s] and ingester [%s] mismatch, need to reset ingester", t.tenant.Name, ingester.Name)
+		return true, nil
+	}
+
+	if v, ok := ingester.Labels[constants.ServiceLabelKey]; !ok || v != t.tenant.Labels[constants.ServiceLabelKey] {
+		klog.V(3).Infof("Tenant [%s] and ingester [%s]'s Service mismatch, need to reset ingester", t.tenant.Name, ingester.Name)
+		return true, nil
+	}
+
+	if v, ok := ingester.Labels[constants.StorageLabelKey]; !ok || v != t.tenant.Labels[constants.StorageLabelKey] {
+		klog.V(3).Infof("Tenant [%s] and ingester [%s]'s Storage mismatch, need to reset ingester", t.tenant.Name, ingester.Name)
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func (t *Tenant) removeTenantFromIngesterbyName(namespace, name string) error {
+	if t.tenant.Status.Ingester != nil {
+		t.tenant.Status.Ingester = nil
+	}
+
+	ingester := &monitoringv1alpha1.Ingester{}
 	err := t.Client.Get(t.Context, types.NamespacedName{
 		Namespace: namespace,
 		Name:      name,
@@ -186,10 +196,6 @@ func (t *Tenant) removeTenantFromIngesterbyName(namespace, name string) error {
 				annotation[constants.LabelNameIngesterState] = "deleting"
 				annotation[constants.LabelNameIngesterDeletingTime] = strconv.Itoa(int(time.Now().Add(t.Options.DefaultIngesterRetentionPeriod).Unix()))
 				ingester.Annotations = annotation
-			}
-
-			if t.tenant.Status.Ingester != nil {
-				t.tenant.Status.Ingester = nil
 			}
 
 			return util.CreateOrUpdate(t.Context, t.Client, ingester)
@@ -217,7 +223,7 @@ func (t *Tenant) deleteIngesterInstance(namespace, name string) error {
 		if v, ok := annotations[constants.LabelNameIngesterState]; ok && v == "deleting" {
 			if v, ok := annotations[constants.TenantLabelKey]; !ok || len(v) == 0 {
 				klog.V(3).Infof("Ingester %s will be deleted.")
-				t.Client.Delete(t.Context, ingester)
+				_ = t.Client.Delete(t.Context, ingester)
 			}
 		}
 	}

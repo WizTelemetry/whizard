@@ -37,7 +37,7 @@ spec:
               S3:
                 description: Config stores the configuration for s3 bucket.
                 properties:
-                  accessKeyRef:
+                  accessKey:
                     description: SecretKeySelector selects a key of a Secret.
                     properties:
                       key:
@@ -94,18 +94,66 @@ spec:
                       tlsConfig:
                         description: TLSConfig configures the options for TLS connections.
                         properties:
-                          caFile:
-                            description: The CA cert to use for the targets.
-                            type: string
-                          certFile:
-                            description: The client cert file for the targets.
-                            type: string
+                          ca:
+                            description: The secret that including the CA cert.
+                            properties:
+                              key:
+                                description: The key of the secret to select from.  Must
+                                  be a valid secret key.
+                                type: string
+                              name:
+                                description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                  TODO: Add other useful fields. apiVersion, kind,
+                                  uid?'
+                                type: string
+                              optional:
+                                description: Specify whether the Secret or its key
+                                  must be defined
+                                type: boolean
+                            required:
+                            - key
+                            type: object
+                          cert:
+                            description: The secret that including the client cert.
+                            properties:
+                              key:
+                                description: The key of the secret to select from.  Must
+                                  be a valid secret key.
+                                type: string
+                              name:
+                                description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                  TODO: Add other useful fields. apiVersion, kind,
+                                  uid?'
+                                type: string
+                              optional:
+                                description: Specify whether the Secret or its key
+                                  must be defined
+                                type: boolean
+                            required:
+                            - key
+                            type: object
                           insecureSkipVerify:
                             description: Disable target certificate validation.
                             type: boolean
-                          keyFile:
-                            description: The client key file for the targets.
-                            type: string
+                          key:
+                            description: The secret that including the client key.
+                            properties:
+                              key:
+                                description: The key of the secret to select from.  Must
+                                  be a valid secret key.
+                                type: string
+                              name:
+                                description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                  TODO: Add other useful fields. apiVersion, kind,
+                                  uid?'
+                                type: string
+                              optional:
+                                description: Specify whether the Secret or its key
+                                  must be defined
+                                type: boolean
+                            required:
+                            - key
+                            type: object
                           serverName:
                             description: Used to verify the hostname for the targets.
                             type: string
@@ -134,7 +182,7 @@ spec:
                     type: object
                   region:
                     type: string
-                  secretKeyRef:
+                  secretKey:
                     description: SecretKeySelector selects a key of a Secret.
                     properties:
                       key:
@@ -178,10 +226,10 @@ spec:
                         type: boolean
                     type: object
                 required:
-                - accessKeyRef
+                - accessKey
                 - bucket
                 - endpoint
-                - secretKeyRef
+                - secretKey
                 type: object
             type: object
           status:

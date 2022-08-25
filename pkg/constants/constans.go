@@ -43,4 +43,8 @@ const (
 
 	LabelNameIngesterState        = "monitoring.whizard.io/ingester-state"
 	LabelNameIngesterDeletingTime = "monitoring.whizard.io/ingester-deleting-time"
+
+	ConfigPath     = "/etc/whizard/"
+	StorageDir     = "/whizard"
+	TSDBVolumeName = "tsdb"
 )
