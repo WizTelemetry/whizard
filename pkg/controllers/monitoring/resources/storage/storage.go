@@ -33,6 +33,10 @@ func (s *Storage) String() (string, error) {
 	return string(body), err
 }
 
+func (s *Storage) Hash() (string, error) {
+	return s.hash()
+}
+
 func (s *Storage) VolumesAndVolumeMounts() ([]corev1.Volume, []corev1.VolumeMount) {
 	if s.storage.Spec.S3 == nil {
 		return nil, nil

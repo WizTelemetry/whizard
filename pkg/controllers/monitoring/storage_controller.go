@@ -91,25 +91,28 @@ func (r *StorageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *StorageReconciler) mapToStoragebySecretRefFunc(o client.Object) []reconcile.Request {
 	var reqs []reconcile.Request
 	var storageList monitoringv1alpha1.StorageList
-	if err := r.List(r.Context, &storageList); err != nil {
+	if err := r.List(r.Context, &storageList, client.InNamespace(o.GetNamespace())); err != nil {
 		return reqs
 	}
-	for _, storage := range storageList.Items {
-		if o.GetNamespace() == storage.GetNamespace() {
-			if o.GetName() == storage.Spec.S3.AccessKey.Name {
-				reqs = append(reqs, reconcile.Request{
-					NamespacedName: types.NamespacedName{
-						Namespace: storage.GetNamespace(),
-						Name:      storage.GetName(),
-					}})
-			}
-			if o.GetName() == storage.Spec.S3.SecretKey.Name {
-				reqs = append(reqs, reconcile.Request{
-					NamespacedName: types.NamespacedName{
-						Namespace: storage.GetNamespace(),
-						Name:      storage.GetName(),
-					}})
-			}
+
+	name := o.GetName()
+	for _, s := range storageList.Items {
+		if s.Spec.S3 == nil {
+			continue
+		}
+
+		s3 := s.Spec.S3
+		tls := s3.HTTPConfig.TLSConfig
+		if s3.AccessKey.Name == name ||
+			s3.SecretKey.Name == name ||
+			(tls.CA != nil && tls.CA.Name == name) ||
+			(tls.Key != nil && tls.Key.Name == name) ||
+			(tls.Cert != nil && tls.Cert.Name == name) {
+			reqs = append(reqs, reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Namespace: s.GetNamespace(),
+					Name:      s.GetName(),
+				}})
 		}
 	}
 
