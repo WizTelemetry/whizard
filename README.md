@@ -10,8 +10,6 @@ Whizard is an observability platform for Kubernetes infrastructure and applicati
 || `Ingester` (CRD) |  | Define one *Receive Ingester* instance which lands metric data.
 || `Store` (CRD) |  | Define one Store instace for long term storage.
 || `Ruler` (CRD) | | Define one *Ruler* instance.
-|| `AlertingRule` (CRD) | | Define one single alerting rule.
-|| `RuleGroup` (CRD) | | Define one rule group.
 | *monitoring-gateway* | Auth/Proxy for monitoring service |  |
 | *monitoring-agent-proxy* | Proxy for prometheus agent
 | *whizard-apiserver* |

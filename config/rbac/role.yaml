@@ -117,14 +117,6 @@ rules:
 - apiGroups:
   - monitoring.whizard.io
   resources:
-  - alertingrules
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - monitoring.whizard.io
-  resources:
   - compactors
   verbs:
   - create
@@ -177,14 +169,6 @@ rules:
 - apiGroups:
   - monitoring.whizard.io
   resources:
-  - rulegroups
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - monitoring.whizard.io
-  resources:
   - rulers
   verbs:
   - create
@@ -208,14 +192,6 @@ rules:
   - get
   - patch
   - update
-- apiGroups:
-  - monitoring.whizard.io
-  resources:
-  - rules
-  verbs:
-  - get
-  - list
-  - watch
 - apiGroups:
   - monitoring.whizard.io
   resources:

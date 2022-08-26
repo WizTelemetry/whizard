@@ -17,7 +17,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 )
 
@@ -38,15 +37,6 @@ func (r *Ruler) ruleConfigMaps() (retResources []resources.Resource) {
 		return errResourcesFunc(err)
 	}
 
-	rules, err := r.selectRules()
-	if err != nil {
-		return errResourcesFunc(err)
-	}
-
-	for k, v := range rules {
-		prometheusRules[k] = v
-	}
-
 	var shards = uint64(*r.ruler.Spec.Shards)
 
 	// generate rule files for each shard
@@ -61,7 +51,7 @@ func (r *Ruler) ruleConfigMaps() (retResources []resources.Resource) {
 			}
 			var shardSpecs = make([]promv1.PrometheusRuleSpec, shards)
 			for i := range spec.Groups {
-				// generate shard sequence number by file and group name
+				// hashmod to generate shard sequence number by file and group name
 				name := fmt.Sprintf("%s/%s", file, spec.Groups[i].Name)
 				shardSn := sum64(md5.Sum([]byte(name))) % shards
 				shardSpecs[shardSn].Groups = append(shardSpecs[shardSn].Groups, spec.Groups[i])
@@ -165,166 +155,6 @@ func sum64(hash [md5.Size]byte) uint64 {
 	return s
 }
 
-type rulesWrapper struct {
-	rules []promv1.Rule
-	by    func(r1, r2 *promv1.Rule) bool
-}
-
-func (rw rulesWrapper) Len() int {
-	return len(rw.rules)
-}
-
-func (rw rulesWrapper) Swap(i, j int) {
-	rw.rules[i], rw.rules[j] = rw.rules[j], rw.rules[i]
-}
-
-func (rw rulesWrapper) Less(i, j int) bool {
-	return rw.by(&rw.rules[i], &rw.rules[j])
-}
-
-// select rule resources and combine them to PrometheusRules (defined by prometheus-operator) struct
-func (r *Ruler) selectRules() (map[string]*promv1.PrometheusRuleSpec, error) {
-	rules := make(map[string]*promv1.PrometheusRuleSpec)
-
-	namespaces, err := r.selectNamespaces(r.ruler.Spec.RuleNamespaceSelector)
-	if err != nil {
-		return nil, err
-	}
-	ruleSelector, err := metav1.LabelSelectorAsSelector(r.ruler.Spec.RuleSelector)
-	if err != nil {
-		return nil, err
-	}
-
-	var defaultGroupName = "default"
-
-	for _, ns := range namespaces {
-		var ruleList monitoringv1alpha1.RuleList
-		err = r.Client.List(r.Context, &ruleList,
-			client.MatchingLabelsSelector{Selector: ruleSelector}, client.InNamespace(ns))
-		if err != nil {
-			return nil, err
-		}
-
-		var groupList monitoringv1alpha1.RuleGroupList
-		err = r.Client.List(r.Context, &groupList, client.InNamespace(ns))
-		if err != nil {
-			return nil, err
-		}
-		var groups = make(map[string]*monitoringv1alpha1.RuleGroup)
-		for _, group := range groupList.Items {
-			groups[group.Name] = &group
-		}
-
-		// combine Rules to the RuleGroups(defined by prometheus-operator)
-		var promGroups = make(map[string]*promv1.RuleGroup)
-		var groupsChecked = make(map[string]struct{})
-		var groupNames []string
-		for _, rule := range ruleList.Items {
-			if rule.Spec.Alert == "" && rule.Spec.Record == "" {
-				r.Log.WithValues("rule", ns+"/"+rule.Name).V(2).Error(nil, "ignore the rule because both alert and record are empty")
-				continue
-			}
-			var groupName = defaultGroupName
-			if g := monitoringv1alpha1.RuleGroupName(&rule); g != "" {
-				groupName = g
-			}
-			if _, ok := promGroups[groupName]; !ok {
-				group, ok2 := groups[groupName]
-				if groupName != defaultGroupName && !ok2 { // for the group does not exist
-					if _, checked := groupsChecked[groupName]; !checked { // avoid to log not found err too many times for a same group
-						groupsChecked[groupName] = struct{}{}
-						r.Log.WithValues("rulegroup", ns+"/"+groupName).Error(err, "not found")
-					}
-					continue
-				}
-				promGroup := promv1.RuleGroup{Name: groupName}
-				if group != nil {
-					promGroup.Interval = group.Spec.Interval
-					promGroup.PartialResponseStrategy = group.Spec.PartialResponseStrategy
-				}
-				promGroups[groupName] = &promGroup
-				groupNames = append(groupNames, groupName)
-
-			}
-			promGroups[groupName].Rules = append(promGroups[groupName].Rules, promv1.Rule{
-				Alert:       rule.Spec.Alert,
-				Record:      rule.Spec.Record,
-				Expr:        rule.Spec.Expr,
-				Labels:      rule.Spec.Labels,
-				Annotations: rule.Spec.Annotations,
-				For:         string(rule.Spec.For),
-			})
-		}
-
-		// sort rules in each group by rule name asc
-		for _, groupName := range groupNames {
-			sort.Sort(rulesWrapper{promGroups[groupName].Rules, func(r1, r2 *promv1.Rule) bool {
-				if r1.Alert == r2.Alert { // for record rules
-					return r1.Record < r2.Record
-				}
-				return r1.Alert < r2.Alert
-			}})
-		}
-
-		// split rules in default group in which when there are too much rules
-		const defaultGroupSize = 20
-		if promGroup, ok := promGroups[defaultGroupName]; ok && len(promGroup.Rules) > defaultGroupSize {
-			rules := promGroup.Rules
-			promGroup.Rules = rules[:defaultGroupSize]
-			promGroups[defaultGroupName] = promGroup
-			for i := 1; ; i++ {
-				g := &promv1.RuleGroup{
-					Name:                    fmt.Sprintf("%s.%d", defaultGroupName, i),
-					Interval:                promGroup.Interval,
-					PartialResponseStrategy: promGroup.PartialResponseStrategy,
-				}
-				if len(rules) > defaultGroupSize*(i+1) {
-					g.Rules = rules[defaultGroupSize*i : defaultGroupSize*(i+1)]
-					promGroups[g.Name] = g
-				} else {
-					g.Rules = rules[defaultGroupSize*i:]
-					promGroups[g.Name] = g
-					break
-				}
-			}
-		}
-
-		sort.Strings(groupNames)
-
-		// combine RuleGroups(prometheus-operator) into PrometheusRules(prometheus-operator)
-		var promRule promv1.PrometheusRuleSpec
-		var size, count int
-		for _, groupName := range groupNames {
-			if size > maxConfigMapDataSize*90/100 {
-				rules[fmt.Sprintf("%s.rules.%d.yaml", ns, count)] = promRule.DeepCopy()
-
-				promRule = promv1.PrometheusRuleSpec{}
-				size = 0
-				count++
-			}
-
-			promGroup := promGroups[groupName]
-
-			content, err := yaml.Marshal(promGroup)
-			if err != nil {
-				return nil, errors.Wrap(err, "failed to marshal content")
-			}
-			size += len(string(content))
-
-			promRule.Groups = append(promRule.Groups, *promGroup)
-			continue
-
-		}
-		if size > 0 && len(promRule.Groups) > 0 {
-			rules[fmt.Sprintf("%s.rules.%d.yaml", ns, count)] = promRule.DeepCopy()
-		}
-
-	}
-
-	return rules, nil
-
-}
-
 func (r *Ruler) selectNamespaces(nsSelector *metav1.LabelSelector) ([]string, error) {
 	namespaces := []string{}
 
@@ -353,11 +183,11 @@ func (r *Ruler) selectNamespaces(nsSelector *metav1.LabelSelector) ([]string, er
 func (r *Ruler) selectPrometheusRules() (map[string]*promv1.PrometheusRuleSpec, error) {
 	rules := make(map[string]*promv1.PrometheusRuleSpec)
 
-	namespaces, err := r.selectNamespaces(r.ruler.Spec.PrometheusRuleNamespaceSelector)
+	namespaces, err := r.selectNamespaces(r.ruler.Spec.RuleNamespaceSelector)
 	if err != nil {
 		return nil, err
 	}
-	ruleSelector, err := metav1.LabelSelectorAsSelector(r.ruler.Spec.PrometheusRuleSelector)
+	ruleSelector, err := metav1.LabelSelectorAsSelector(r.ruler.Spec.RuleSelector)
 	if err != nil {
 		return nil, err
 	}
