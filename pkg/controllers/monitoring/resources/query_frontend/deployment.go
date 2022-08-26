@@ -49,6 +49,13 @@ func (q *QueryFrontend) deployment() (runtime.Object, resources.Operation, error
 		},
 	}
 
+	hashCode, err := resources.GetTenantHash(q.Context, q.Client, map[string]string{
+		constants.ServiceLabelKey: fmt.Sprintf("%s.%s", q.Service.Namespace, q.Service.Name),
+	})
+	if err != nil {
+		return nil, "", err
+	}
+
 	var container = corev1.Container{
 		Name:      "query-frontend",
 		Image:     q.queryFrontend.Image,
@@ -68,6 +75,12 @@ func (q *QueryFrontend) deployment() (runtime.Object, resources.Operation, error
 			MountPath: configDir,
 			ReadOnly:  true,
 		}},
+		Env: []corev1.EnvVar{
+			{
+				Name:  constants.TenantHash,
+				Value: hashCode,
+			},
+		},
 	}
 
 	query := query.New(q.ServiceBaseReconciler)
