@@ -29,6 +29,16 @@ func (r *Compactor) statefulSet() (runtime.Object, resources.Operation, error) {
 		}
 	}
 
+	if sts.Annotations == nil {
+		sts.Annotations = make(map[string]string)
+	}
+
+	hashCode, err := r.getStorageConfigHash()
+	if err != nil {
+		return nil, "", err
+	}
+	sts.Annotations[constants.LabelNameStorageHash] = hashCode
+
 	sts.Spec.Selector = &metav1.LabelSelector{
 		MatchLabels: r.labels(),
 	}
@@ -96,6 +106,24 @@ func (r *Compactor) statefulSet() (runtime.Object, resources.Operation, error) {
 	return sts, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(r.compactor, sts, r.Scheme)
 }
 
+func (r *Compactor) getStorageConfig() (string, error) {
+	s, err := r.createStorageResource()
+	if err != nil {
+		return "", err
+	}
+
+	return s.String()
+}
+
+func (r *Compactor) getStorageConfigHash() (string, error) {
+	s, err := r.createStorageResource()
+	if err != nil {
+		return "", err
+	}
+
+	return s.Hash()
+}
+
 func (r *Compactor) createStorageResource() (*storage.Storage, error) {
 	storageInstance := &v1alpha1.Storage{}
 	namespaceName := strings.Split(r.compactor.Labels[constants.StorageLabelKey], ".")
@@ -147,11 +175,7 @@ func (r *Compactor) megerArgs(container *corev1.Container) error {
 
 	defaultArgs := []string{"compact", "--wait", fmt.Sprintf("--data-dir=%s", constants.StorageDir)}
 
-	s, err := r.createStorageResource()
-	if err != nil {
-		return err
-	}
-	objstoreConfig, err := s.String()
+	objstoreConfig, err := r.getStorageConfig()
 	if err != nil {
 		return err
 	}

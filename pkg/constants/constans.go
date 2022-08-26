@@ -49,4 +49,6 @@ const (
 	ConfigPath     = "/etc/whizard/"
 	StorageDir     = "/whizard"
 	TSDBVolumeName = "tsdb"
+
+	LabelNameStorageHash = "monitoring.whizard.io/storage-hash"
 )

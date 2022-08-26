@@ -10,31 +10,74 @@ import (
 	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-var LabelNameStorageHash = "monitoring.whizard.io/storage-hash"
 
 // updateHashAnnotation generate the hash with objstoreConfig to write to the annotation. When the secret update hash changes, the storage update event is triggered.
 func (s *Storage) updateHashAnnotation() (runtime.Object, resources.Operation, error) {
 
-	objStoreConfig, err := s.parseObjStoreConfig()
-	if err != nil {
-		return nil, "", err
-	}
-	c := md5.New()
-	c.Write(objStoreConfig)
-	hashStr := hex.EncodeToString(c.Sum(nil))
-
 	if s.storage.Annotations == nil {
 		s.storage.Annotations = make(map[string]string)
 	}
-	if v, ok := s.storage.Annotations[LabelNameStorageHash]; !ok || v != hashStr {
-		s.storage.Annotations[LabelNameStorageHash] = hashStr
+
+	hashStr, err := s.hash()
+	if err != nil {
+		return nil, "", err
+	}
+
+	if v, ok := s.storage.Annotations[constants.LabelNameStorageHash]; !ok || v != hashStr {
+		s.storage.Annotations[constants.LabelNameStorageHash] = hashStr
 		return s.storage, resources.OperationCreateOrUpdate, nil
 	}
 
 	return nil, "", nil
+}
+
+func (s *Storage) hash() (string, error) {
+	objStoreConfig, err := s.parseObjStoreConfig()
+	if err != nil {
+		return "", err
+	}
+	c := md5.New()
+	c.Write(objStoreConfig)
+
+	if s.storage.Spec.S3 != nil {
+		tls := s.storage.Spec.S3.HTTPConfig.TLSConfig
+		if bs, err := s.getValueFromSecret(tls.CA); err != nil {
+			return "", err
+		} else {
+			c.Write(bs)
+		}
+
+		if bs, err := s.getValueFromSecret(tls.Key); err != nil {
+			return "", err
+		} else {
+			c.Write(bs)
+		}
+
+		if bs, err := s.getValueFromSecret(tls.Cert); err != nil {
+			return "", err
+		} else {
+			c.Write(bs)
+		}
+	}
+
+	hashStr := hex.EncodeToString(c.Sum(nil))
+	return hashStr, nil
+}
+
+func (s *Storage) getValueFromSecret(ref *corev1.SecretKeySelector) ([]byte, error) {
+
+	if ref == nil {
+		return nil, nil
+	}
+
+	secret := &corev1.Secret{}
+	if err := s.Client.Get(s.Context, client.ObjectKey{Name: ref.Name, Namespace: s.storage.Namespace}, secret); err != nil {
+		return nil, err
+	}
+
+	return secret.Data[ref.Key], nil
 }
 
 func (s *Storage) parseObjStoreConfig() ([]byte, error) {
@@ -55,26 +98,20 @@ func (s *Storage) parseObjStoreConfig() ([]byte, error) {
 			return nil, err
 		}
 
-		akSecert := &corev1.Secret{}
-		if err := s.Client.Get(s.Context, types.NamespacedName{
-			Name:      s.storage.Spec.S3.AccessKey.Name,
-			Namespace: s.storage.Namespace,
-		}, akSecert); err != nil {
+		bs, err = s.getValueFromSecret(s.storage.Spec.S3.AccessKey)
+		if err != nil {
 			return nil, err
 		}
 		if n := findNodeByKey(root, "access_key"); n != nil {
-			n.SetString(string(akSecert.Data[s.storage.Spec.S3.AccessKey.Key]))
+			n.SetString(string(bs))
 		}
 
-		skSecret := &corev1.Secret{}
-		if err := s.Client.Get(s.Context, types.NamespacedName{
-			Name:      s.storage.Spec.S3.SecretKey.Name,
-			Namespace: s.storage.Namespace,
-		}, skSecret); err != nil {
+		bs, err = s.getValueFromSecret(s.storage.Spec.S3.SecretKey)
+		if err != nil {
 			return nil, err
 		}
 		if n := findNodeByKey(root, "secret_key"); n != nil {
-			n.SetString(string(skSecret.Data[s.storage.Spec.S3.SecretKey.Key]))
+			n.SetString(string(bs))
 		}
 
 		if ref := s.storage.Spec.S3.HTTPConfig.TLSConfig.CA; ref != nil {
