@@ -53,9 +53,6 @@ type RulerReconciler struct {
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=rulers,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=rulers/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=rulers/finalizers,verbs=update
-//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=alertingrules,verbs=get;list;watch
-//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=rulegroups,verbs=get;list;watch
-//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=rules,verbs=get;list;watch
 //+kubebuilder:rbac:groups=monitoring.coreos.com,resources=prometheusrules,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=services;configmaps,verbs=get;list;watch;create;update;patch;delete
@@ -109,14 +106,11 @@ func (r *RulerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&monitoringv1alpha1.Ruler{}).
 		Watches(&source.Kind{Type: &promv1.PrometheusRule{}},
 			handler.EnqueueRequestsFromMapFunc(r.mapRuleToRulerFunc)).
-		Watches(&source.Kind{Type: &monitoringv1alpha1.Rule{}},
-			handler.EnqueueRequestsFromMapFunc(r.mapRuleToRulerFunc)).
-		Watches(&source.Kind{Type: &monitoringv1alpha1.RuleGroup{}},
-			handler.EnqueueRequestsFromMapFunc(r.mapRuleGroupToRulerFunc)).
 		Watches(&source.Kind{Type: &monitoringv1alpha1.Service{}},
 			handler.EnqueueRequestsFromMapFunc(r.mapToRulerFunc)).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Service{}).
+		Owns(&corev1.ConfigMap{}).
 		Complete(r)
 }
 
@@ -148,17 +142,6 @@ func (r *RulerReconciler) mapRuleToRulerFunc(o client.Object) []reconcile.Reques
 			continue
 		}
 
-		prometheusRuleNsSelector, err := metav1.LabelSelectorAsSelector(ruler.Spec.PrometheusRuleNamespaceSelector)
-		if err != nil {
-			log.FromContext(r.Context).WithValues("ruler", req.NamespacedName).Error(
-				err, "failed to convert PrometheusRuleNamespaceSelector")
-			continue
-		}
-		if prometheusRuleNsSelector.Matches(labels.Set(ns.Labels)) {
-			reqs = append(reqs, req)
-			continue
-		}
-
 		ruleNsSelector, err := metav1.LabelSelectorAsSelector(ruler.Spec.RuleNamespaceSelector)
 		if err != nil {
 			log.FromContext(r.Context).WithValues("ruler", req.NamespacedName).Error(
@@ -170,22 +153,6 @@ func (r *RulerReconciler) mapRuleToRulerFunc(o client.Object) []reconcile.Reques
 		}
 	}
 
-	return reqs
-}
-
-func (r *RulerReconciler) mapRuleGroupToRulerFunc(o client.Object) []reconcile.Request {
-	var ruleList monitoringv1alpha1.RuleList
-	if err := r.Client.List(r.Context, &ruleList,
-		client.InNamespace(o.GetNamespace()),
-		client.MatchingLabels(monitoringv1alpha1.ManagedLabelByRuleGroup(o))); err != nil {
-		log.FromContext(r.Context).WithValues("rulerlist", "").Error(err, "")
-		return nil
-	}
-
-	var reqs []reconcile.Request
-	for _, rule := range ruleList.Items {
-		reqs = append(reqs, r.mapRuleToRulerFunc(&rule)...)
-	}
 	return reqs
 }
 

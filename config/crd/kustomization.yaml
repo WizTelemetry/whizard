@@ -7,8 +7,6 @@ resources:
 - bases/monitoring.whizard.io_compactors.yaml
 - bases/monitoring.whizard.io_ingesters.yaml
 - bases/monitoring.whizard.io_rulers.yaml
-- bases/monitoring.whizard.io_rules.yaml
-- bases/monitoring.whizard.io_rulegroups.yaml
 - bases/monitoring.whizard.io_storages.yaml
 - bases/monitoring.whizard.io_tenants.yaml
 #+kubebuilder:scaffold:crdkustomizeresource

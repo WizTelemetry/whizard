@@ -1,3 +1,5 @@
+
+
 # API Docs
 
 This Document documents the types introduced by the whizard to be consumed by users.
@@ -5,10 +7,6 @@ This Document documents the types introduced by the whizard to be consumed by us
 > Note this document is generated from code comments. When contributing a change to this document please do so by changing the code comments.
 
 ## Table of Contents
-* [Tenant](#tenant)
-* [TenantList](#tenantlist)
-* [TenantSpec](#tenantspec)
-* [TenantStatus](#tenantstatus)
 * [AutoScaler](#autoscaler)
 * [Compactor](#compactor)
 * [CompactorList](#compactorlist)
@@ -29,12 +27,6 @@ This Document documents the types introduced by the whizard to be consumed by us
 * [ResponseCacheProviderConfig](#responsecacheproviderconfig)
 * [Retention](#retention)
 * [Router](#router)
-* [Rule](#rule)
-* [RuleGroup](#rulegroup)
-* [RuleGroupList](#rulegrouplist)
-* [RuleGroupSpec](#rulegroupspec)
-* [RuleList](#rulelist)
-* [RuleSpec](#rulespec)
 * [Ruler](#ruler)
 * [RulerList](#rulerlist)
 * [RulerSpec](#rulerspec)
@@ -52,52 +44,10 @@ This Document documents the types introduced by the whizard to be consumed by us
 * [StorageList](#storagelist)
 * [StorageSpec](#storagespec)
 * [TLSConfig](#tlsconfig)
-
-## Tenant
-
-Tenant is the Schema for the monitoring Tenant API
-
-| Field | Description | Scheme | Required |
-| ----- | ----------- | ------ | -------- |
-| metadata |  | [metav1.ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#objectmeta-v1-meta) | false |
-| spec |  | [TenantSpec](#tenantspec) | false |
-| status |  | [TenantStatus](#tenantstatus) | false |
-
-[Back to TOC](#table-of-contents)
-
-## TenantList
-
-
-
-| Field | Description | Scheme | Required |
-| ----- | ----------- | ------ | -------- |
-| metadata |  | [metav1.ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#listmeta-v1-meta) | false |
-| items |  | [][Tenant](#tenant) | true |
-
-[Back to TOC](#table-of-contents)
-
-## TenantSpec
-
-
-
-| Field | Description | Scheme | Required |
-| ----- | ----------- | ------ | -------- |
-| tenant |  | string | false |
-| storage |  | *[ObjectReference](#objectreference) | false |
-
-[Back to TOC](#table-of-contents)
-
-## TenantStatus
-
-
-
-| Field | Description | Scheme | Required |
-| ----- | ----------- | ------ | -------- |
-| ruler |  | *[ObjectReference](#objectreference) | false |
-| compactor |  | *[ObjectReference](#objectreference) | false |
-| ingester |  | *[ObjectReference](#objectreference) | false |
-
-[Back to TOC](#table-of-contents)
+* [Tenant](#tenant)
+* [TenantList](#tenantlist)
+* [TenantSpec](#tenantspec)
+* [TenantStatus](#tenantstatus)
 
 ## AutoScaler
 
@@ -382,78 +332,6 @@ Retention defines the config for retaining samples
 
 [Back to TOC](#table-of-contents)
 
-## Rule
-
-Rule is the Schema for the Rule API
-
-| Field | Description | Scheme | Required |
-| ----- | ----------- | ------ | -------- |
-| metadata |  | [metav1.ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#objectmeta-v1-meta) | false |
-| spec |  | [RuleSpec](#rulespec) | false |
-| status |  | [RuleStatus](#rulestatus) | false |
-
-[Back to TOC](#table-of-contents)
-
-## RuleGroup
-
-RuleGroup is the Schema for the RuleGroup API
-
-| Field | Description | Scheme | Required |
-| ----- | ----------- | ------ | -------- |
-| metadata |  | [metav1.ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#objectmeta-v1-meta) | false |
-| spec |  | [RuleGroupSpec](#rulegroupspec) | false |
-| status |  | [RuleGroupStatus](#rulegroupstatus) | false |
-
-[Back to TOC](#table-of-contents)
-
-## RuleGroupList
-
-RuleGroupList contains a list of RuleGroup
-
-| Field | Description | Scheme | Required |
-| ----- | ----------- | ------ | -------- |
-| metadata |  | [metav1.ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#listmeta-v1-meta) | false |
-| items |  | [][RuleGroup](#rulegroup) | true |
-
-[Back to TOC](#table-of-contents)
-
-## RuleGroupSpec
-
-RuleGroupSpec defines the desired state of a RuleGroup
-
-| Field | Description | Scheme | Required |
-| ----- | ----------- | ------ | -------- |
-| interval |  | string | false |
-| partial_response_strategy |  | string | false |
-
-[Back to TOC](#table-of-contents)
-
-## RuleList
-
-RuleList contains a list of Rule
-
-| Field | Description | Scheme | Required |
-| ----- | ----------- | ------ | -------- |
-| metadata |  | [metav1.ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#listmeta-v1-meta) | false |
-| items |  | [][Rule](#rule) | true |
-
-[Back to TOC](#table-of-contents)
-
-## RuleSpec
-
-RuleSpec defines the desired state of a Rule
-
-| Field | Description | Scheme | Required |
-| ----- | ----------- | ------ | -------- |
-| alert |  | string | false |
-| record |  | string | false |
-| expr |  | intstr.IntOrString | true |
-| for |  | Duration | false |
-| labels |  | map[string]string | false |
-| annotations |  | map[string]string | false |
-
-[Back to TOC](#table-of-contents)
-
 ## Ruler
 
 Ruler is the Schema for the Ruler API
@@ -491,10 +369,9 @@ RulerSpec defines the desired state of a Ruler
 | image | Image is the image with tag/version | string | false |
 | logLevel | Log filtering level. Possible options: error, warn, info, debug | string | false |
 | logFormat | Log format to use. Possible options: logfmt or json | string | false |
-| ruleSelector | A label selector to select which Rules to mount for alerting and recording. | *[metav1.LabelSelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#labelselector-v1-meta) | false |
-| ruleNamespaceSelector | Namespaces to be selected for Rules discovery. If nil, only the same namespace as the Ruler object is in is used. | *[metav1.LabelSelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#labelselector-v1-meta) | false |
-| prometheusRuleSelector | A label selector to select which PrometheusRules to mount for alerting and recording. | *[metav1.LabelSelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#labelselector-v1-meta) | false |
-| prometheusRuleNamespaceSelector | Namespaces to be selected for PrometheusRules discovery. If unspecified, only the same namespace as the Ruler object is in is used. | *[metav1.LabelSelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#labelselector-v1-meta) | false |
+| ruleSelector | A label selector to select which PrometheusRules to mount for alerting and recording. | *[metav1.LabelSelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#labelselector-v1-meta) | false |
+| ruleNamespaceSelector | Namespaces to be selected for PrometheusRules discovery. If unspecified, only the same namespace as the Ruler object is in is used. | *[metav1.LabelSelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#labelselector-v1-meta) | false |
+| shards | Number of shards to take the hash of fully qualified name of the rule group in order to split rules. Each shard of rules will be bound to one separate statefulset. Default: `1` | *int32 | false |
 | tenant | Tenant if not empty indicates which tenant's data is evaluated for the selected rules; otherwise, it is for all tenants. | string | false |
 | labels | Labels configure the external label pairs to Ruler. A default replica label `ruler_replica` will be always added  as a label with the value of the pod's name and it will be dropped in the alerts. | map[string]string | false |
 | alertDropLabels | AlertDropLabels configure the label names which should be dropped in Ruler alerts. The replica label `ruler_replica` will always be dropped in alerts. | []string | false |
@@ -603,10 +480,10 @@ Config stores the configuration for s3 bucket.
 | endpoint |  | string | true |
 | region |  | string | false |
 | awsSdkAuth |  | bool | false |
-| accessKeyRef |  | *corev1.SecretKeySelector | true |
+| accessKey |  | *corev1.SecretKeySelector | true |
 | insecure |  | bool | false |
 | signatureVersion2 |  | bool | false |
-| secretKeyRef |  | *corev1.SecretKeySelector | true |
+| secretKey |  | *corev1.SecretKeySelector | true |
 | putUserMetadata |  | map[string]string | false |
 | httpConfig |  | [S3HTTPConfig](#s3httpconfig) | false |
 | trace |  | [S3TraceConfig](#s3traceconfig) | false |
@@ -697,13 +574,56 @@ TLSConfig configures the options for TLS connections.
 
 | Field | Description | Scheme | Required |
 | ----- | ----------- | ------ | -------- |
-| caFile | The CA cert to use for the targets. | string | false |
-| certFile | The client cert file for the targets. | string | false |
-| keyFile | The client key file for the targets. | string | false |
+| ca | The secret that including the CA cert. | *corev1.SecretKeySelector | false |
+| cert | The secret that including the client cert. | *corev1.SecretKeySelector | false |
+| key | The secret that including the client key. | *corev1.SecretKeySelector | false |
 | serverName | Used to verify the hostname for the targets. | string | false |
 | insecureSkipVerify | Disable target certificate validation. | bool | false |
 
 [Back to TOC](#table-of-contents)
 
+## Tenant
+
+Tenant is the Schema for the monitoring Tenant API
+
+| Field | Description | Scheme | Required |
+| ----- | ----------- | ------ | -------- |
+| metadata |  | [metav1.ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#objectmeta-v1-meta) | false |
+| spec |  | [TenantSpec](#tenantspec) | false |
+| status |  | [TenantStatus](#tenantstatus) | false |
+
+[Back to TOC](#table-of-contents)
+
+## TenantList
 
 
+
+| Field | Description | Scheme | Required |
+| ----- | ----------- | ------ | -------- |
+| metadata |  | [metav1.ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#listmeta-v1-meta) | false |
+| items |  | [][Tenant](#tenant) | true |
+
+[Back to TOC](#table-of-contents)
+
+## TenantSpec
+
+
+
+| Field | Description | Scheme | Required |
+| ----- | ----------- | ------ | -------- |
+| tenant |  | string | false |
+| storage |  | *[ObjectReference](#objectreference) | false |
+
+[Back to TOC](#table-of-contents)
+
+## TenantStatus
+
+
+
+| Field | Description | Scheme | Required |
+| ----- | ----------- | ------ | -------- |
+| ruler |  | *[ObjectReference](#objectreference) | false |
+| compactor |  | *[ObjectReference](#objectreference) | false |
+| ingester |  | *[ObjectReference](#objectreference) | false |
+
+[Back to TOC](#table-of-contents)

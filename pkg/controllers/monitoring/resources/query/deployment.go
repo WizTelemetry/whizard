@@ -139,7 +139,11 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 	for _, item := range rulerList.Items {
 		// cancatenate the address instead of calling ruler.GrpcAddrs() to avoid interdependent collisions
 		// should be consitent with the logic of ruler.GrpcAddrs()
-		for shardSn := 0; shardSn < int(*item.Spec.Shards); shardSn++ {
+		var shards int32 = 1
+		if item.Spec.Shards != nil && *item.Spec.Shards > 1 {
+			shards = *item.Spec.Shards
+		}
+		for shardSn := 0; shardSn < int(shards); shardSn++ {
 			addr := fmt.Sprintf("%s.%s.svc:%d",
 				resources.QualifiedName(constants.AppNameRuler, item.Name, strconv.Itoa(shardSn), constants.ServiceNameSuffix),
 				item.Namespace, constants.GRPCPort)

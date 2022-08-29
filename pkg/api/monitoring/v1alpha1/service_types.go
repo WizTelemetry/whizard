@@ -24,7 +24,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -520,21 +519,17 @@ type RulerSpec struct {
 	// Log format to use. Possible options: logfmt or json
 	LogFormat string `json:"logFormat,omitempty"`
 
-	// A label selector to select which Rules to mount for alerting and
-	// recording.
-	RuleSelector *metav1.LabelSelector `json:"ruleSelector,omitempty"`
-	// Namespaces to be selected for Rules discovery. If nil, only
-	// the same namespace as the Ruler object is in is used.
-	RuleNamespaceSelector *metav1.LabelSelector `json:"ruleNamespaceSelector,omitempty"`
 	// A label selector to select which PrometheusRules to mount for alerting and
 	// recording.
-	PrometheusRuleSelector *metav1.LabelSelector `json:"prometheusRuleSelector,omitempty"`
+	RuleSelector *metav1.LabelSelector `json:"ruleSelector,omitempty"`
 	// Namespaces to be selected for PrometheusRules discovery. If unspecified, only
 	// the same namespace as the Ruler object is in is used.
-	PrometheusRuleNamespaceSelector *metav1.LabelSelector `json:"prometheusRuleNamespaceSelector,omitempty"`
+	RuleNamespaceSelector *metav1.LabelSelector `json:"ruleNamespaceSelector,omitempty"`
 
 	// Number of shards to take the hash of fully qualified name of the rule group in order to split rules.
 	// Each shard of rules will be bound to one separate statefulset.
+	// Default: `1`
+	// +kubebuilder:default:=1
 	Shards *int32 `json:"shards,omitempty"`
 
 	// Tenant if not empty indicates which tenant's data is evaluated for the selected rules;
@@ -588,78 +583,6 @@ type RulerList struct {
 	Items           []Ruler `json:"items"`
 }
 
-// RuleSpec defines the desired state of a Rule
-type RuleSpec struct {
-	Alert       string             `json:"alert,omitempty"`
-	Record      string             `json:"record,omitempty"`
-	Expr        intstr.IntOrString `json:"expr"`
-	For         Duration           `json:"for,omitempty"`
-	Labels      map[string]string  `json:"labels,omitempty"`
-	Annotations map[string]string  `json:"annotations,omitempty"`
-}
-
-// RuleStatus defines the observed state of Rule
-type RuleStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-}
-
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-// +genclient
-
-// Rule is the Schema for the Rule API
-type Rule struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   RuleSpec   `json:"spec,omitempty"`
-	Status RuleStatus `json:"status,omitempty"`
-}
-
-//+kubebuilder:object:root=true
-
-// RuleList contains a list of Rule
-type RuleList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Rule `json:"items"`
-}
-
-// RuleGroupSpec defines the desired state of a RuleGroup
-type RuleGroupSpec struct {
-	Interval                string `json:"interval,omitempty"`
-	PartialResponseStrategy string `json:"partial_response_strategy,omitempty"`
-}
-
-// RuleGroupStatus defines the observed state of RuleGroup
-type RuleGroupStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-}
-
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-// +genclient
-
-// RuleGroup is the Schema for the RuleGroup API
-type RuleGroup struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   RuleGroupSpec   `json:"spec,omitempty"`
-	Status RuleGroupStatus `json:"status,omitempty"`
-}
-
-//+kubebuilder:object:root=true
-
-// RuleGroupList contains a list of RuleGroup
-type RuleGroupList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []RuleGroup `json:"items"`
-}
-
 // Duration is a valid time unit
 // Supported units: y, w, d, h, m, s, ms Examples: `30s`, `1m`, `1h20m15s`
 // +kubebuilder:validation:Pattern:="^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$"
@@ -671,9 +594,7 @@ func init() {
 		Register(&Ingester{}, &IngesterList{}).
 		Register(&Ruler{}, &RulerList{}).
 		Register(&Store{}, &StoreList{}).
-		Register(&Compactor{}, &CompactorList{}).
-		Register(&Rule{}, &RuleList{}).
-		Register(&RuleGroup{}, &RuleGroupList{})
+		Register(&Compactor{}, &CompactorList{})
 }
 
 func ManagedLabelByService(service metav1.Object) map[string]string {
@@ -698,18 +619,4 @@ func ServiceNamespacedName(managedByService metav1.Object) *types.NamespacedName
 		Namespace: arr[0],
 		Name:      arr[1],
 	}
-}
-
-func ManagedLabelByRuleGroup(ruleGroup metav1.Object) map[string]string {
-	return map[string]string{
-		"monitoring.whizard.io/rule-group": ruleGroup.GetName(),
-	}
-}
-
-func RuleGroupName(managedByRuleGroup metav1.Object) string {
-	ls := managedByRuleGroup.GetLabels()
-	if ls == nil {
-		return ""
-	}
-	return ls["monitoring.whizard.io/rule-group"]
 }
