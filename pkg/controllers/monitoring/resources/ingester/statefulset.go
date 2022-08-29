@@ -6,14 +6,12 @@ import (
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
-	storage "github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/storage"
 	"github.com/prometheus/common/model"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
@@ -73,46 +71,13 @@ func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
 		},
 	}
 
-	var tsdbVolume = &corev1.Volume{
-		Name: "tsdb",
-		VolumeSource: corev1.VolumeSource{
-			EmptyDir: &corev1.EmptyDirVolumeSource{},
-		},
-	}
-	if v := r.ingester.Spec.DataVolume; v != nil {
-		if pvc := v.PersistentVolumeClaim; pvc != nil {
-			if pvc.Name == "" {
-				pvc.Name = sts.Name + "-tsdb"
-			}
-			if pvc.Spec.AccessModes == nil {
-				pvc.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-			}
-			sts.Spec.VolumeClaimTemplates = append(sts.Spec.VolumeClaimTemplates, *pvc)
-			container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
-				Name:      pvc.Name,
-				MountPath: constants.StorageDir,
-			})
-			tsdbVolume = nil
-		} else if v.EmptyDir != nil {
-			tsdbVolume.EmptyDir = v.EmptyDir
-		}
-	}
-	if tsdbVolume != nil {
-		sts.Spec.Template.Spec.Volumes = append(sts.Spec.Template.Spec.Volumes, *tsdbVolume)
-		container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
-			Name:      tsdbVolume.Name,
-			MountPath: constants.StorageDir,
-		})
-	}
+	resources.AddTSDBVolume(sts, &container, r.ingester.Spec.DataVolume)
 
-	var objstoreConfig string
-	storageInstance := &monitoringv1alpha1.Storage{}
+	var objstoreConfig []byte
 	if r.ingester.Spec.Storage != nil {
-		err := r.Client.Get(r.Context, types.NamespacedName{Namespace: r.ingester.Spec.Storage.Namespace, Name: r.ingester.Spec.Storage.Name}, storageInstance)
-		if err != nil {
-			return nil, "", err
-		}
-		objstoreConfig, err = storage.New(r.BaseReconciler, storageInstance).String()
+		var err error
+		objstoreConfig, err = resources.GetStorageConfig(r.Context, r.Client,
+			fmt.Sprintf("%s.%s", r.ingester.Spec.Storage.Namespace, r.ingester.Spec.Storage.Name))
 		if err != nil {
 			return nil, "", err
 		}
@@ -130,8 +95,14 @@ func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
 	if r.ingester.Spec.LocalTsdbRetention != "" {
 		container.Args = append(container.Args, "--tsdb.retention="+r.ingester.Spec.LocalTsdbRetention)
 	}
-	if objstoreConfig != "" {
-		container.Args = append(container.Args, "--objstore.config="+objstoreConfig)
+	if objstoreConfig != nil {
+		container.Args = append(container.Args, "--objstore.config="+string(objstoreConfig))
+		volumes, volumeMounts, err := resources.VolumesAndVolumeMountsForStorage(r.Context, r.Client, r.ingester.Labels[constants.StorageLabelKey])
+		if err != nil {
+			return nil, "", err
+		}
+		sts.Spec.Template.Spec.Volumes = append(sts.Spec.Template.Spec.Volumes, volumes...)
+		container.VolumeMounts = append(container.VolumeMounts, volumeMounts...)
 	} else {
 		// set tsdb.max-block-duration by localTsdbRetention to enable block compact when using only local storage
 		maxBlockDuration, err := model.ParseDuration("31d")

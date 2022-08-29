@@ -80,10 +80,10 @@ Follow the following steps to deploy components:
     S3:
       bucket: "xxxxxxxxxx"
       endpoint: "s3.pek3b.qingstor.com:443"
-      accessKeyRef: 
+      accessKey: 
         name: storage-secret
         key: accessKey
-      secretKeyRef: 
+      secretKey: 
         name: storage-secret
         key: secretKey
     EOF

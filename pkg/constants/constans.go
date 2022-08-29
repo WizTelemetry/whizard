@@ -51,4 +51,19 @@ const (
 	TSDBVolumeName = "tsdb"
 
 	LabelNameStorageHash = "monitoring.whizard.io/storage-hash"
+	LabelNameTenantHash  = "monitoring.whizard.io/tenant-hash"
+
+	TenantHash  = "TENANT_HASH"
+	StorageHash = "STORAGE_HASH"
+)
+
+const (
+	StorageProviderFILESYSTEM string = "FILESYSTEM"
+	StorageProviderGCS        string = "GCS"
+	StorageProviderS3         string = "S3"
+	StorageProviderAZURE      string = "AZURE"
+	StorageProviderSWIFT      string = "SWIFT"
+	StorageProviderCOS        string = "COS"
+	StorageProviderALIYUNOSS  string = "ALIYUNOSS"
+	StorageProviderBOS        string = "BOS"
 )
