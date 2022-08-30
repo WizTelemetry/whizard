@@ -1198,11 +1198,10 @@ spec:
                 pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
                 type: string
               flags:
-                additionalProperties:
+                description: Flags is the flags of ruler.
+                items:
                   type: string
-                description: Flags is a list of key/value that could be used to set
-                  strategy parameters.
-                type: object
+                type: array
               image:
                 description: Image is the image with tag/version
                 type: string

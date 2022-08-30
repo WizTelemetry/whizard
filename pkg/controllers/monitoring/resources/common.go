@@ -121,13 +121,13 @@ func GetStorageHash(ctx context.Context, c client.Client, namespaceName string) 
 		return "", err
 	}
 
-	objStoreConfig, err := GetStorageConfig(ctx, c, namespaceName)
+	storageConfig, err := GetStorageConfig(ctx, c, namespaceName)
 	if err != nil {
 		return "", err
 	}
 
 	hash := md5.New()
-	hash.Write(objStoreConfig)
+	hash.Write(storageConfig)
 
 	if storage.Spec.S3 != nil {
 		tls := storage.Spec.S3.HTTPConfig.TLSConfig

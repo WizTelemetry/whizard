@@ -165,16 +165,8 @@ func CreateCompactorDefaulterValidator(opt options.Options) CompactorDefaulterVa
 			compactor.Spec.LogFormat = opt.Compactor.LogFormat
 		}
 
-		if opt.Compactor.Flags != nil {
-			if compactor.Spec.Flags == nil {
-				compactor.Spec.Flags = opt.Compactor.Flags
-			} else {
-				for k, v := range opt.Compactor.Flags {
-					if _, ok := compactor.Spec.Flags[k]; !ok {
-						compactor.Spec.Flags[k] = v
-					}
-				}
-			}
+		if compactor.Spec.Flags == nil {
+			compactor.Spec.Flags = opt.Compactor.Flags
 		}
 
 		if compactor.Spec.DataVolume != nil {

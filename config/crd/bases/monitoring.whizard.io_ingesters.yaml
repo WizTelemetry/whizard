@@ -1168,11 +1168,10 @@ spec:
                     type: object
                 type: object
               flags:
-                additionalProperties:
+                description: Flags is the flags of ingester.
+                items:
                   type: string
-                description: Flags is a list of key/value that could be used to set
-                  strategy parameters.
-                type: object
+                type: array
               image:
                 description: Image is the image with tag/version
                 type: string

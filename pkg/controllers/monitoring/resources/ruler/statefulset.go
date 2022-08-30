@@ -8,6 +8,12 @@ import (
 	"strconv"
 	"strings"
 
+	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/query"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/router"
+	"github.com/kubesphere/whizard/pkg/util"
 	promoperator "github.com/prometheus-operator/prometheus-operator/pkg/operator"
 	promcommonconfig "github.com/prometheus/common/config"
 	promconfig "github.com/prometheus/prometheus/config"
@@ -19,12 +25,18 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+)
 
-	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/whizard/pkg/constants"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/query"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/router"
+var (
+	// sliceArgs is the args that can be set repeatedly.
+	// An error will occur if a non-slice arg is set repeatedly.
+	sliceArgs = []string{
+		"--query",
+		"--query.sd-files",
+		"--rule-file",
+		"--alertmanagers.url",
+		"alert.label-drop",
+	}
 )
 
 func (r *Ruler) statefulSets() (retResources []resources.Resource) {
@@ -204,10 +216,6 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 		container.Args = append(container.Args, fmt.Sprintf("--eval-interval=%s", r.ruler.Spec.EvaluationInterval))
 	}
 
-	for name, value := range r.ruler.Spec.Flags {
-		container.Args = append(container.Args, fmt.Sprintf("--%s=%s", name, value))
-	}
-
 	var queryProxyContainer *corev1.Container
 
 	namespacedName := monitoringv1alpha1.ServiceNamespacedName(r.ruler)
@@ -287,6 +295,21 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 
 			container.Args = append(container.Args,
 				fmt.Sprintf("--query=http://127.0.0.1:9080/%s", r.ruler.Spec.Tenant))
+		}
+	}
+
+	for _, flag := range r.ruler.Spec.Flags {
+		arg := util.GetArgName(flag)
+		if util.Contains(sliceArgs, arg) {
+			container.Args = append(container.Args, flag)
+			continue
+		}
+
+		replaced := util.ReplaceInSlice(container.Args, func(v interface{}) bool {
+			return util.GetArgName(v.(string)) == util.GetArgName(flag)
+		}, flag)
+		if !replaced {
+			container.Args = append(container.Args, flag)
 		}
 	}
 

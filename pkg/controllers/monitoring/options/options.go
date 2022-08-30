@@ -50,7 +50,7 @@ type CommonOptions struct {
 	Replicas        *int32                      `json:"replicas,omitempty" yaml:"replicas,omitempty"`
 	LogLevel        string                      `json:"logLevel,omitempty" yaml:"logLevel,omitempty"`
 	LogFormat       string                      `json:"logFormat,omitempty" yaml:"logFormat,omitempty"`
-	Flags           map[string]string           `json:"flags,omitempty" yaml:"flags,omitempty"`
+	Flags           []string                    `json:"flags,omitempty" yaml:"flags,omitempty"`
 	DataVolume      *v1alpha1.KubernetesVolume  `json:"dataVolume,omitempty" yaml:"dataVolume,omitempty"`
 }
 
@@ -110,13 +110,7 @@ func (o *CommonOptions) ApplyTo(options *CommonOptions) {
 	}
 
 	if o.Flags != nil {
-		if options.Flags == nil {
-			options.Flags = make(map[string]string)
-		}
-
-		for k, v := range o.Flags {
-			options.Flags[k] = v
-		}
+		options.Flags = o.Flags
 	}
 
 	if o.DataVolume != nil {

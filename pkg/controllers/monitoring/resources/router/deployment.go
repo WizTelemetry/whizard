@@ -6,11 +6,23 @@ import (
 
 	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
-
+	"github.com/kubesphere/whizard/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+)
+
+var (
+	// sliceArgs is the args that can be set repeatedly.
+	// An error will occur if a non-slice arg is set repeatedly.
+	sliceArgs = []string{
+		"--label",
+	}
+	// unsupportedArgs is the args that are not allowed to be set by the user.
+	unsupportedArgs = []string{
+		"--receive.local-endpoint",
+	}
 )
 
 func (r *Router) deployment() (runtime.Object, resources.Operation, error) {
@@ -111,12 +123,23 @@ func (r *Router) deployment() (runtime.Object, resources.Operation, error) {
 		container.Args = append(container.Args, "--receive.default-tenant-id="+r.Service.Spec.DefaultTenantId)
 	}
 
-	for name, value := range r.router.Flags {
-		if name == "receive.local-endpoint" {
-			// ignoring these flags to make receiver run with router mode
+	for _, flag := range r.router.Flags {
+		arg := util.GetArgName(flag)
+		if util.Contains(unsupportedArgs, arg) {
 			continue
 		}
-		container.Args = append(container.Args, fmt.Sprintf("--%s=%s", name, value))
+
+		if util.Contains(sliceArgs, arg) {
+			container.Args = append(container.Args, flag)
+			continue
+		}
+
+		replaced := util.ReplaceInSlice(container.Args, func(v interface{}) bool {
+			return util.GetArgName(v.(string)) == util.GetArgName(flag)
+		}, flag)
+		if !replaced {
+			container.Args = append(container.Args, flag)
+		}
 	}
 
 	d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, container)

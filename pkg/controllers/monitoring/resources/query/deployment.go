@@ -17,6 +17,36 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+var (
+	// sliceArgs is the args that can be set repeatedly.
+	// An error will occur if a non-slice arg is set repeatedly.
+	sliceArgs = []string{
+		"--query.replica-label",
+		"--selector-label",
+		"--endpoint",
+		"--endpoint-strict",
+		"--store.sd-files",
+		"--enable-feature",
+	}
+	// unsupportedArgs is the args that are not allowed to be set by the user.
+	unsupportedArgs = []string{
+		// Deprecation
+		"--log.request.decision",
+		// Deprecation
+		"--metadata",
+		// Deprecation
+		"--rule",
+		// Deprecation
+		"--store",
+		// Deprecation
+		"--exemplar",
+		// Deprecation
+		"--target",
+		// Deprecation
+		"--store-strict",
+	}
+)
+
 func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 	var d = &appsv1.Deployment{ObjectMeta: q.meta(q.name())}
 
@@ -151,8 +181,23 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 		}
 	}
 
-	for name, value := range q.query.Flags {
-		queryContainer.Args = append(queryContainer.Args, fmt.Sprintf("--%s=%s", name, value))
+	for _, flag := range q.query.Flags {
+		arg := util.GetArgName(flag)
+		if util.Contains(unsupportedArgs, arg) {
+			continue
+		}
+
+		if util.Contains(sliceArgs, arg) {
+			queryContainer.Args = append(queryContainer.Args, flag)
+			continue
+		}
+
+		replaced := util.ReplaceInSlice(queryContainer.Args, func(v interface{}) bool {
+			return util.GetArgName(v.(string)) == util.GetArgName(flag)
+		}, flag)
+		if !replaced {
+			queryContainer.Args = append(queryContainer.Args, flag)
+		}
 	}
 
 	var envoyContainer = corev1.Container{
