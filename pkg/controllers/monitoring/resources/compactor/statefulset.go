@@ -2,6 +2,7 @@ package compactor
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
@@ -21,9 +22,9 @@ const (
 )
 
 var (
-	// sliceArgs is the args that can be set repeatedly.
-	// An error will occur if a non-slice arg is set repeatedly.
-	sliceArgs = []string{
+	// repeatableArgs is the args that can be set repeatedly.
+	// An error will occur if a non-repeatable arg is set repeatedly.
+	repeatableArgs = []string{
 		"--deduplication.replica-label",
 	}
 )
@@ -201,7 +202,7 @@ func (r *Compactor) megerArgs() ([]string, error) {
 	}
 
 	for _, flag := range r.compactor.Spec.Flags {
-		if arg := util.GetArgName(flag); util.Contains(sliceArgs, arg) {
+		if arg := util.GetArgName(flag); util.Contains(repeatableArgs, arg) {
 			defaultArgs = append(defaultArgs, flag)
 			continue
 		}
@@ -214,5 +215,6 @@ func (r *Compactor) megerArgs() ([]string, error) {
 		}
 	}
 
+	sort.Strings(defaultArgs[1:])
 	return defaultArgs, nil
 }

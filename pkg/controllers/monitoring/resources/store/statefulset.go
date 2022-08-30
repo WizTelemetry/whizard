@@ -2,6 +2,7 @@ package store
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
@@ -167,5 +168,6 @@ func (r *Store) megerArgs() ([]string, error) {
 		}
 	}
 
+	sort.Strings(defaultArgs[1:])
 	return defaultArgs, nil
 }

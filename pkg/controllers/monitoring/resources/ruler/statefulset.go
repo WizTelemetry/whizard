@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"path"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -28,9 +29,9 @@ import (
 )
 
 var (
-	// sliceArgs is the args that can be set repeatedly.
-	// An error will occur if a non-slice arg is set repeatedly.
-	sliceArgs = []string{
+	// repeatableArgs is the args that can be set repeatedly.
+	// An error will occur if a non-repeatable arg is set repeatedly.
+	repeatableArgs = []string{
 		"--query",
 		"--query.sd-files",
 		"--rule-file",
@@ -300,7 +301,7 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 
 	for _, flag := range r.ruler.Spec.Flags {
 		arg := util.GetArgName(flag)
-		if util.Contains(sliceArgs, arg) {
+		if util.Contains(repeatableArgs, arg) {
 			container.Args = append(container.Args, flag)
 			continue
 		}
@@ -312,6 +313,8 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 			container.Args = append(container.Args, flag)
 		}
 	}
+
+	sort.Strings(container.Args[1:])
 
 	var reloaderConfig = promoperator.ReloaderConfig{Image: r.reloaderConfig.Image}
 	if r.reloaderConfig.CPURequest != "0" {
