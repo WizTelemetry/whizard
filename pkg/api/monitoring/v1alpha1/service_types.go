@@ -108,8 +108,8 @@ type Query struct {
 	// Labels to treat as a replica indicator along which data is deduplicated.
 	ReplicaLabelNames []string `json:"replicaLabelNames,omitempty"`
 
-	// Flags is a list of key/value that could be used to set strategy parameters.
-	Flags map[string]string `json:"flags,omitempty"`
+	// Flags is the flags of query.
+	Flags []string `json:"flags,omitempty"`
 
 	// Envoy is used to config sidecar which proxies requests requiring auth to the secure stores
 	Envoy EnvoySpec `json:"envoy,omitempty"`
@@ -152,8 +152,8 @@ type Router struct {
 	// How many times to replicate incoming write requests
 	ReplicationFactor *uint64 `json:"replicationFactor,omitempty"`
 
-	// Flags is a list of key/value that could be used to set strategy parameters.
-	Flags map[string]string `json:"flags,omitempty"`
+	// Flags is the flags of router.
+	Flags []string `json:"flags,omitempty"`
 }
 
 type QueryFrontend struct {
@@ -174,8 +174,8 @@ type QueryFrontend struct {
 	LogLevel string `json:"logLevel,omitempty"`
 	// Log format to use. Possible options: logfmt or json
 	LogFormat string `json:"logFormat,omitempty"`
-	// Flags is a list of key/value that could be used to set strategy parameters.
-	Flags map[string]string `json:"flags,omitempty"`
+	// Flags is the flags of query frontend.
+	Flags []string `json:"flags,omitempty"`
 
 	// CacheProviderConfig ...
 	CacheConfig *ResponseCacheProviderConfig `json:"cacheConfig,omitempty"`
@@ -323,8 +323,8 @@ type StoreSpec struct {
 	// IndexCacheConfig contains index cache configuration.
 	IndexCacheConfig *IndexCacheConfig `json:"indexCacheConfig,omitempty"`
 
-	// Flags is a list of key/value that could be used to set strategy parameters.
-	Flags map[string]string `json:"flags,omitempty"`
+	// Flags is the flag of store.
+	Flags []string `json:"flags,omitempty"`
 
 	// DataVolume specifies how volume shall be used
 	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
@@ -392,8 +392,8 @@ type CompactorSpec struct {
 
 	Storage *ObjectReference `json:"storage,omitempty"`
 
-	// Flags is a list of key/value that could be used to set strategy parameters.
-	Flags map[string]string `json:"flags,omitempty"`
+	// Flags is the flags of compactor.
+	Flags []string `json:"flags,omitempty"`
 
 	// DataVolume specifies how volume shall be used
 	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
@@ -456,8 +456,8 @@ type IngesterSpec struct {
 	// LocalTsdbRetention configs how long to retain raw samples on local storage.
 	LocalTsdbRetention string `json:"localTsdbRetention,omitempty"`
 
-	// Flags is a list of key/value that could be used to set strategy parameters.
-	Flags map[string]string `json:"flags,omitempty"`
+	// Flags is the flags of ingester.
+	Flags []string `json:"flags,omitempty"`
 
 	// If specified, the object key of Storage for long term storage.
 	Storage *ObjectReference `json:"storage,omitempty"`
@@ -548,8 +548,8 @@ type RulerSpec struct {
 	// +kubebuilder:default:="30s"
 	EvaluationInterval Duration `json:"evaluationInterval,omitempty"`
 
-	// Flags is a list of key/value that could be used to set strategy parameters.
-	Flags map[string]string `json:"flags,omitempty"`
+	// Flags is the flags of ruler.
+	Flags []string `json:"flags,omitempty"`
 
 	// DataVolume specifies how volume shall be used
 	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`

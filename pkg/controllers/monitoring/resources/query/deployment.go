@@ -3,6 +3,7 @@ package query
 import (
 	"fmt"
 	"path/filepath"
+	"sort"
 	"strconv"
 
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
@@ -14,7 +15,38 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+var (
+	// repeatableArgs is the args that can be set repeatedly.
+	// An error will occur if a non-repeatable arg is set repeatedly.
+	repeatableArgs = []string{
+		"--query.replica-label",
+		"--selector-label",
+		"--endpoint",
+		"--endpoint-strict",
+		"--store.sd-files",
+		"--enable-feature",
+	}
+	// unsupportedArgs is the args that are not allowed to be set by the user.
+	unsupportedArgs = []string{
+		// Deprecation
+		"--log.request.decision",
+		// Deprecation
+		"--metadata",
+		// Deprecation
+		"--rule",
+		// Deprecation
+		"--store",
+		// Deprecation
+		"--exemplar",
+		// Deprecation
+		"--target",
+		// Deprecation
+		"--store-strict",
+	}
 )
 
 func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
@@ -151,9 +183,27 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 		}
 	}
 
-	for name, value := range q.query.Flags {
-		queryContainer.Args = append(queryContainer.Args, fmt.Sprintf("--%s=%s", name, value))
+	for _, flag := range q.query.Flags {
+		arg := util.GetArgName(flag)
+		if util.Contains(unsupportedArgs, arg) {
+			klog.V(3).Infof("ignore the unsupported flag %s", arg)
+			continue
+		}
+
+		if util.Contains(repeatableArgs, arg) {
+			queryContainer.Args = append(queryContainer.Args, flag)
+			continue
+		}
+
+		replaced := util.ReplaceInSlice(queryContainer.Args, func(v interface{}) bool {
+			return util.GetArgName(v.(string)) == util.GetArgName(flag)
+		}, flag)
+		if !replaced {
+			queryContainer.Args = append(queryContainer.Args, flag)
+		}
 	}
+
+	sort.Strings(queryContainer.Args[1:])
 
 	var envoyContainer = corev1.Container{
 		Name:  "proxy",

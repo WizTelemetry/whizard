@@ -1170,11 +1170,10 @@ spec:
                 description: DownsamplingDisable specifies whether to disable downsampling
                 type: boolean
               flags:
-                additionalProperties:
+                description: Flags is the flags of compactor.
+                items:
                   type: string
-                description: Flags is a list of key/value that could be used to set
-                  strategy parameters.
-                type: object
+                type: array
               image:
                 description: Image is the image with tag/version
                 type: string

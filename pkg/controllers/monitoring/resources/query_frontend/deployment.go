@@ -3,15 +3,31 @@ package query_frontend
 import (
 	"fmt"
 	"path/filepath"
+	"sort"
 
 	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/query"
-
+	"github.com/kubesphere/whizard/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog/v2"
+)
+
+var (
+	// repeatableArgs is the args that can be set repeatedly.
+	// An error will occur if a non-repeatable arg is set repeatedly.
+	repeatableArgs = []string{
+		"--query-frontend.forward-header",
+		"--query-frontend.org-id-header",
+	}
+	// unsupportedArgs is the args that are not allowed to be set by the user.
+	unsupportedArgs = []string{
+		// Deprecation
+		"--log.request.decision",
+	}
 )
 
 func (q *QueryFrontend) deployment() (runtime.Object, resources.Operation, error) {
@@ -87,9 +103,6 @@ func (q *QueryFrontend) deployment() (runtime.Object, resources.Operation, error
 	container.Args = append(container.Args, "--query-frontend.downstream-url="+query.HttpAddr())
 	container.Args = append(container.Args, "--labels.response-cache-config-file="+filepath.Join(configDir, cacheConfigFile))
 	container.Args = append(container.Args, "--query-range.response-cache-config-file="+filepath.Join(configDir, cacheConfigFile))
-	for param, value := range q.queryFrontend.Flags {
-		container.Args = append(container.Args, fmt.Sprintf("--%s=%s", param, value))
-	}
 
 	if q.queryFrontend.LogLevel != "" {
 		container.Args = append(container.Args, "--log.level="+q.queryFrontend.LogLevel)
@@ -97,6 +110,28 @@ func (q *QueryFrontend) deployment() (runtime.Object, resources.Operation, error
 	if q.queryFrontend.LogFormat != "" {
 		container.Args = append(container.Args, "--log.format="+q.queryFrontend.LogFormat)
 	}
+
+	for _, flag := range q.queryFrontend.Flags {
+		arg := util.GetArgName(flag)
+		if util.Contains(unsupportedArgs, arg) {
+			klog.V(3).Infof("ignore the unsupported flag %s", arg)
+			continue
+		}
+
+		if util.Contains(repeatableArgs, arg) {
+			container.Args = append(container.Args, flag)
+			continue
+		}
+
+		replaced := util.ReplaceInSlice(container.Args, func(v interface{}) bool {
+			return util.GetArgName(v.(string)) == util.GetArgName(flag)
+		}, flag)
+		if !replaced {
+			container.Args = append(container.Args, flag)
+		}
+	}
+
+	sort.Strings(container.Args[1:])
 
 	d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, container)
 	d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, cacheConfigVol)

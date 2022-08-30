@@ -103,7 +103,7 @@ CompactorList contains a list of Compactor
 | downsamplingDisable | DownsamplingDisable specifies whether to disable downsampling | *bool | false |
 | retention | Retention configs how long to retain samples | *[Retention](#retention) | false |
 | storage |  | *[ObjectReference](#objectreference) | false |
-| flags | Flags is a list of key/value that could be used to set strategy parameters. | map[string]string | false |
+| flags | Flags is the flags of compactor. | []string | false |
 | dataVolume | DataVolume specifies how volume shall be used | *[KubernetesVolume](#kubernetesvolume) | false |
 | tenants | Tenants if not empty indicates current config is for hard tenants; otherwise, it is for soft tenants. | []string | false |
 
@@ -210,7 +210,7 @@ IngesterSpec defines the desired state of a Ingester
 | logLevel | Log filtering level. Possible options: error, warn, info, debug | string | false |
 | logFormat | Log format to use. Possible options: logfmt or json | string | false |
 | localTsdbRetention | LocalTsdbRetention configs how long to retain raw samples on local storage. | string | false |
-| flags | Flags is a list of key/value that could be used to set strategy parameters. | map[string]string | false |
+| flags | Flags is the flags of ingester. | []string | false |
 | storage | If specified, the object key of Storage for long term storage. | *[ObjectReference](#objectreference) | false |
 | dataVolume | DataVolume specifies how volume shall be used | *[KubernetesVolume](#kubernetesvolume) | false |
 
@@ -255,7 +255,7 @@ KubernetesVolume defines the configured volume for a instance.
 | stores | Additional StoreApi servers from which Query component queries from | [][QueryStores](#querystores) | false |
 | selectorLabels | Selector labels that will be exposed in info endpoint. | map[string]string | false |
 | replicaLabelNames | Labels to treat as a replica indicator along which data is deduplicated. | []string | false |
-| flags | Flags is a list of key/value that could be used to set strategy parameters. | map[string]string | false |
+| flags | Flags is the flags of query. | []string | false |
 | envoy | Envoy is used to config sidecar which proxies requests requiring auth to the secure stores | [EnvoySpec](#envoyspec) | false |
 
 [Back to TOC](#table-of-contents)
@@ -274,7 +274,7 @@ KubernetesVolume defines the configured volume for a instance.
 | image | Image is the image with tag/version | string | false |
 | logLevel | Log filtering level. Possible options: error, warn, info, debug | string | false |
 | logFormat | Log format to use. Possible options: logfmt or json | string | false |
-| flags | Flags is a list of key/value that could be used to set strategy parameters. | map[string]string | false |
+| flags | Flags is the flags of query frontend. | []string | false |
 | cacheConfig | CacheProviderConfig ... | *[ResponseCacheProviderConfig](#responsecacheproviderconfig) | false |
 
 [Back to TOC](#table-of-contents)
@@ -328,7 +328,7 @@ Retention defines the config for retaining samples
 | logLevel | Log filtering level. Possible options: error, warn, info, debug | string | false |
 | logFormat | Log format to use. Possible options: logfmt or json | string | false |
 | replicationFactor | How many times to replicate incoming write requests | *uint64 | false |
-| flags | Flags is a list of key/value that could be used to set strategy parameters. | map[string]string | false |
+| flags | Flags is the flags of router. | []string | false |
 
 [Back to TOC](#table-of-contents)
 
@@ -377,7 +377,7 @@ RulerSpec defines the desired state of a Ruler
 | alertDropLabels | AlertDropLabels configure the label names which should be dropped in Ruler alerts. The replica label `ruler_replica` will always be dropped in alerts. | []string | false |
 | alertmanagersConfig | Define configuration for connecting to alertmanager. Maps to the `alertmanagers.config` arg. | *corev1.SecretKeySelector | false |
 | evaluationInterval | Interval between consecutive evaluations. Default: `30s` | Duration | false |
-| flags | Flags is a list of key/value that could be used to set strategy parameters. | map[string]string | false |
+| flags | Flags is the flags of ruler. | []string | false |
 | dataVolume | DataVolume specifies how volume shall be used | *[KubernetesVolume](#kubernetesvolume) | false |
 
 [Back to TOC](#table-of-contents)
@@ -464,7 +464,7 @@ StoreList contains a list of Store
 | minTime | MinTime specifies start of time range limit to serve | string | false |
 | maxTime | MaxTime specifies end of time range limit to serve | string | false |
 | indexCacheConfig | IndexCacheConfig contains index cache configuration. | *[IndexCacheConfig](#indexcacheconfig) | false |
-| flags | Flags is a list of key/value that could be used to set strategy parameters. | map[string]string | false |
+| flags | Flags is the flag of store. | []string | false |
 | dataVolume | DataVolume specifies how volume shall be used | *[KubernetesVolume](#kubernetesvolume) | false |
 | scaler |  | *[AutoScaler](#autoscaler) | false |
 

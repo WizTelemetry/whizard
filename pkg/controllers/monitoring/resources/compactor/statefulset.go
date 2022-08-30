@@ -2,6 +2,7 @@ package compactor
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
@@ -18,6 +19,14 @@ import (
 
 const (
 	mainContainerName = "compactor"
+)
+
+var (
+	// repeatableArgs is the args that can be set repeatedly.
+	// An error will occur if a non-repeatable arg is set repeatedly.
+	repeatableArgs = []string{
+		"--deduplication.replica-label",
+	}
 )
 
 func (r *Compactor) statefulSet() (runtime.Object, resources.Operation, error) {
@@ -99,8 +108,10 @@ func (r *Compactor) statefulSet() (runtime.Object, resources.Operation, error) {
 		container.Env = append(container.Env, env)
 	}
 
-	if err := r.megerArgs(container); err != nil {
+	if args, err := r.megerArgs(); err != nil {
 		return nil, "", err
+	} else {
+		container.Args = args
 	}
 
 	if needToAppend {
@@ -147,15 +158,27 @@ func (r *Compactor) createRelabelConfig() (string, error) {
 	})
 }
 
-func (r *Compactor) megerArgs(container *corev1.Container) error {
-
-	defaultArgs := []string{"compact", "--wait", fmt.Sprintf("--data-dir=%s", constants.StorageDir)}
+func (r *Compactor) megerArgs() ([]string, error) {
 
 	storageConfig, err := resources.GetStorageConfig(r.Context, r.Client, r.compactor.Labels[constants.StorageLabelKey])
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defaultArgs = append(defaultArgs, "--objstore.config="+string(storageConfig))
+
+	rc, err := r.createRelabelConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	defaultArgs := []string{
+		"compact",
+		"--wait",
+		fmt.Sprintf("--data-dir=%s", constants.StorageDir),
+		"--objstore.config=" + string(storageConfig),
+		fmt.Sprintf("--selector.relabel-config=%s", rc),
+		fmt.Sprintf("--deduplication.replica-label=%s", constants.ReceiveReplicaLabelName),
+		fmt.Sprintf("--deduplication.replica-label=%s", constants.RulerReplicaLabelName),
+	}
 
 	if r.compactor.Spec.LogLevel != "" {
 		defaultArgs = append(defaultArgs, "--log.level="+r.compactor.Spec.LogLevel)
@@ -177,37 +200,21 @@ func (r *Compactor) megerArgs(container *corev1.Container) error {
 			defaultArgs = append(defaultArgs, fmt.Sprintf("--retention.resolution-1h=%s", retention.Retention5m))
 		}
 	}
-	defaultArgs = append(defaultArgs, fmt.Sprintf("--deduplication.replica-label=%s", constants.ReceiveReplicaLabelName))
-	defaultArgs = append(defaultArgs, fmt.Sprintf("--deduplication.replica-label=%s", constants.RulerReplicaLabelName))
 
-	rc, err := r.createRelabelConfig()
-	if err != nil {
-		return err
-	}
+	for _, flag := range r.compactor.Spec.Flags {
+		if arg := util.GetArgName(flag); util.Contains(repeatableArgs, arg) {
+			defaultArgs = append(defaultArgs, flag)
+			continue
+		}
 
-	defaultArgs = append(defaultArgs, fmt.Sprintf("--selector.relabel-config=%s", rc))
-
-	for name, value := range r.compactor.Spec.Flags {
-		arg := fmt.Sprintf("--%s=%s", name, value)
 		replaced := util.ReplaceInSlice(defaultArgs, func(v interface{}) bool {
-			return util.GetArgName(v.(string)) == name
-		}, arg)
-
+			return util.GetArgName(v.(string)) == util.GetArgName(flag)
+		}, flag)
 		if !replaced {
-			defaultArgs = append(defaultArgs, arg)
+			defaultArgs = append(defaultArgs, flag)
 		}
 	}
 
-	for _, arg := range defaultArgs {
-
-		replaced := util.ReplaceInSlice(container.Args, func(v interface{}) bool {
-			return util.GetArgName(v.(string)) == util.GetArgName(arg)
-		}, arg)
-
-		if !replaced {
-			container.Args = append(container.Args, arg)
-		}
-	}
-
-	return nil
+	sort.Strings(defaultArgs[1:])
+	return defaultArgs, nil
 }

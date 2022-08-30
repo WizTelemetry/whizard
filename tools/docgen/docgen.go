@@ -9,6 +9,7 @@ import (
 	"go/token"
 	"os"
 	"reflect"
+	"sort"
 	"strings"
 )
 
@@ -51,6 +52,7 @@ func printTOC(types []KubeTypes) {
 }
 
 func printAPIDocs(paths []string) {
+	sort.Strings(paths)
 	fmt.Println(firstParagraph)
 
 	types := ParseDocumentationFrom(paths)

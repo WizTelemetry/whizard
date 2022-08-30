@@ -2,6 +2,7 @@ package store
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
@@ -113,8 +114,10 @@ func (r *Store) statefulSet() (runtime.Object, resources.Operation, error) {
 		container.Env = append(container.Env, env)
 	}
 
-	if err := r.megerArgs(container); err != nil {
+	if args, err := r.megerArgs(); err != nil {
 		return nil, "", err
+	} else {
+		container.Args = args
 	}
 
 	if needToAppend {
@@ -124,14 +127,17 @@ func (r *Store) statefulSet() (runtime.Object, resources.Operation, error) {
 	return sts, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(r.store, sts, r.Scheme)
 }
 
-func (r *Store) megerArgs(container *corev1.Container) error {
-	defaultArgs := []string{"store", fmt.Sprintf("--data-dir=%s", constants.StorageDir)}
-
+func (r *Store) megerArgs() ([]string, error) {
 	storageConfig, err := resources.GetStorageConfig(r.Context, r.Client, r.store.Labels[constants.StorageLabelKey])
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defaultArgs = append(defaultArgs, "--objstore.config="+string(storageConfig))
+
+	defaultArgs := []string{
+		"store",
+		fmt.Sprintf("--data-dir=%s", constants.StorageDir),
+		"--objstore.config=" + string(storageConfig),
+	}
 
 	if r.store.Spec.IndexCacheConfig != nil &&
 		r.store.Spec.IndexCacheConfig.InMemoryIndexCacheConfig != nil &&
@@ -152,31 +158,16 @@ func (r *Store) megerArgs(container *corev1.Container) error {
 		defaultArgs = append(defaultArgs, "--max-time="+r.store.Spec.MaxTime)
 	}
 
-	if len(container.Args) > 0 && container.Args[0] != "store" {
-		container.Args = append([]string{"store"}, container.Args...)
-	}
-
-	for name, value := range r.store.Spec.Flags {
-		arg := fmt.Sprintf("--%s=%s", name, value)
+	for _, flag := range r.store.Spec.Flags {
 		replaced := util.ReplaceInSlice(defaultArgs, func(v interface{}) bool {
-			return util.GetArgName(v.(string)) == name
-		}, arg)
+			return util.GetArgName(v.(string)) == util.GetArgName(flag)
+		}, flag)
 
 		if !replaced {
-			defaultArgs = append(defaultArgs, arg)
+			defaultArgs = append(defaultArgs, flag)
 		}
 	}
 
-	for _, arg := range defaultArgs {
-
-		replaced := util.ReplaceInSlice(container.Args, func(v interface{}) bool {
-			return util.GetArgName(v.(string)) == util.GetArgName(arg)
-		}, arg)
-
-		if !replaced {
-			container.Args = append(container.Args, arg)
-		}
-	}
-
-	return nil
+	sort.Strings(defaultArgs[1:])
+	return defaultArgs, nil
 }

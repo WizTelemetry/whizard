@@ -152,16 +152,8 @@ func CreateStoreDefaulterValidator(opt options.Options) StoreDefaulterValidator 
 			store.Spec.LogFormat = opt.Store.LogFormat
 		}
 
-		if opt.Store.Flags != nil {
-			if store.Spec.Flags == nil {
-				store.Spec.Flags = opt.Store.Flags
-			} else {
-				for k, v := range opt.Store.Flags {
-					if _, ok := store.Spec.Flags[k]; !ok {
-						store.Spec.Flags[k] = v
-					}
-				}
-			}
+		if store.Spec.Flags == nil {
+			store.Spec.Flags = opt.Store.Flags
 		}
 
 		if store.Spec.IndexCacheConfig == nil {

@@ -164,10 +164,8 @@ func (in *CompactorSpec) DeepCopyInto(out *CompactorSpec) {
 	}
 	if in.Flags != nil {
 		in, out := &in.Flags, &out.Flags
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
+		*out = make([]string, len(*in))
+		copy(*out, *in)
 	}
 	if in.DataVolume != nil {
 		in, out := &in.DataVolume, &out.DataVolume
@@ -406,10 +404,8 @@ func (in *IngesterSpec) DeepCopyInto(out *IngesterSpec) {
 	}
 	if in.Flags != nil {
 		in, out := &in.Flags, &out.Flags
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
+		*out = make([]string, len(*in))
+		copy(*out, *in)
 	}
 	if in.Storage != nil {
 		in, out := &in.Storage, &out.Storage
@@ -537,10 +533,8 @@ func (in *Query) DeepCopyInto(out *Query) {
 	}
 	if in.Flags != nil {
 		in, out := &in.Flags, &out.Flags
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
+		*out = make([]string, len(*in))
+		copy(*out, *in)
 	}
 	in.Envoy.DeepCopyInto(&out.Envoy)
 }
@@ -585,10 +579,8 @@ func (in *QueryFrontend) DeepCopyInto(out *QueryFrontend) {
 	}
 	if in.Flags != nil {
 		in, out := &in.Flags, &out.Flags
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
+		*out = make([]string, len(*in))
+		copy(*out, *in)
 	}
 	if in.CacheConfig != nil {
 		in, out := &in.CacheConfig, &out.CacheConfig
@@ -702,10 +694,8 @@ func (in *Router) DeepCopyInto(out *Router) {
 	}
 	if in.Flags != nil {
 		in, out := &in.Flags, &out.Flags
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
+		*out = make([]string, len(*in))
+		copy(*out, *in)
 	}
 }
 
@@ -840,10 +830,8 @@ func (in *RulerSpec) DeepCopyInto(out *RulerSpec) {
 	}
 	if in.Flags != nil {
 		in, out := &in.Flags, &out.Flags
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
+		*out = make([]string, len(*in))
+		copy(*out, *in)
 	}
 	if in.DataVolume != nil {
 		in, out := &in.DataVolume, &out.DataVolume
@@ -1272,10 +1260,8 @@ func (in *StoreSpec) DeepCopyInto(out *StoreSpec) {
 	}
 	if in.Flags != nil {
 		in, out := &in.Flags, &out.Flags
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
+		*out = make([]string, len(*in))
+		copy(*out, *in)
 	}
 	if in.DataVolume != nil {
 		in, out := &in.DataVolume, &out.DataVolume
