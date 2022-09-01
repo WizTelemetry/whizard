@@ -26,6 +26,7 @@ import (
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/tenant"
+	"github.com/kubesphere/whizard/pkg/util"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -52,8 +53,10 @@ type TenantReconciler struct {
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=tenants/finalizers,verbs=update
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=service,verbs=get;list;watch
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=storage,verbs=get;list;watch
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=compactors,verbs=get;list;watch
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=ingesters,verbs=get;list;watch
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=rulers,verbs=get;list;watch
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=stores,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -106,7 +109,11 @@ func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&monitoringv1alpha1.Tenant{}).
 		Watches(&source.Kind{Type: &monitoringv1alpha1.Ingester{}},
-			handler.EnqueueRequestsFromMapFunc(r.mapToTenantbyLabelFunc)).
+			handler.EnqueueRequestsFromMapFunc(r.mapToTenantbyObjectSpecFunc)).
+		Watches(&source.Kind{Type: &monitoringv1alpha1.Compactor{}},
+			handler.EnqueueRequestsFromMapFunc(r.mapToTenantbyObjectSpecFunc)).
+		Watches(&source.Kind{Type: &monitoringv1alpha1.Store{}},
+			handler.EnqueueRequestsFromMapFunc(r.mapToTenantbyStoreLabelFunc)).
 		Watches(&source.Kind{Type: &monitoringv1alpha1.Service{}},
 			handler.EnqueueRequestsFromMapFunc(r.mapToTenantbyService)).
 		Watches(&source.Kind{Type: &monitoringv1alpha1.Storage{}},
@@ -115,23 +122,55 @@ func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *TenantReconciler) mapToTenantbyLabelFunc(o client.Object) []reconcile.Request {
+func (r *TenantReconciler) mapToTenantbyObjectSpecFunc(o client.Object) []reconcile.Request {
 
-	labels := o.GetLabels()
-	var tenantsName []string
-	if tenants, ok := labels[constants.TenantLabelKey]; ok {
-		tenantsName = strings.Split(tenants, ".")
+	var tenants []string
+	switch o := o.(type) {
+	case *monitoringv1alpha1.Compactor:
+		tenants = (*monitoringv1alpha1.Compactor)(o).Spec.Tenants
+	case *monitoringv1alpha1.Ingester:
+		tenants = (*monitoringv1alpha1.Ingester)(o).Spec.Tenants
+	}
+
+	var tenantList monitoringv1alpha1.TenantList
+	if err := r.Client.List(r.Context, &tenantList); err != nil {
+		log.FromContext(r.Context).WithValues("tenantlist", "").Error(err, "")
+		return nil
+	}
+	var reqs []reconcile.Request
+	for _, item := range tenantList.Items {
+		//	Avoid the difference between Tenant.Name and Tenant.Spec.Tenant
+		if util.Contains(tenants, item.Spec.Tenant) {
+			reqs = append(reqs, reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name: item.Name,
+				},
+			})
+		}
+	}
+
+	return reqs
+}
+
+func (r *TenantReconciler) mapToTenantbyStoreLabelFunc(o client.Object) []reconcile.Request {
+	selector := map[string]string{
+		constants.StorageLabelKey: o.GetLabels()[constants.StorageLabelKey],
+		constants.ServiceLabelKey: o.GetLabels()[constants.ServiceLabelKey],
+	}
+	var tenantList monitoringv1alpha1.TenantList
+	if err := r.Client.List(r.Context, &tenantList, client.MatchingLabels(selector)); err != nil {
+		log.FromContext(r.Context).WithValues("tenantlist", "").Error(err, "")
+		return nil
 	}
 
 	var reqs []reconcile.Request
-	for _, tenantName := range tenantsName {
+	for _, item := range tenantList.Items {
 		reqs = append(reqs, reconcile.Request{
 			NamespacedName: types.NamespacedName{
-				Name: tenantName,
+				Name: item.Name,
 			},
 		})
 	}
-
 	return reqs
 }
 
@@ -144,10 +183,10 @@ func (r *TenantReconciler) mapToTenantbyService(o client.Object) []reconcile.Req
 	}
 
 	var reqs []reconcile.Request
-	for _, ingester := range tenantList.Items {
+	for _, item := range tenantList.Items {
 		reqs = append(reqs, reconcile.Request{
 			NamespacedName: types.NamespacedName{
-				Name: ingester.Name,
+				Name: item.Name,
 			},
 		})
 	}
@@ -164,10 +203,10 @@ func (r *TenantReconciler) mapToTenantbyStorage(o client.Object) []reconcile.Req
 	}
 
 	var reqs []reconcile.Request
-	for _, ingester := range tenantList.Items {
+	for _, item := range tenantList.Items {
 		reqs = append(reqs, reconcile.Request{
 			NamespacedName: types.NamespacedName{
-				Name: ingester.Name,
+				Name: item.Name,
 			},
 		})
 	}

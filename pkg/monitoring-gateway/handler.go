@@ -23,7 +23,6 @@ const (
 	epSeries      = apiPrefix + "/series"
 	epLabels      = apiPrefix + "/labels"
 	epLabelValues = apiPrefix + "/label/*path"
-	epTargetsMeta = apiPrefix + "/targets/meta"
 	epReceive     = apiPrefix + "/receive"
 )
 
@@ -69,7 +68,6 @@ func NewHandler(logger log.Logger, o *Options) *Handler {
 	h.router.Get(epSeries, h.wrap(h.matcher(matchersParam)))
 	h.router.Get(epLabels, h.wrap(h.matcher(matchersParam)))
 	h.router.Get(epLabelValues, h.wrap(h.matcher(matchersParam)))
-	h.router.Get(epTargetsMeta, h.wrap(h.matcher(targetMatchersParam)))
 
 	h.router.Post(epReceive, h.wrap(h.remoteWrite))
 

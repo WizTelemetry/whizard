@@ -240,7 +240,7 @@ func (o *CompactorOptions) Validate() []error {
 
 func (o *CompactorOptions) AddFlags(fs *pflag.FlagSet, c *CompactorOptions) {
 	o.CommonOptions.AddFlags(fs, &c.CommonOptions, "compactor")
-	fs.IntVar(&c.DefaultTenantsPerCompactor, "default-tenants-per-compactor", c.DefaultTenantsPerCompactor, "Number of tenants processed per compactor")
+	fs.IntVar(&c.DefaultTenantsPerCompactor, "default-tenants-per-compactor", DefaultTenantsPerCompactor, "Number of tenants processed per compactor")
 }
 
 type StoreOptions struct {

@@ -2,7 +2,6 @@ package tenant
 
 import (
 	"fmt"
-	"math/rand"
 	"strconv"
 	"strings"
 	"time"
@@ -186,7 +185,6 @@ func (t *Tenant) removeTenantFromIngesterbyName(namespace, name string) error {
 		if ok := containsString(ingester.Spec.Tenants, t.tenant.Spec.Tenant); ok {
 			klog.V(3).Infof("ingester %s update, remove tenant %s", ingester.Name, t.tenant.Name)
 			ingester.Spec.Tenants = removeString(ingester.Spec.Tenants, t.tenant.Spec.Tenant)
-			ingester.Labels[constants.TenantLabelKey] = strings.Join(ingester.Spec.Tenants, "_")
 
 			if len(ingester.Spec.Tenants) == 0 {
 				annotation := ingester.GetAnnotations()
@@ -202,66 +200,6 @@ func (t *Tenant) removeTenantFromIngesterbyName(namespace, name string) error {
 		}
 	}
 	return nil
-}
-
-func (t *Tenant) deleteIngesterInstance(namespace, name string) error {
-	ingester := &monitoringv1alpha1.Ingester{}
-	err := t.Client.Get(t.Context, types.NamespacedName{
-		Namespace: namespace,
-		Name:      name,
-	}, ingester)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil
-		} else {
-			return err
-		}
-	}
-
-	annotations := ingester.GetAnnotations()
-	if annotations != nil {
-		if v, ok := annotations[constants.LabelNameIngesterState]; ok && v == "deleting" {
-			if v, ok := annotations[constants.TenantLabelKey]; !ok || len(v) == 0 {
-				klog.V(3).Infof("Ingester %s will be deleted.")
-				_ = t.Client.Delete(t.Context, ingester)
-			}
-		}
-	}
-	return nil
-}
-
-// selectStoragebyMatchLabels randomly get Storage by select label
-func (t *Tenant) selectStoragebyMatchLabels(matchLabels map[string]string) (*monitoringv1alpha1.Storage, error) {
-	storageList := &monitoringv1alpha1.StorageList{}
-	err := t.Client.List(t.Context, storageList, &client.ListOptions{
-		LabelSelector: labels.SelectorFromSet(matchLabels),
-	})
-	if err != nil {
-		return nil, err
-	}
-	if len(storageList.Items) == 0 {
-		return nil, fmt.Errorf("can't select Storage by matchLabels [%v]", matchLabels)
-	}
-
-	rand.Seed(time.Now().UnixNano())
-	index := rand.Intn(len(storageList.Items))
-
-	return &storageList.Items[index], err
-}
-
-// isStorageContainLabel  if storage contains matchLabels
-func (t *Tenant) isStorageContainLabel(namespace, name string, matchLabels map[string]string) (bool, error) {
-	storage := &monitoringv1alpha1.Storage{}
-	err := t.Client.Get(t.Context, types.NamespacedName{Namespace: namespace, Name: name}, storage)
-	if err != nil {
-		return false, err
-	}
-	for key, value := range matchLabels {
-		if v, ok := storage.Labels[key]; !ok || v != value {
-			return false, nil
-		}
-	}
-	return true, nil
 }
 
 func createIngesterInstanceName(tenant *monitoringv1alpha1.Tenant, suffix ...string) string {
@@ -280,10 +218,15 @@ func createIngesterInstance(name string, tenant *monitoringv1alpha1.Tenant) *mon
 	label := make(map[string]string, 2)
 	label[constants.ServiceLabelKey] = tenant.Labels[constants.ServiceLabelKey]
 	label[constants.StorageLabelKey] = tenant.Labels[constants.StorageLabelKey]
-	label[constants.TenantLabelKey] = tenant.Name
 
 	namespacedName := strings.Split(tenant.Labels[constants.ServiceLabelKey], ".")
-	// todo: ingester config
+	storage := &monitoringv1alpha1.ObjectReference{}
+	if tenant.Labels[constants.StorageLabelKey] != constants.LocalStorage {
+		storageNamespacedName := strings.Split(tenant.Labels[constants.StorageLabelKey], ".")
+		storage.Namespace = storageNamespacedName[0]
+		storage.Name = storageNamespacedName[1]
+	}
+
 	return &monitoringv1alpha1.Ingester{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -292,6 +235,7 @@ func createIngesterInstance(name string, tenant *monitoringv1alpha1.Tenant) *mon
 		},
 		Spec: monitoringv1alpha1.IngesterSpec{
 			Tenants: []string{tenant.Spec.Tenant},
+			Storage: storage,
 		},
 	}
 }
@@ -300,14 +244,6 @@ func addTenantToIngesterInstance(tenant *monitoringv1alpha1.Tenant, ingester *mo
 	klog.V(3).Infof("Ingester %s update, add tenant %s", ingester.Name, tenant.Name)
 
 	ingester.Spec.Tenants = append(ingester.Spec.Tenants, tenant.Spec.Tenant)
-
-	label := ingester.GetLabels()
-	if v, ok := label[constants.TenantLabelKey]; !ok || len(v) == 0 {
-		label[constants.TenantLabelKey] = tenant.Name
-	} else {
-		label[constants.TenantLabelKey] = label[constants.TenantLabelKey] + "." + tenant.Name
-	}
-	ingester.Labels = label
 
 	annotation := ingester.GetAnnotations()
 	if v, ok := annotation[constants.LabelNameIngesterState]; ok && v == "deleting" {
