@@ -14,13 +14,43 @@ import (
 func addControllers(mgr manager.Manager, client k8s.Client, informerFactory informers.InformerFactory,
 	cmOptions *options.ControllerManagerOptions, ctx context.Context) error {
 
-	if err := (&monitoring.ServiceReconciler{
-		DefaulterValidator: monitoring.CreateServiceDefaulterValidator(*cmOptions.MonitoringOptions),
-		Client:             mgr.GetClient(),
-		Scheme:             mgr.GetScheme(),
-		Context:            ctx,
+	if err := (&monitoring.GatewayReconciler{
+		Client:  mgr.GetClient(),
+		Scheme:  mgr.GetScheme(),
+		Context: ctx,
+		Options: cmOptions.MonitoringOptions,
 	}).SetupWithManager(mgr); err != nil {
-		klog.Errorf("Unable to create Service controller: %v", err)
+		klog.Errorf("Unable to create Gateway controller: %v", err)
+		return err
+	}
+
+	if err := (&monitoring.QueryFrontendReconciler{
+		Client:  mgr.GetClient(),
+		Scheme:  mgr.GetScheme(),
+		Context: ctx,
+		Options: cmOptions.MonitoringOptions,
+	}).SetupWithManager(mgr); err != nil {
+		klog.Errorf("Unable to create Query Frontend controller: %v", err)
+		return err
+	}
+
+	if err := (&monitoring.QueryReconciler{
+		Client:  mgr.GetClient(),
+		Scheme:  mgr.GetScheme(),
+		Context: ctx,
+		Options: cmOptions.MonitoringOptions,
+	}).SetupWithManager(mgr); err != nil {
+		klog.Errorf("Unable to create Query controller: %v", err)
+		return err
+	}
+
+	if err := (&monitoring.RouterReconciler{
+		Client:  mgr.GetClient(),
+		Scheme:  mgr.GetScheme(),
+		Context: ctx,
+		Options: cmOptions.MonitoringOptions,
+	}).SetupWithManager(mgr); err != nil {
+		klog.Errorf("Unable to create Router controller: %v", err)
 		return err
 	}
 

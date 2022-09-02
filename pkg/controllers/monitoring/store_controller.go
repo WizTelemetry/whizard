@@ -28,9 +28,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // StoreReconciler reconciles a Store object
@@ -96,10 +100,32 @@ func (r *StoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 func (r *StoreReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&monitoringv1alpha1.Store{}).
+		Watches(&source.Kind{Type: &monitoringv1alpha1.Storage{}},
+			handler.EnqueueRequestsFromMapFunc(r.reconcileRequestFromStorage)).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Service{}).
 		Owns(&autoscalingv2beta2.HorizontalPodAutoscaler{}).
 		Complete(r)
+}
+
+func (r *StoreReconciler) reconcileRequestFromStorage(o client.Object) []reconcile.Request {
+	storeList := &monitoringv1alpha1.StoreList{}
+	if err := r.Client.List(r.Context, storeList, client.MatchingLabels(monitoringv1alpha1.ManagedLabelByStorage(o))); err != nil {
+		log.FromContext(r.Context).WithValues("storeList", "").Error(err, "")
+		return nil
+	}
+
+	var reqs []reconcile.Request
+	for _, item := range storeList.Items {
+		reqs = append(reqs, reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: item.Namespace,
+				Name:      item.Name,
+			},
+		})
+	}
+
+	return reqs
 }
 
 type StoreDefaulterValidator func(store *monitoringv1alpha1.Store) (*monitoringv1alpha1.Store, error)

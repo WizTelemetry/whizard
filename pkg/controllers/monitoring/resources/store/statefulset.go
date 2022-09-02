@@ -92,9 +92,14 @@ func (r *Store) statefulSet() (runtime.Object, resources.Operation, error) {
 
 	container.Resources = r.store.Spec.Resources
 
+	storageHash, err := resources.GetStorageHash(r.Context, r.Client, r.store.Labels[constants.StorageLabelKey])
+	if err != nil {
+		return nil, "", err
+	}
+
 	env := corev1.EnvVar{
 		Name:  constants.StorageHash,
-		Value: r.store.Annotations[constants.LabelNameStorageHash],
+		Value: storageHash,
 	}
 	replaced := util.ReplaceInSlice(container.Env, func(v interface{}) bool {
 		return v.(corev1.EnvVar).Name == constants.StorageHash
@@ -103,9 +108,17 @@ func (r *Store) statefulSet() (runtime.Object, resources.Operation, error) {
 		container.Env = append(container.Env, env)
 	}
 
+	tenantHash, err := resources.GetTenantHash(r.Context, r.Client, map[string]string{
+		constants.StorageLabelKey: r.store.Labels[constants.StorageLabelKey],
+		constants.ServiceLabelKey: r.store.Labels[constants.ServiceLabelKey],
+	})
+	if err != nil {
+		return nil, "", err
+	}
+
 	env = corev1.EnvVar{
 		Name:  constants.TenantHash,
-		Value: r.store.Annotations[constants.LabelNameTenantHash],
+		Value: tenantHash,
 	}
 	replaced = util.ReplaceInSlice(container.Env, func(v interface{}) bool {
 		return v.(corev1.EnvVar).Name == constants.TenantHash

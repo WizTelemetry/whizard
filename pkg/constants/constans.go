@@ -55,6 +55,9 @@ const (
 
 	TenantHash  = "TENANT_HASH"
 	StorageHash = "STORAGE_HASH"
+
+	IngesterStateDeleting = "deleting"
+	IngesterStateRunning  = "running"
 )
 
 const (
