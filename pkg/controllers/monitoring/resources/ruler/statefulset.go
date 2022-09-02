@@ -22,7 +22,6 @@ import (
 	yamlv3 "gopkg.in/yaml.v3"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -267,29 +266,14 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 		if r.ruler.Spec.Tenant == "" {
 			container.Args = append(container.Args, "--query="+query.HttpAddr())
 		} else {
-			proxyResources := corev1.ResourceRequirements{
-				Limits:   corev1.ResourceList{},
-				Requests: corev1.ResourceList{},
-			}
-			if r.rulerQueryProxyConfig.CPURequest != "0" {
-				proxyResources.Requests[corev1.ResourceCPU] = resource.MustParse(r.rulerQueryProxyConfig.CPURequest)
-			}
-			if r.rulerQueryProxyConfig.MemoryRequest != "0" {
-				proxyResources.Requests[corev1.ResourceMemory] = resource.MustParse(r.rulerQueryProxyConfig.MemoryRequest)
-			}
-			if r.rulerQueryProxyConfig.CPULimit != "0" {
-				proxyResources.Requests[corev1.ResourceCPU] = resource.MustParse(r.rulerQueryProxyConfig.CPULimit)
-			}
-			if r.rulerQueryProxyConfig.MemoryLimit != "0" {
-				proxyResources.Requests[corev1.ResourceMemory] = resource.MustParse(r.rulerQueryProxyConfig.CPURequest)
-			}
+
 			queryProxyContainer = &corev1.Container{
 				Name:  "query-proxy",
-				Image: r.rulerQueryProxyConfig.Image,
+				Image: r.Options.RulerQueryProxy.Image,
 				Args: []string{
 					"--http-address=127.0.0.1:9080",
 				},
-				Resources: proxyResources,
+				Resources: r.Options.RulerQueryProxy.Resources,
 			}
 			queryProxyContainer.Args = append(queryProxyContainer.Args, "--tenant.label-name="+service.Spec.TenantLabelName)
 			queryProxyContainer.Args = append(queryProxyContainer.Args, "--query.address="+query.HttpAddr())
@@ -316,18 +300,12 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 
 	sort.Strings(container.Args[1:])
 
-	var reloaderConfig = promoperator.ReloaderConfig{Image: r.reloaderConfig.Image}
-	if r.reloaderConfig.CPURequest != "0" {
-		reloaderConfig.CPURequest = r.reloaderConfig.CPURequest
-	}
-	if r.reloaderConfig.MemoryRequest != "0" {
-		reloaderConfig.MemoryRequest = r.reloaderConfig.MemoryRequest
-	}
-	if r.reloaderConfig.CPULimit != "0" {
-		reloaderConfig.CPULimit = r.reloaderConfig.CPULimit
-	}
-	if r.reloaderConfig.MemoryLimit != "0" {
-		reloaderConfig.MemoryLimit = r.reloaderConfig.MemoryLimit
+	var reloaderConfig = promoperator.ReloaderConfig{
+		Image:         r.Options.PrometheusConfigReloader.Image,
+		CPURequest:    r.Options.PrometheusConfigReloader.Resources.Requests.Cpu().String(),
+		MemoryRequest: r.Options.PrometheusConfigReloader.Resources.Requests.Memory().String(),
+		CPULimit:      r.Options.PrometheusConfigReloader.Resources.Limits.Cpu().String(),
+		MemoryLimit:   r.Options.PrometheusConfigReloader.Resources.Limits.Memory().String(),
 	}
 
 	var reloadContainer = promoperator.CreateConfigReloader(

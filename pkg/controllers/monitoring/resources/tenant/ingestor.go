@@ -106,7 +106,7 @@ func (t *Tenant) ingester() error {
 	for i := 0; i < len(ingesterMapping)+1; i++ {
 		name := createIngesterInstanceName(t.tenant, strconv.Itoa(i))
 		if ingesterItem, ok := ingesterMapping[name]; ok {
-			if len(ingesterItem.Spec.Tenants) < t.Options.DefaultTenantsPerIngester {
+			if len(ingesterItem.Spec.Tenants) < t.Options.Ingester.DefaultTenantsPerIngester {
 				ingester = ingesterItem
 				addTenantToIngesterInstance(t.tenant, ingester)
 				break
@@ -192,7 +192,7 @@ func (t *Tenant) removeTenantFromIngesterbyName(namespace, name string) error {
 					annotation = make(map[string]string)
 				}
 				annotation[constants.LabelNameIngesterState] = constants.IngesterStateDeleting
-				annotation[constants.LabelNameIngesterDeletingTime] = strconv.Itoa(int(time.Now().Add(t.Options.DefaultIngesterRetentionPeriod).Unix()))
+				annotation[constants.LabelNameIngesterDeletingTime] = strconv.Itoa(int(time.Now().Add(t.Options.Ingester.DefaultIngesterRetentionPeriod).Unix()))
 				ingester.Annotations = annotation
 			}
 

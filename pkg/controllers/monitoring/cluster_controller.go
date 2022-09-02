@@ -45,7 +45,7 @@ type ClusterReconciler struct {
 }
 
 //+kubebuilder:rbac:groups=cluster.kubesphere.io,resources=clusters,verbs=get;list;watch
-//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=tenants,verbs=verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=tenants,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

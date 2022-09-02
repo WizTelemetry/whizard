@@ -18,7 +18,7 @@ func addControllers(mgr manager.Manager, client k8s.Client, informerFactory info
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
 		Context: ctx,
-		Options: cmOptions.MonitoringOptions,
+		Options: cmOptions.MonitoringOptions.Gateway,
 	}).SetupWithManager(mgr); err != nil {
 		klog.Errorf("Unable to create Gateway controller: %v", err)
 		return err
@@ -28,7 +28,7 @@ func addControllers(mgr manager.Manager, client k8s.Client, informerFactory info
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
 		Context: ctx,
-		Options: cmOptions.MonitoringOptions,
+		Options: cmOptions.MonitoringOptions.QueryFrontend,
 	}).SetupWithManager(mgr); err != nil {
 		klog.Errorf("Unable to create Query Frontend controller: %v", err)
 		return err
@@ -38,7 +38,7 @@ func addControllers(mgr manager.Manager, client k8s.Client, informerFactory info
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
 		Context: ctx,
-		Options: cmOptions.MonitoringOptions,
+		Options: cmOptions.MonitoringOptions.Query,
 	}).SetupWithManager(mgr); err != nil {
 		klog.Errorf("Unable to create Query controller: %v", err)
 		return err
@@ -48,14 +48,14 @@ func addControllers(mgr manager.Manager, client k8s.Client, informerFactory info
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
 		Context: ctx,
-		Options: cmOptions.MonitoringOptions,
+		Options: cmOptions.MonitoringOptions.Router,
 	}).SetupWithManager(mgr); err != nil {
 		klog.Errorf("Unable to create Router controller: %v", err)
 		return err
 	}
 
 	if err := (&monitoring.StoreReconciler{
-		DefaulterValidator: monitoring.CreateStoreDefaulterValidator(*cmOptions.MonitoringOptions),
+		DefaulterValidator: monitoring.CreateStoreDefaulterValidator(cmOptions.MonitoringOptions.Store),
 		Client:             mgr.GetClient(),
 		Scheme:             mgr.GetScheme(),
 		Context:            ctx,
@@ -66,18 +66,17 @@ func addControllers(mgr manager.Manager, client k8s.Client, informerFactory info
 	}
 
 	if err := (&monitoring.CompactorReconciler{
-		DefaulterValidator: monitoring.CreateCompactorDefaulterValidator(*cmOptions.MonitoringOptions),
+		DefaulterValidator: monitoring.CreateCompactorDefaulterValidator(cmOptions.MonitoringOptions.Compactor),
 		Client:             mgr.GetClient(),
 		Scheme:             mgr.GetScheme(),
 		Context:            ctx,
-		Options:            cmOptions.MonitoringOptions.Compactor,
 	}).SetupWithManager(mgr); err != nil {
 		klog.Errorf("Unable to create Compactor controller: %v", err)
 		return err
 	}
 
 	if err := (&monitoring.IngesterReconciler{
-		DefaulterValidator: monitoring.CreateIngesterDefaulterValidator(*cmOptions.MonitoringOptions),
+		DefaulterValidator: monitoring.CreateIngesterDefaulterValidator(cmOptions.MonitoringOptions.Ingester),
 		Client:             mgr.GetClient(),
 		Scheme:             mgr.GetScheme(),
 		Context:            ctx,
@@ -87,12 +86,11 @@ func addControllers(mgr manager.Manager, client k8s.Client, informerFactory info
 	}
 
 	if err := (&monitoring.RulerReconciler{
-		DefaulterValidator:    monitoring.CreateRulerDefaulterValidator(*cmOptions.MonitoringOptions),
-		ReloaderConfig:        cmOptions.MonitoringOptions.PrometheusConfigReloader,
-		RulerQueryProxyConfig: cmOptions.MonitoringOptions.RulerQueryProxy,
-		Client:                mgr.GetClient(),
-		Scheme:                mgr.GetScheme(),
-		Context:               ctx,
+		DefaulterValidator: monitoring.CreateRulerDefaulterValidator(cmOptions.MonitoringOptions.Ruler),
+		Option:             cmOptions.MonitoringOptions.Ruler,
+		Client:             mgr.GetClient(),
+		Scheme:             mgr.GetScheme(),
+		Context:            ctx,
 	}).SetupWithManager(mgr); err != nil {
 		klog.Errorf("Unable to create Ruler controller: %v", err)
 		return err

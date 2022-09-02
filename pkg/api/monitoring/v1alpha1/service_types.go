@@ -56,7 +56,7 @@ type ServiceSpec struct {
 	QueryFrontend *QueryFrontend `json:"queryFrontend,omitempty"`
 }
 
-type Gateway struct {
+type CommonSpec struct {
 	// If specified, the pod's scheduling constraints.
 	Affinity *corev1.Affinity `json:"affinity,omitempty"`
 	// Define which Nodes the Pods are scheduled on.
@@ -65,15 +65,28 @@ type Gateway struct {
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 	// Define resources requests and limits for main container.
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-	// Number of replicas for a component
+	// Number of replicas for a component.
 	Replicas *int32 `json:"replicas,omitempty"`
 
-	// Image is the gateway image with tag/version.
+	// Image is the component image with tag/version.
 	Image string `json:"image,omitempty"`
+	// Image pull policy.
+	// One of Always, Never, IfNotPresent.
+	// Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
+	// Cannot be updated.
+	// +optional
+	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+
 	// Log filtering level. Possible options: error, warn, info, debug.
 	LogLevel string `json:"logLevel,omitempty"`
 	// Log format to use. Possible options: logfmt or json.
 	LogFormat string `json:"logFormat,omitempty"`
+	// Flags is the flags of component.
+	Flags []string `json:"flags,omitempty"`
+}
+
+type Gateway struct {
+	CommonSpec `json:",inline"`
 
 	// Secret name for HTTP Server certificate (Kubernetes TLS secret type)
 	ServerCertificate string `json:"serverCertificate,omitempty"`
@@ -82,24 +95,7 @@ type Gateway struct {
 }
 
 type Query struct {
-
-	// If specified, the pod's scheduling constraints.
-	Affinity *corev1.Affinity `json:"affinity,omitempty"`
-	// Define which Nodes the Pods are scheduled on.
-	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
-	// If specified, the pod's tolerations.
-	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
-	// Define resources requests and limits for main container.
-	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-	// Number of replicas for a component
-	Replicas *int32 `json:"replicas,omitempty"`
-
-	// Image is the image with tag/version
-	Image string `json:"image,omitempty"`
-	// Log filtering level. Possible options: error, warn, info, debug
-	LogLevel string `json:"logLevel,omitempty"`
-	// Log format to use. Possible options: logfmt or json
-	LogFormat string `json:"logFormat,omitempty"`
+	CommonSpec `json:",inline"`
 
 	// Additional StoreApi servers from which Query component queries from
 	Stores []QueryStores `json:"stores,omitempty"`
@@ -107,9 +103,6 @@ type Query struct {
 	SelectorLabels map[string]string `json:"selectorLabels,omitempty"`
 	// Labels to treat as a replica indicator along which data is deduplicated.
 	ReplicaLabelNames []string `json:"replicaLabelNames,omitempty"`
-
-	// Flags is the flags of query.
-	Flags []string `json:"flags,omitempty"`
 
 	// Envoy is used to config sidecar which proxies requests requiring auth to the secure stores
 	Envoy EnvoySpec `json:"envoy,omitempty"`
@@ -125,57 +118,20 @@ type QueryStores struct {
 // EnvoySpec defines the desired state of envoy proxy sidecar which delegates requests to the secure stores
 type EnvoySpec struct {
 	// Image is the envoy image with tag/version
-	Image string `json:"image,omitempty"`
+	Image string `json:"image,omitempty" yaml:"image,omitempty"`
 	// Define resources requests and limits for envoy container.
-	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
+	Resources corev1.ResourceRequirements `json:"resources,omitempty" yaml:"resources,omitempty"`
 }
 
 type Router struct {
-	// If specified, the pod's scheduling constraints.
-	Affinity *corev1.Affinity `json:"affinity,omitempty"`
-	// Define which Nodes the Pods are scheduled on.
-	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
-	// If specified, the pod's tolerations.
-	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
-	// Define resources requests and limits for main container.
-	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-	// Number of replicas for a component.
-	Replicas *int32 `json:"replicas,omitempty"`
-
-	// Image is the image with tag/version
-	Image string `json:"image,omitempty"`
-	// Log filtering level. Possible options: error, warn, info, debug
-	LogLevel string `json:"logLevel,omitempty"`
-	// Log format to use. Possible options: logfmt or json
-	LogFormat string `json:"logFormat,omitempty"`
+	CommonSpec `json:",inline"`
 
 	// How many times to replicate incoming write requests
 	ReplicationFactor *uint64 `json:"replicationFactor,omitempty"`
-
-	// Flags is the flags of router.
-	Flags []string `json:"flags,omitempty"`
 }
 
 type QueryFrontend struct {
-	// If specified, the pod's scheduling constraints.
-	Affinity *corev1.Affinity `json:"affinity,omitempty"`
-	// Define which Nodes the Pods are scheduled on.
-	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
-	// If specified, the pod's tolerations.
-	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
-	// Define resources requests and limits for main container.
-	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-	// Number of replicas for a component
-	Replicas *int32 `json:"replicas,omitempty"`
-
-	// Image is the image with tag/version
-	Image string `json:"image,omitempty"`
-	// Log filtering level. Possible options: error, warn, info, debug
-	LogLevel string `json:"logLevel,omitempty"`
-	// Log format to use. Possible options: logfmt or json
-	LogFormat string `json:"logFormat,omitempty"`
-	// Flags is the flags of query frontend.
-	Flags []string `json:"flags,omitempty"`
+	CommonSpec `json:",inline"`
 
 	// CacheProviderConfig ...
 	CacheConfig *ResponseCacheProviderConfig `json:"cacheConfig,omitempty"`
@@ -192,8 +148,8 @@ const (
 // ResponseCacheProviderConfig is the initial ResponseCacheProviderConfig struct holder before parsing it into a specific cache provider.
 // Based on the config type the config is then parsed into a specific cache provider.
 type ResponseCacheProviderConfig struct {
-	Type                        CacheProvider                `json:"type"`
-	InMemoryResponseCacheConfig *InMemoryResponseCacheConfig `json:"inMemory,omitempty"`
+	Type                        CacheProvider                `json:"type" yaml:"type"`
+	InMemoryResponseCacheConfig *InMemoryResponseCacheConfig `json:"inMemory,omitempty" yaml:"inMemory,omitempty"`
 }
 
 // InMemoryResponseCacheConfig holds the configs for the in-memory cache provider.
@@ -289,29 +245,7 @@ type AutoScaler struct {
 }
 
 type StoreSpec struct {
-	// If specified, the pod's scheduling constraints.
-	Affinity *corev1.Affinity `json:"affinity,omitempty"`
-	// Define which Nodes the Pods are scheduled on.
-	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
-	// If specified, the pod's tolerations.
-	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
-	// Define resources requests and limits for main container.
-	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-	// Number of replicas for a component
-	Replicas *int32 `json:"replicas,omitempty"`
-
-	// Image is the image with tag/version
-	Image string `json:"image,omitempty"`
-	// Image pull policy.
-	// One of Always, Never, IfNotPresent.
-	// Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-	// Cannot be updated.
-	// +optional
-	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
-	// Log filtering level. Possible options: error, warn, info, debug
-	LogLevel string `json:"logLevel,omitempty"`
-	// Log format to use. Possible options: logfmt or json
-	LogFormat string `json:"logFormat,omitempty"`
+	CommonSpec `json:",inline"`
 
 	Storage *ObjectReference `json:"storage,omitempty"`
 
@@ -322,9 +256,6 @@ type StoreSpec struct {
 
 	// IndexCacheConfig contains index cache configuration.
 	IndexCacheConfig *IndexCacheConfig `json:"indexCacheConfig,omitempty"`
-
-	// Flags is the flag of store.
-	Flags []string `json:"flags,omitempty"`
 
 	// DataVolume specifies how volume shall be used
 	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
@@ -361,39 +292,14 @@ type StoreList struct {
 }
 
 type CompactorSpec struct {
-	// If specified, the pod's scheduling constraints.
-	Affinity *corev1.Affinity `json:"affinity,omitempty"`
-	// Define which Nodes the Pods are scheduled on.
-	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
-	// If specified, the pod's tolerations.
-	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
-	// Define resources requests and limits for main container.
-	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-	// Number of replicas for a component
-	Replicas *int32 `json:"replicas,omitempty"`
+	CommonSpec `json:",inline"`
 
-	// Image is the image with tag/version
-	Image string `json:"image,omitempty"`
-	// Image pull policy.
-	// One of Always, Never, IfNotPresent.
-	// Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-	// Cannot be updated.
-	// +optional
-	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
-	// Log filtering level. Possible options: error, warn, info, debug
-	LogLevel string `json:"logLevel,omitempty"`
-	// Log format to use. Possible options: logfmt or json
-	LogFormat string `json:"logFormat,omitempty"`
-
-	// DownsamplingDisable specifies whether to disable downsampling
-	DownsamplingDisable *bool `json:"downsamplingDisable,omitempty"`
+	// DisableDownsampling specifies whether to disable downsampling
+	DisableDownsampling *bool `json:"disableDownsampling,omitempty"`
 	// Retention configs how long to retain samples
 	Retention *Retention `json:"retention,omitempty"`
 
 	Storage *ObjectReference `json:"storage,omitempty"`
-
-	// Flags is the flags of compactor.
-	Flags []string `json:"flags,omitempty"`
 
 	// DataVolume specifies how volume shall be used
 	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
@@ -432,32 +338,13 @@ type CompactorList struct {
 
 // IngesterSpec defines the desired state of a Ingester
 type IngesterSpec struct {
+	CommonSpec `json:",inline"`
+
 	// Tenants if not empty indicates current config is for hard tenants; otherwise, it is for soft tenants.
 	Tenants []string `json:"tenants,omitempty"`
 
-	// If specified, the pod's scheduling constraints.
-	Affinity *corev1.Affinity `json:"affinity,omitempty"`
-	// Define which Nodes the Pods are scheduled on.
-	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
-	// If specified, the pod's tolerations.
-	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
-	// Define resources requests and limits for main container.
-	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-	// Number of replicas for a component.
-	Replicas *int32 `json:"replicas,omitempty"`
-
-	// Image is the image with tag/version
-	Image string `json:"image,omitempty"`
-	// Log filtering level. Possible options: error, warn, info, debug
-	LogLevel string `json:"logLevel,omitempty"`
-	// Log format to use. Possible options: logfmt or json
-	LogFormat string `json:"logFormat,omitempty"`
-
 	// LocalTsdbRetention configs how long to retain raw samples on local storage.
 	LocalTsdbRetention string `json:"localTsdbRetention,omitempty"`
-
-	// Flags is the flags of ingester.
-	Flags []string `json:"flags,omitempty"`
 
 	// If specified, the object key of Storage for long term storage.
 	Storage *ObjectReference `json:"storage,omitempty"`
@@ -501,23 +388,7 @@ type IngesterList struct {
 
 // RulerSpec defines the desired state of a Ruler
 type RulerSpec struct {
-	// If specified, the pod's scheduling constraints.
-	Affinity *corev1.Affinity `json:"affinity,omitempty"`
-	// Define which Nodes the Pods are scheduled on.
-	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
-	// If specified, the pod's tolerations.
-	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
-	// Define resources requests and limits for main container.
-	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-	// Number of replicas for a component.
-	Replicas *int32 `json:"replicas,omitempty"`
-
-	// Image is the image with tag/version
-	Image string `json:"image,omitempty"`
-	// Log filtering level. Possible options: error, warn, info, debug
-	LogLevel string `json:"logLevel,omitempty"`
-	// Log format to use. Possible options: logfmt or json
-	LogFormat string `json:"logFormat,omitempty"`
+	CommonSpec `json:",inline"`
 
 	// A label selector to select which PrometheusRules to mount for alerting and
 	// recording.
@@ -528,8 +399,6 @@ type RulerSpec struct {
 
 	// Number of shards to take the hash of fully qualified name of the rule group in order to split rules.
 	// Each shard of rules will be bound to one separate statefulset.
-	// Default: `1`
-	// +kubebuilder:default:=1
 	Shards *int32 `json:"shards,omitempty"`
 
 	// Tenant if not empty indicates which tenant's data is evaluated for the selected rules;
@@ -544,12 +413,8 @@ type RulerSpec struct {
 	AlertDropLabels []string `json:"alertDropLabels,omitempty"`
 	// Define configuration for connecting to alertmanager. Maps to the `alertmanagers.config` arg.
 	AlertManagersConfig *corev1.SecretKeySelector `json:"alertmanagersConfig,omitempty"`
-	// Interval between consecutive evaluations. Default: `30s`
-	// +kubebuilder:default:="30s"
+	// Interval between consecutive evaluations.
 	EvaluationInterval Duration `json:"evaluationInterval,omitempty"`
-
-	// Flags is the flags of ruler.
-	Flags []string `json:"flags,omitempty"`
 
 	// DataVolume specifies how volume shall be used
 	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`

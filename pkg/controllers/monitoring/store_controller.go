@@ -44,7 +44,7 @@ type StoreReconciler struct {
 	Scheme  *runtime.Scheme
 	Context context.Context
 
-	Options options.StoreOptions
+	Options *options.StoreOptions
 }
 
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=stores,verbs=get;list;watch;create;update;patch;delete
@@ -130,93 +130,47 @@ func (r *StoreReconciler) reconcileRequestFromStorage(o client.Object) []reconci
 
 type StoreDefaulterValidator func(store *monitoringv1alpha1.Store) (*monitoringv1alpha1.Store, error)
 
-func CreateStoreDefaulterValidator(opt options.Options) StoreDefaulterValidator {
-	var replicas int32 = 2
+func CreateStoreDefaulterValidator(opt *options.StoreOptions) StoreDefaulterValidator {
 
 	return func(store *monitoringv1alpha1.Store) (*monitoringv1alpha1.Store, error) {
 
-		if store.Spec.Image == "" {
-			store.Spec.Image = opt.Store.Image
-		}
-
-		if store.Spec.ImagePullPolicy == "" {
-			store.Spec.ImagePullPolicy = opt.Store.ImagePullPolicy
-		}
-
-		if store.Spec.Replicas == nil || *store.Spec.Replicas < 0 {
-			if opt.Store.Replicas != nil && *opt.Store.Replicas > 0 {
-				replicas = *opt.Store.Replicas
-			}
-			store.Spec.Replicas = &replicas
-		}
-
-		if store.Spec.Affinity == nil {
-			store.Spec.Affinity = opt.Store.Affinity
-		}
-
-		if store.Spec.Tolerations == nil {
-			store.Spec.Tolerations = opt.Store.Tolerations
-		}
-
-		if store.Spec.NodeSelector == nil {
-			store.Spec.NodeSelector = opt.Store.NodeSelector
-		}
-
-		if store.Spec.Resources.Requests == nil {
-			store.Spec.Resources.Requests = opt.Store.Resources.Requests
-		}
-
-		if store.Spec.Resources.Limits == nil {
-			store.Spec.Resources.Limits = opt.Store.Resources.Limits
-		}
-
-		if store.Spec.LogLevel == "" {
-			store.Spec.LogLevel = opt.Store.LogLevel
-		}
-
-		if store.Spec.LogFormat == "" {
-			store.Spec.LogFormat = opt.Store.LogFormat
-		}
-
-		if store.Spec.Flags == nil {
-			store.Spec.Flags = opt.Store.Flags
-		}
+		opt.Apply(&store.Spec.CommonSpec)
 
 		if store.Spec.IndexCacheConfig == nil {
-			store.Spec.IndexCacheConfig = opt.Store.IndexCacheConfig
+			store.Spec.IndexCacheConfig = opt.IndexCacheConfig
 		} else {
 			if store.Spec.IndexCacheConfig.InMemoryIndexCacheConfig == nil {
-				store.Spec.IndexCacheConfig.InMemoryIndexCacheConfig = opt.Store.IndexCacheConfig.InMemoryIndexCacheConfig
+				store.Spec.IndexCacheConfig.InMemoryIndexCacheConfig = opt.IndexCacheConfig.InMemoryIndexCacheConfig
 			} else {
 				if store.Spec.IndexCacheConfig.MaxSize == "" {
-					store.Spec.IndexCacheConfig.MaxSize = opt.Store.MaxSize
+					store.Spec.IndexCacheConfig.MaxSize = opt.MaxSize
 				}
 			}
 		}
 
 		if store.Spec.Scaler == nil {
-			store.Spec.Scaler = opt.Store.AutoScaler
+			store.Spec.Scaler = opt.AutoScaler
 		} else {
 			if store.Spec.Scaler.MaxReplicas == 0 {
-				store.Spec.Scaler.MaxReplicas = opt.Store.MaxReplicas
+				store.Spec.Scaler.MaxReplicas = opt.MaxReplicas
 			}
 
 			if store.Spec.Scaler.MinReplicas == nil || *store.Spec.Scaler.MinReplicas == 0 {
-				min := *opt.Store.MinReplicas
+				min := *opt.MinReplicas
 				store.Spec.Scaler.MinReplicas = &min
 			}
 
 			if store.Spec.Scaler.Metrics == nil {
-				store.Spec.Scaler.Metrics = opt.Store.Metrics
+				store.Spec.Scaler.Metrics = opt.Metrics
 			}
 
 			if store.Spec.Scaler.Behavior == nil {
-				store.Spec.Scaler.Behavior = opt.Store.Behavior
+				store.Spec.Scaler.Behavior = opt.Behavior
 			}
 		}
 
 		if store.Spec.DataVolume == nil {
-			store.Spec.DataVolume = opt.Store.DataVolume
+			store.Spec.DataVolume = opt.DataVolume
 		}
 
 		return store, nil

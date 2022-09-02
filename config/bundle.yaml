@@ -690,25 +690,25 @@ spec:
                         type: object
                     type: object
                 type: object
-              downsamplingDisable:
-                description: DownsamplingDisable specifies whether to disable downsampling
+              disableDownsampling:
+                description: DisableDownsampling specifies whether to disable downsampling
                 type: boolean
               flags:
-                description: Flags is the flags of compactor.
+                description: Flags is the flags of component.
                 items:
                   type: string
                 type: array
               image:
-                description: Image is the image with tag/version
+                description: Image is the component image with tag/version.
                 type: string
               imagePullPolicy:
                 description: Image pull policy. One of Always, Never, IfNotPresent. Defaults to Always if :latest tag is specified, or IfNotPresent otherwise. Cannot be updated.
                 type: string
               logFormat:
-                description: 'Log format to use. Possible options: logfmt or json'
+                description: 'Log format to use. Possible options: logfmt or json.'
                 type: string
               logLevel:
-                description: 'Log filtering level. Possible options: error, warn, info, debug'
+                description: 'Log filtering level. Possible options: error, warn, info, debug.'
                 type: string
               nodeSelector:
                 additionalProperties:
@@ -716,7 +716,7 @@ spec:
                 description: Define which Nodes the Pods are scheduled on.
                 type: object
               replicas:
-                description: Number of replicas for a component
+                description: Number of replicas for a component.
                 format: int32
                 type: integer
               resources:
@@ -1497,21 +1497,24 @@ spec:
                     type: object
                 type: object
               flags:
-                description: Flags is the flags of ingester.
+                description: Flags is the flags of component.
                 items:
                   type: string
                 type: array
               image:
-                description: Image is the image with tag/version
+                description: Image is the component image with tag/version.
+                type: string
+              imagePullPolicy:
+                description: Image pull policy. One of Always, Never, IfNotPresent. Defaults to Always if :latest tag is specified, or IfNotPresent otherwise. Cannot be updated.
                 type: string
               localTsdbRetention:
                 description: LocalTsdbRetention configs how long to retain raw samples on local storage.
                 type: string
               logFormat:
-                description: 'Log format to use. Possible options: logfmt or json'
+                description: 'Log format to use. Possible options: logfmt or json.'
                 type: string
               logLevel:
-                description: 'Log filtering level. Possible options: error, warn, info, debug'
+                description: 'Log filtering level. Possible options: error, warn, info, debug.'
                 type: string
               nodeSelector:
                 additionalProperties:
@@ -2305,17 +2308,19 @@ spec:
                     type: object
                 type: object
               evaluationInterval:
-                default: 30s
-                description: 'Interval between consecutive evaluations. Default: `30s`'
+                description: Interval between consecutive evaluations.
                 pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
                 type: string
               flags:
-                description: Flags is the flags of ruler.
+                description: Flags is the flags of component.
                 items:
                   type: string
                 type: array
               image:
-                description: Image is the image with tag/version
+                description: Image is the component image with tag/version.
+                type: string
+              imagePullPolicy:
+                description: Image pull policy. One of Always, Never, IfNotPresent. Defaults to Always if :latest tag is specified, or IfNotPresent otherwise. Cannot be updated.
                 type: string
               labels:
                 additionalProperties:
@@ -2323,10 +2328,10 @@ spec:
                 description: Labels configure the external label pairs to Ruler. A default replica label `ruler_replica` will be always added  as a label with the value of the pod's name and it will be dropped in the alerts.
                 type: object
               logFormat:
-                description: 'Log format to use. Possible options: logfmt or json'
+                description: 'Log format to use. Possible options: logfmt or json.'
                 type: string
               logLevel:
-                description: 'Log filtering level. Possible options: error, warn, info, debug'
+                description: 'Log filtering level. Possible options: error, warn, info, debug.'
                 type: string
               nodeSelector:
                 additionalProperties:
@@ -2420,8 +2425,7 @@ spec:
                     type: object
                 type: object
               shards:
-                default: 1
-                description: 'Number of shards to take the hash of fully qualified name of the rule group in order to split rules. Each shard of rules will be bound to one separate statefulset. Default: `1`'
+                description: Number of shards to take the hash of fully qualified name of the rule group in order to split rules. Each shard of rules will be bound to one separate statefulset.
                 format: int32
                 type: integer
               tenant:
@@ -2968,8 +2972,16 @@ spec:
                   clientCaCertificate:
                     description: Secret name for HTTP Client CA certificate (Kubernetes TLS secret type)
                     type: string
+                  flags:
+                    description: Flags is the flags of component.
+                    items:
+                      type: string
+                    type: array
                   image:
-                    description: Image is the gateway image with tag/version.
+                    description: Image is the component image with tag/version.
+                    type: string
+                  imagePullPolicy:
+                    description: Image pull policy. One of Always, Never, IfNotPresent. Defaults to Always if :latest tag is specified, or IfNotPresent otherwise. Cannot be updated.
                     type: string
                   logFormat:
                     description: 'Log format to use. Possible options: logfmt or json.'
@@ -2983,7 +2995,7 @@ spec:
                     description: Define which Nodes the Pods are scheduled on.
                     type: object
                   replicas:
-                    description: Number of replicas for a component
+                    description: Number of replicas for a component.
                     format: int32
                     type: integer
                   resources:
@@ -3529,18 +3541,21 @@ spec:
                         type: object
                     type: object
                   flags:
-                    description: Flags is the flags of query.
+                    description: Flags is the flags of component.
                     items:
                       type: string
                     type: array
                   image:
-                    description: Image is the image with tag/version
+                    description: Image is the component image with tag/version.
+                    type: string
+                  imagePullPolicy:
+                    description: Image pull policy. One of Always, Never, IfNotPresent. Defaults to Always if :latest tag is specified, or IfNotPresent otherwise. Cannot be updated.
                     type: string
                   logFormat:
-                    description: 'Log format to use. Possible options: logfmt or json'
+                    description: 'Log format to use. Possible options: logfmt or json.'
                     type: string
                   logLevel:
-                    description: 'Log filtering level. Possible options: error, warn, info, debug'
+                    description: 'Log filtering level. Possible options: error, warn, info, debug.'
                     type: string
                   nodeSelector:
                     additionalProperties:
@@ -3553,7 +3568,7 @@ spec:
                       type: string
                     type: array
                   replicas:
-                    description: Number of replicas for a component
+                    description: Number of replicas for a component.
                     format: int32
                     type: integer
                   resources:
@@ -4124,18 +4139,21 @@ spec:
                     - type
                     type: object
                   flags:
-                    description: Flags is the flags of query frontend.
+                    description: Flags is the flags of component.
                     items:
                       type: string
                     type: array
                   image:
-                    description: Image is the image with tag/version
+                    description: Image is the component image with tag/version.
+                    type: string
+                  imagePullPolicy:
+                    description: Image pull policy. One of Always, Never, IfNotPresent. Defaults to Always if :latest tag is specified, or IfNotPresent otherwise. Cannot be updated.
                     type: string
                   logFormat:
-                    description: 'Log format to use. Possible options: logfmt or json'
+                    description: 'Log format to use. Possible options: logfmt or json.'
                     type: string
                   logLevel:
-                    description: 'Log filtering level. Possible options: error, warn, info, debug'
+                    description: 'Log filtering level. Possible options: error, warn, info, debug.'
                     type: string
                   nodeSelector:
                     additionalProperties:
@@ -4143,7 +4161,7 @@ spec:
                     description: Define which Nodes the Pods are scheduled on.
                     type: object
                   replicas:
-                    description: Number of replicas for a component
+                    description: Number of replicas for a component.
                     format: int32
                     type: integer
                   resources:
@@ -4657,18 +4675,21 @@ spec:
                         type: object
                     type: object
                   flags:
-                    description: Flags is the flags of router.
+                    description: Flags is the flags of component.
                     items:
                       type: string
                     type: array
                   image:
-                    description: Image is the image with tag/version
+                    description: Image is the component image with tag/version.
+                    type: string
+                  imagePullPolicy:
+                    description: Image pull policy. One of Always, Never, IfNotPresent. Defaults to Always if :latest tag is specified, or IfNotPresent otherwise. Cannot be updated.
                     type: string
                   logFormat:
-                    description: 'Log format to use. Possible options: logfmt or json'
+                    description: 'Log format to use. Possible options: logfmt or json.'
                     type: string
                   logLevel:
-                    description: 'Log filtering level. Possible options: error, warn, info, debug'
+                    description: 'Log filtering level. Possible options: error, warn, info, debug.'
                     type: string
                   nodeSelector:
                     additionalProperties:
@@ -5656,12 +5677,12 @@ spec:
                     type: object
                 type: object
               flags:
-                description: Flags is the flag of store.
+                description: Flags is the flags of component.
                 items:
                   type: string
                 type: array
               image:
-                description: Image is the image with tag/version
+                description: Image is the component image with tag/version.
                 type: string
               imagePullPolicy:
                 description: Image pull policy. One of Always, Never, IfNotPresent. Defaults to Always if :latest tag is specified, or IfNotPresent otherwise. Cannot be updated.
@@ -5679,10 +5700,10 @@ spec:
                     type: object
                 type: object
               logFormat:
-                description: 'Log format to use. Possible options: logfmt or json'
+                description: 'Log format to use. Possible options: logfmt or json.'
                 type: string
               logLevel:
-                description: 'Log filtering level. Possible options: error, warn, info, debug'
+                description: 'Log filtering level. Possible options: error, warn, info, debug.'
                 type: string
               maxTime:
                 description: MaxTime specifies end of time range limit to serve
@@ -5696,7 +5717,7 @@ spec:
                 description: Define which Nodes the Pods are scheduled on.
                 type: object
               replicas:
-                description: Number of replicas for a component
+                description: Number of replicas for a component.
                 format: int32
                 type: integer
               resources:
@@ -6307,6 +6328,18 @@ rules:
   - apps
   resources:
   - deployments
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
   - statefulsets
   verbs:
   - create
@@ -6580,7 +6613,6 @@ rules:
   - list
   - patch
   - update
-  - verbs=get
   - watch
 - apiGroups:
   - monitoring.whizard.io

@@ -186,8 +186,8 @@ func (r *Compactor) megerArgs() ([]string, error) {
 	if r.compactor.Spec.LogFormat != "" {
 		defaultArgs = append(defaultArgs, "--log.format="+r.compactor.Spec.LogFormat)
 	}
-	if r.compactor.Spec.DownsamplingDisable != nil {
-		defaultArgs = append(defaultArgs, fmt.Sprintf("--downsampling.disable=%v", r.compactor.Spec.DownsamplingDisable))
+	if r.compactor.Spec.DisableDownsampling != nil {
+		defaultArgs = append(defaultArgs, fmt.Sprintf("--downsampling.disable=%v", r.compactor.Spec.DisableDownsampling))
 	}
 	if retention := r.compactor.Spec.Retention; retention != nil {
 		if retention.RetentionRaw != "" {

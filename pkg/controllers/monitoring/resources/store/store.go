@@ -13,10 +13,10 @@ import (
 type Store struct {
 	resources.BaseReconciler
 	store *v1alpha1.Store
-	options.StoreOptions
+	*options.StoreOptions
 }
 
-func New(reconciler resources.BaseReconciler, instance *v1alpha1.Store, o options.StoreOptions) *Store {
+func New(reconciler resources.BaseReconciler, instance *v1alpha1.Store, o *options.StoreOptions) *Store {
 	return &Store{
 		BaseReconciler: reconciler,
 		store:          instance,

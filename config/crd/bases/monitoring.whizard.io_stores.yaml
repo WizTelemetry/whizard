@@ -1167,12 +1167,12 @@ spec:
                     type: object
                 type: object
               flags:
-                description: Flags is the flag of store.
+                description: Flags is the flags of component.
                 items:
                   type: string
                 type: array
               image:
-                description: Image is the image with tag/version
+                description: Image is the component image with tag/version.
                 type: string
               imagePullPolicy:
                 description: Image pull policy. One of Always, Never, IfNotPresent.
@@ -1193,11 +1193,11 @@ spec:
                     type: object
                 type: object
               logFormat:
-                description: 'Log format to use. Possible options: logfmt or json'
+                description: 'Log format to use. Possible options: logfmt or json.'
                 type: string
               logLevel:
                 description: 'Log filtering level. Possible options: error, warn,
-                  info, debug'
+                  info, debug.'
                 type: string
               maxTime:
                 description: MaxTime specifies end of time range limit to serve
@@ -1211,7 +1211,7 @@ spec:
                 description: Define which Nodes the Pods are scheduled on.
                 type: object
               replicas:
-                description: Number of replicas for a component
+                description: Number of replicas for a component.
                 format: int32
                 type: integer
               resources:

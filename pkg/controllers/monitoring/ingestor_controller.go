@@ -153,23 +153,21 @@ func (r *IngesterReconciler) mapFuncBySelectorFunc(fn func(metav1.Object) map[st
 
 type IngesterDefaulterValidator func(ingester *monitoringv1alpha1.Ingester) (*monitoringv1alpha1.Ingester, error)
 
-func CreateIngesterDefaulterValidator(opt options.Options) IngesterDefaulterValidator {
-	var replicas int32 = 1
+func CreateIngesterDefaulterValidator(opt *options.IngesterOptions) IngesterDefaulterValidator {
 
 	return func(ingester *monitoringv1alpha1.Ingester) (*monitoringv1alpha1.Ingester, error) {
+
+		opt.Apply(&ingester.Spec.CommonSpec)
+
+		if ingester.Spec.DataVolume != nil {
+			ingester.Spec.DataVolume = opt.DataVolume
+		}
 
 		if ingester.Spec.LocalTsdbRetention != "" {
 			_, err := model.ParseDuration(ingester.Spec.LocalTsdbRetention)
 			if err != nil {
 				return nil, fmt.Errorf("invalid localTsdbRetention: %v", err)
 			}
-		}
-
-		if ingester.Spec.Image == "" {
-			ingester.Spec.Image = opt.WhizardImage
-		}
-		if ingester.Spec.Replicas == nil || *ingester.Spec.Replicas < 0 {
-			ingester.Spec.Replicas = &replicas
 		}
 
 		return ingester, nil

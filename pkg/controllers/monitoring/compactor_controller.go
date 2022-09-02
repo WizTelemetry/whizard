@@ -45,8 +45,6 @@ type CompactorReconciler struct {
 	client.Client
 	Scheme  *runtime.Scheme
 	Context context.Context
-
-	Options options.CompactorOptions
 }
 
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=compactors,verbs=get;list;watch;create;update;patch;delete
@@ -148,55 +146,14 @@ func (r *CompactorReconciler) reconcileRequestFromStorage(o client.Object) []rec
 
 type CompactorDefaulterValidator func(compactor *monitoringv1alpha1.Compactor) (*monitoringv1alpha1.Compactor, error)
 
-func CreateCompactorDefaulterValidator(opt options.Options) CompactorDefaulterValidator {
-	var replicas int32 = 1
+func CreateCompactorDefaulterValidator(opt *options.CompactorOptions) CompactorDefaulterValidator {
 
 	return func(compactor *monitoringv1alpha1.Compactor) (*monitoringv1alpha1.Compactor, error) {
 
-		if compactor.Spec.Image == "" {
-			compactor.Spec.Image = opt.WhizardImage
-		}
-
-		if compactor.Spec.ImagePullPolicy == "" {
-			compactor.Spec.ImagePullPolicy = opt.Compactor.ImagePullPolicy
-		}
-
-		compactor.Spec.Replicas = &replicas
-
-		if compactor.Spec.Affinity == nil {
-			compactor.Spec.Affinity = opt.Compactor.Affinity
-		}
-
-		if compactor.Spec.Tolerations == nil {
-			compactor.Spec.Tolerations = opt.Compactor.Tolerations
-		}
-
-		if compactor.Spec.NodeSelector == nil {
-			compactor.Spec.NodeSelector = opt.Compactor.NodeSelector
-		}
-
-		if compactor.Spec.Resources.Requests == nil {
-			compactor.Spec.Resources.Requests = opt.Compactor.Resources.Requests
-		}
-
-		if compactor.Spec.Resources.Limits == nil {
-			compactor.Spec.Resources.Limits = opt.Compactor.Resources.Limits
-		}
-
-		if compactor.Spec.LogLevel == "" {
-			compactor.Spec.LogLevel = opt.Compactor.LogLevel
-		}
-
-		if compactor.Spec.LogFormat == "" {
-			compactor.Spec.LogFormat = opt.Compactor.LogFormat
-		}
-
-		if compactor.Spec.Flags == nil {
-			compactor.Spec.Flags = opt.Compactor.Flags
-		}
+		opt.Apply(&compactor.Spec.CommonSpec)
 
 		if compactor.Spec.DataVolume != nil {
-			compactor.Spec.DataVolume = opt.Compactor.DataVolume
+			compactor.Spec.DataVolume = opt.DataVolume
 		}
 
 		return compactor, nil

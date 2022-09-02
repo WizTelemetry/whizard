@@ -1168,23 +1168,28 @@ spec:
                     type: object
                 type: object
               flags:
-                description: Flags is the flags of ingester.
+                description: Flags is the flags of component.
                 items:
                   type: string
                 type: array
               image:
-                description: Image is the image with tag/version
+                description: Image is the component image with tag/version.
+                type: string
+              imagePullPolicy:
+                description: Image pull policy. One of Always, Never, IfNotPresent.
+                  Defaults to Always if :latest tag is specified, or IfNotPresent
+                  otherwise. Cannot be updated.
                 type: string
               localTsdbRetention:
                 description: LocalTsdbRetention configs how long to retain raw samples
                   on local storage.
                 type: string
               logFormat:
-                description: 'Log format to use. Possible options: logfmt or json'
+                description: 'Log format to use. Possible options: logfmt or json.'
                 type: string
               logLevel:
                 description: 'Log filtering level. Possible options: error, warn,
-                  info, debug'
+                  info, debug.'
                 type: string
               nodeSelector:
                 additionalProperties:
