@@ -8,6 +8,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/ingester"
 )
@@ -42,7 +43,10 @@ func (r *Router) hashringsConfigMap() (runtime.Object, resources.Operation, erro
 	for _, item := range ingesterList.Items {
 		ingester := ingester.New(r.BaseReconciler, &item)
 		if len(item.Spec.Tenants) == 0 {
-			softHashring.Endpoints = append(softHashring.Endpoints, ingester.GrpcAddrs()...)
+			// the ingester in the "deleting" state will not be added to the soft hash ring
+			if v, ok := item.ObjectMeta.Labels[constants.LabelNameIngesterState]; !ok || v != "deleting" {
+				softHashring.Endpoints = append(softHashring.Endpoints, ingester.GrpcAddrs()...)
+			}
 			continue
 		}
 		hashrings = append(hashrings, HashringConfig{

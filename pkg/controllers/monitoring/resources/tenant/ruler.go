@@ -13,6 +13,19 @@ import (
 	"k8s.io/utils/pointer"
 )
 
+type RuleLevel string
+
+const (
+	RuleLevelNamesapce RuleLevel = "namespace"
+	RuleLevelCluster   RuleLevel = "cluster"
+	RuleLevelGlobal    RuleLevel = "global"
+
+	// label keys in PrometheusRule.metadata.labels
+	PrometheusRuleResourceLabelKeyOwnerNamespace = "alerting.kubesphere.io/owner_namespace"
+	PrometheusRuleResourceLabelKeyOwnerCluster   = "alerting.kubesphere.io/owner_cluster"
+	PrometheusRuleResourceLabelKeyRuleLevel      = "alerting.kubesphere.io/rule_level"
+)
+
 func (t *Tenant) ruler() error {
 
 	ruler := &monitoringv1alpha1.Ruler{}
@@ -70,10 +83,19 @@ func (t *Tenant) ruler() error {
 func (t *Tenant) createOrUpdateRulerinstance() *monitoringv1alpha1.Ruler {
 
 	label := make(map[string]string, 2)
-	label[constants.TenantLabelKey] = t.tenant.Name
 	label[constants.ServiceLabelKey] = t.tenant.Labels[constants.ServiceLabelKey]
 
 	serviceNamespacedName := strings.Split(t.tenant.Labels[constants.ServiceLabelKey], ".")
+	// the tenant(cluster) is associated with the alerting rule
+	// RuleNamespaceSelector is nil and will use the ruler's namespace
+	ruleLabelSelector := &metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			PrometheusRuleResourceLabelKeyOwnerCluster: t.tenant.Spec.Tenant,
+			PrometheusRuleResourceLabelKeyRuleLevel:    string(RuleLevelCluster),
+		},
+	}
+
+	// todo: the tenant(cluster) is associated with the recording rule
 
 	return &monitoringv1alpha1.Ruler{ObjectMeta: metav1.ObjectMeta{
 		Name:      t.tenant.Name,
@@ -90,7 +112,8 @@ func (t *Tenant) createOrUpdateRulerinstance() *monitoringv1alpha1.Ruler {
 		},
 	},
 		Spec: monitoringv1alpha1.RulerSpec{
-			Tenant: t.tenant.Name,
+			Tenant:       t.tenant.Spec.Tenant,
+			RuleSelector: ruleLabelSelector,
 		},
 	}
 }

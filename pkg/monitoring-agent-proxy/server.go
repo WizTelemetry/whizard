@@ -53,7 +53,8 @@ func NewServer(logger log.Logger, opt *Options) *Server {
 	s.router.Get(series, s.wrap(series))
 	s.router.Get(labels, s.wrap(labels))
 	s.router.Get(labelValues, s.wrap(labelValues))
-	s.router.Get(targetsMeta, s.wrap(targetsMeta))
+
+	s.router.Post(receive, s.wrap(receive))
 
 	return s
 }
