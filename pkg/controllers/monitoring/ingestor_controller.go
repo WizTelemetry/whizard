@@ -31,6 +31,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -80,14 +81,14 @@ func (r *IngesterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	// recycle ingester by using the RequeueAfter event
-	if v, ok := instance.Annotations[constants.LabelNameIngesterState]; ok && v == "deleting" && len(instance.Spec.Tenants) == 0 {
+	if v, ok := instance.Annotations[constants.LabelNameIngesterState]; ok && v == constants.IngesterStateDeleting && len(instance.Spec.Tenants) == 0 {
 		if deletingTime, ok := instance.Annotations[constants.LabelNameIngesterDeletingTime]; ok {
 			i, err := strconv.ParseInt(deletingTime, 10, 64)
 			if err == nil {
 				d := time.Since(time.Unix(i, 0))
 				if d < 0 {
 					l.Info("recycle", "recycled time", (-d).String())
-					return ctrl.Result{Requeue: true, RequeueAfter: (-d)}, nil
+					return ctrl.Result{Requeue: true, RequeueAfter: -d}, nil
 				} else {
 					err := r.Delete(r.Context, instance)
 					return ctrl.Result{}, err
@@ -120,32 +121,34 @@ func (r *IngesterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&monitoringv1alpha1.Ingester{}).
 		Watches(&source.Kind{Type: &monitoringv1alpha1.Service{}},
-			handler.EnqueueRequestsFromMapFunc(r.mapToIngesterFunc)).
+			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(monitoringv1alpha1.ManagedLabelByService))).
+		Watches(&source.Kind{Type: &monitoringv1alpha1.Storage{}},
+			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(monitoringv1alpha1.ManagedLabelByStorage))).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Service{}).
 		Complete(r)
 }
 
-func (r *IngesterReconciler) mapToIngesterFunc(o client.Object) []reconcile.Request {
+func (r *IngesterReconciler) mapFuncBySelectorFunc(fn func(metav1.Object) map[string]string) handler.MapFunc {
+	return func(o client.Object) []reconcile.Request {
+		ingesterList := &monitoringv1alpha1.IngesterList{}
+		if err := r.Client.List(r.Context, ingesterList, client.MatchingLabels(fn(o))); err != nil {
+			log.FromContext(r.Context).WithValues("ingesterList", "").Error(err, "")
+			return nil
+		}
 
-	var ingesterList monitoringv1alpha1.IngesterList
-	if err := r.Client.List(r.Context, &ingesterList,
-		client.MatchingLabels(monitoringv1alpha1.ManagedLabelByService(o))); err != nil {
-		log.FromContext(r.Context).WithValues("ingesterlist", "").Error(err, "")
-		return nil
+		var reqs []reconcile.Request
+		for _, item := range ingesterList.Items {
+			reqs = append(reqs, reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Namespace: item.Namespace,
+					Name:      item.Name,
+				},
+			})
+		}
+
+		return reqs
 	}
-
-	var reqs []reconcile.Request
-	for _, ingester := range ingesterList.Items {
-		reqs = append(reqs, reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Namespace: ingester.Namespace,
-				Name:      ingester.Name,
-			},
-		})
-	}
-
-	return reqs
 }
 
 type IngesterDefaulterValidator func(ingester *monitoringv1alpha1.Ingester) (*monitoringv1alpha1.Ingester, error)

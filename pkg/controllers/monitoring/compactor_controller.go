@@ -29,10 +29,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // CompactorReconciler reconciles a compactor object
@@ -115,9 +119,31 @@ func (r *CompactorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 func (r *CompactorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&monitoringv1alpha1.Compactor{}).
+		Watches(&source.Kind{Type: &monitoringv1alpha1.Storage{}},
+			handler.EnqueueRequestsFromMapFunc(r.reconcileRequestFromStorage)).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Service{}).
 		Complete(r)
+}
+
+func (r *CompactorReconciler) reconcileRequestFromStorage(o client.Object) []reconcile.Request {
+	compactorList := &monitoringv1alpha1.CompactorList{}
+	if err := r.Client.List(r.Context, compactorList, client.MatchingLabels(monitoringv1alpha1.ManagedLabelByStorage(o))); err != nil {
+		log.FromContext(r.Context).WithValues("compactorList", "").Error(err, "")
+		return nil
+	}
+
+	var reqs []reconcile.Request
+	for _, item := range compactorList.Items {
+		reqs = append(reqs, reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: item.Namespace,
+				Name:      item.Name,
+			},
+		})
+	}
+
+	return reqs
 }
 
 type CompactorDefaulterValidator func(compactor *monitoringv1alpha1.Compactor) (*monitoringv1alpha1.Compactor, error)

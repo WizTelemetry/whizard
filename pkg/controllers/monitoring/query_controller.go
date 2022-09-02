@@ -23,10 +23,7 @@ import (
 	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/gateway"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/query"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/query_frontend"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/router"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -39,12 +36,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-// ServiceReconciler reconciles a Service object
-type ServiceReconciler struct {
-	DefaulterValidator ServiceDefaulterValidator
+// QueryReconciler reconciles a Service object
+type QueryReconciler struct {
 	client.Client
 	Scheme  *runtime.Scheme
 	Context context.Context
+	Options *options.Options
 }
 
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=services,verbs=get;list;watch;create;update;patch;delete
@@ -66,8 +63,8 @@ type ServiceReconciler struct {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
-func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	l := log.FromContext(ctx).WithValues("service", req.NamespacedName)
+func (r *QueryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	l := log.FromContext(ctx).WithValues("query", req.NamespacedName)
 
 	l.Info("sync")
 
@@ -80,38 +77,26 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	instance, err = r.DefaulterValidator(instance)
+	instance, err = r.validator(instance)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	serviceBaseReconciler := resources.ServiceBaseReconciler{
-		BaseReconciler: resources.BaseReconciler{
-			Client:  r.Client,
-			Log:     l,
-			Scheme:  r.Scheme,
-			Context: ctx,
-		},
-		Service: instance,
-	}
+	queryReconciler := query.New(
+		resources.ServiceBaseReconciler{
+			Service: instance,
+			BaseReconciler: resources.BaseReconciler{
+				Client:  r.Client,
+				Log:     l,
+				Scheme:  r.Scheme,
+				Context: ctx,
+			}})
 
-	var reconciles []func() error
-
-	reconciles = append(reconciles, router.New(serviceBaseReconciler).Reconcile)
-	reconciles = append(reconciles, query_frontend.New(serviceBaseReconciler).Reconcile)
-	reconciles = append(reconciles, query.New(serviceBaseReconciler).Reconcile)
-	reconciles = append(reconciles, gateway.New(serviceBaseReconciler).Reconcile)
-	for _, reconcile := range reconciles {
-		if err := reconcile(); err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-
-	return ctrl.Result{}, nil
+	return ctrl.Result{}, queryReconciler.Reconcile()
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *QueryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&monitoringv1alpha1.Service{}).
 		Watches(&source.Kind{Type: &monitoringv1alpha1.Ingester{}},
@@ -126,10 +111,8 @@ func (r *ServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *ServiceReconciler) mapToServiceFunc(o client.Object) []reconcile.Request {
-
+func (r *QueryReconciler) mapToServiceFunc(o client.Object) []reconcile.Request {
 	namespacedName := monitoringv1alpha1.ServiceNamespacedName(o)
-
 	if namespacedName == nil {
 		return nil
 	}
@@ -139,56 +122,31 @@ func (r *ServiceReconciler) mapToServiceFunc(o client.Object) []reconcile.Reques
 	}}
 }
 
-type ServiceDefaulterValidator func(service *monitoringv1alpha1.Service) (*monitoringv1alpha1.Service, error)
-
-func CreateServiceDefaulterValidator(opt options.Options) ServiceDefaulterValidator {
-	var replicas int32 = 1
-
-	return func(service *monitoringv1alpha1.Service) (*monitoringv1alpha1.Service, error) {
-
-		if service.Spec.TenantHeader == "" {
-			service.Spec.TenantHeader = constants.DefaultTenantHeader
-		}
-		if service.Spec.TenantLabelName == "" {
-			service.Spec.TenantLabelName = constants.DefaultTenantLabelName
-		}
-		if service.Spec.DefaultTenantId == "" {
-			service.Spec.DefaultTenantId = constants.DefaultTenantId
-		}
-
-		if service.Spec.Gateway != nil && service.Spec.Gateway.Image == "" {
-			service.Spec.Gateway.Image = opt.GatewayImage
-		}
-
-		if service.Spec.Query != nil {
-			if service.Spec.Query.Replicas == nil || *service.Spec.Query.Replicas < 0 {
-				service.Spec.Query.Replicas = &replicas
-			}
-			if service.Spec.Query.Image == "" {
-				service.Spec.Query.Image = opt.WhizardImage
-			}
-			if service.Spec.Query.Envoy.Image == "" {
-				service.Spec.Query.Envoy.Image = opt.EnvoyImage
-			}
-
-		}
-		if service.Spec.Router != nil {
-			if service.Spec.Router.Replicas == nil || *service.Spec.Router.Replicas < 0 {
-				service.Spec.Router.Replicas = &replicas
-			}
-			if service.Spec.Router.Image == "" {
-				service.Spec.Router.Image = opt.WhizardImage
-			}
-		}
-		if service.Spec.QueryFrontend != nil {
-			if service.Spec.QueryFrontend.Replicas == nil || *service.Spec.QueryFrontend.Replicas < 0 {
-				service.Spec.QueryFrontend.Replicas = &replicas
-			}
-			if service.Spec.QueryFrontend.Image == "" {
-				service.Spec.QueryFrontend.Image = opt.WhizardImage
-			}
-		}
-
-		return service, nil
+func (r *QueryReconciler) validator(service *monitoringv1alpha1.Service) (*monitoringv1alpha1.Service, error) {
+	if service.Spec.TenantHeader == "" {
+		service.Spec.TenantHeader = constants.DefaultTenantHeader
 	}
+	if service.Spec.TenantLabelName == "" {
+		service.Spec.TenantLabelName = constants.DefaultTenantLabelName
+	}
+	if service.Spec.DefaultTenantId == "" {
+		service.Spec.DefaultTenantId = constants.DefaultTenantId
+	}
+
+	if service.Spec.Query != nil {
+		if service.Spec.Query.Replicas == nil || *service.Spec.Query.Replicas < 0 {
+			var replicas int32 = 1
+			service.Spec.Query.Replicas = &replicas
+		}
+		if service.Spec.Query.Image == "" {
+			service.Spec.Query.Image = r.Options.WhizardImage
+		}
+		if service.Spec.Query.Envoy.Image == "" {
+			service.Spec.Query.Envoy.Image = r.Options.EnvoyImage
+		}
+
+	}
+
+	return service, nil
+
 }

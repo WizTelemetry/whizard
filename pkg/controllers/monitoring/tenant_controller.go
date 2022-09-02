@@ -113,11 +113,11 @@ func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&source.Kind{Type: &monitoringv1alpha1.Compactor{}},
 			handler.EnqueueRequestsFromMapFunc(r.mapToTenantbyObjectSpecFunc)).
 		Watches(&source.Kind{Type: &monitoringv1alpha1.Store{}},
-			handler.EnqueueRequestsFromMapFunc(r.mapToTenantbyStoreLabelFunc)).
+			handler.EnqueueRequestsFromMapFunc(r.mapToTenantByStore)).
 		Watches(&source.Kind{Type: &monitoringv1alpha1.Service{}},
-			handler.EnqueueRequestsFromMapFunc(r.mapToTenantbyService)).
-		Watches(&source.Kind{Type: &monitoringv1alpha1.Storage{}},
-			handler.EnqueueRequestsFromMapFunc(r.mapToTenantbyStorage)).
+			handler.EnqueueRequestsFromMapFunc(r.mapToTenantByService)).
+		Watches(&source.Kind{Type: &monitoringv1alpha1.Ruler{}},
+			handler.EnqueueRequestsFromMapFunc(r.mapToTenantbyObjectSpecFunc)).
 		Owns(&monitoringv1alpha1.Ruler{}).
 		Complete(r)
 }
@@ -127,9 +127,15 @@ func (r *TenantReconciler) mapToTenantbyObjectSpecFunc(o client.Object) []reconc
 	var tenants []string
 	switch o := o.(type) {
 	case *monitoringv1alpha1.Compactor:
-		tenants = (*monitoringv1alpha1.Compactor)(o).Spec.Tenants
+		tenants = o.Spec.Tenants
 	case *monitoringv1alpha1.Ingester:
-		tenants = (*monitoringv1alpha1.Ingester)(o).Spec.Tenants
+		tenants = o.Spec.Tenants
+	case *monitoringv1alpha1.Ruler:
+		tenants = []string{o.Spec.Tenant}
+	}
+
+	if len(tenants) == 0 {
+		return nil
 	}
 
 	var tenantList monitoringv1alpha1.TenantList
@@ -152,29 +158,7 @@ func (r *TenantReconciler) mapToTenantbyObjectSpecFunc(o client.Object) []reconc
 	return reqs
 }
 
-func (r *TenantReconciler) mapToTenantbyStoreLabelFunc(o client.Object) []reconcile.Request {
-	selector := map[string]string{
-		constants.StorageLabelKey: o.GetLabels()[constants.StorageLabelKey],
-		constants.ServiceLabelKey: o.GetLabels()[constants.ServiceLabelKey],
-	}
-	var tenantList monitoringv1alpha1.TenantList
-	if err := r.Client.List(r.Context, &tenantList, client.MatchingLabels(selector)); err != nil {
-		log.FromContext(r.Context).WithValues("tenantlist", "").Error(err, "")
-		return nil
-	}
-
-	var reqs []reconcile.Request
-	for _, item := range tenantList.Items {
-		reqs = append(reqs, reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Name: item.Name,
-			},
-		})
-	}
-	return reqs
-}
-
-func (r *TenantReconciler) mapToTenantbyService(o client.Object) []reconcile.Request {
+func (r *TenantReconciler) mapToTenantByService(o client.Object) []reconcile.Request {
 
 	var tenantList monitoringv1alpha1.TenantList
 	if err := r.Client.List(r.Context, &tenantList, client.MatchingLabels(monitoringv1alpha1.ManagedLabelByService(o))); err != nil {
@@ -184,29 +168,32 @@ func (r *TenantReconciler) mapToTenantbyService(o client.Object) []reconcile.Req
 
 	var reqs []reconcile.Request
 	for _, item := range tenantList.Items {
-		reqs = append(reqs, reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Name: item.Name,
-			},
-		})
+		// Only reconcile the tenant that use the default storage.
+		if item.Spec.Storage == nil {
+			reqs = append(reqs, reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name: item.Name,
+				},
+			})
+		}
 	}
 
 	return reqs
 }
 
-func (r *TenantReconciler) mapToTenantbyStorage(o client.Object) []reconcile.Request {
-	var tenantList monitoringv1alpha1.TenantList
+func (r *TenantReconciler) mapToTenantByStore(_ client.Object) []reconcile.Request {
 
-	if err := r.Client.List(r.Context, &tenantList, client.MatchingLabels(monitoringv1alpha1.ManagedLabelByStorage(o))); err != nil {
+	var tenantList monitoringv1alpha1.TenantList
+	if err := r.Client.List(r.Context, &tenantList); err != nil {
 		log.FromContext(r.Context).WithValues("tenantlist", "").Error(err, "")
 		return nil
 	}
 
 	var reqs []reconcile.Request
-	for _, item := range tenantList.Items {
+	if len(tenantList.Items) > 0 {
 		reqs = append(reqs, reconcile.Request{
 			NamespacedName: types.NamespacedName{
-				Name: item.Name,
+				Name: tenantList.Items[0].Name,
 			},
 		})
 	}

@@ -191,7 +191,7 @@ func (t *Tenant) removeTenantFromIngesterbyName(namespace, name string) error {
 				if annotation == nil {
 					annotation = make(map[string]string)
 				}
-				annotation[constants.LabelNameIngesterState] = "deleting"
+				annotation[constants.LabelNameIngesterState] = constants.IngesterStateDeleting
 				annotation[constants.LabelNameIngesterDeletingTime] = strconv.Itoa(int(time.Now().Add(t.Options.DefaultIngesterRetentionPeriod).Unix()))
 				ingester.Annotations = annotation
 			}
@@ -246,8 +246,8 @@ func addTenantToIngesterInstance(tenant *monitoringv1alpha1.Tenant, ingester *mo
 	ingester.Spec.Tenants = append(ingester.Spec.Tenants, tenant.Spec.Tenant)
 
 	annotation := ingester.GetAnnotations()
-	if v, ok := annotation[constants.LabelNameIngesterState]; ok && v == "deleting" {
-		annotation[constants.LabelNameIngesterState] = "running"
+	if v, ok := annotation[constants.LabelNameIngesterState]; ok && v == constants.IngesterStateDeleting {
+		annotation[constants.LabelNameIngesterState] = constants.IngesterStateRunning
 		annotation[constants.LabelNameIngesterDeletingTime] = ""
 	}
 	ingester.Annotations = annotation

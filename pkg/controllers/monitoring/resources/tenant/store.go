@@ -7,7 +7,6 @@ import (
 
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
@@ -58,44 +57,8 @@ func (t *Tenant) store() error {
 		return err
 	}
 
-	for k, v := range currentStores {
+	for k := range currentStores {
 		if _, ok := expectStores[k]; ok {
-			store := v.(*monitoringv1alpha1.Store)
-
-			if store.Annotations == nil {
-				store.Annotations = make(map[string]string)
-			}
-
-			tenantHash, err := resources.GetTenantHash(t.Context, t.Client, map[string]string{
-				constants.StorageLabelKey: store.Labels[constants.StorageLabelKey],
-				constants.ServiceLabelKey: store.Labels[constants.ServiceLabelKey],
-			})
-			if err != nil {
-				return err
-			}
-
-			storageHash, err := resources.GetStorageHash(t.Context, t.Client, store.Labels[constants.StorageLabelKey])
-			if err != nil {
-				return err
-			}
-
-			needUpdate := false
-			if store.Annotations[constants.LabelNameTenantHash] != tenantHash {
-				store.Annotations[constants.LabelNameTenantHash] = tenantHash
-				needUpdate = true
-			}
-
-			if store.Annotations[constants.LabelNameStorageHash] != tenantHash {
-				store.Annotations[constants.LabelNameStorageHash] = storageHash
-				needUpdate = true
-			}
-
-			if needUpdate {
-				if err := t.Client.Update(t.Context, store); err != nil {
-					return err
-				}
-			}
-
 			delete(currentStores, k)
 			delete(expectStores, k)
 		}
@@ -119,25 +82,8 @@ func (t *Tenant) store() error {
 				GenerateName: fmt.Sprintf("%s-%s-%s-", constants.AppNameStore, serviceNamespacedName[1], storageNamespacedName[1]),
 				Namespace:    serviceNamespacedName[0],
 				Labels:       m,
-				Annotations:  map[string]string{},
 			},
 		}
-
-		tenantHash, err := resources.GetTenantHash(t.Context, t.Client, map[string]string{
-			constants.StorageLabelKey: store.Labels[constants.StorageLabelKey],
-			constants.ServiceLabelKey: store.Labels[constants.ServiceLabelKey],
-		})
-		if err != nil {
-			return err
-		}
-
-		storageHash, err := resources.GetStorageHash(t.Context, t.Client, store.Labels[constants.StorageLabelKey])
-		if err != nil {
-			return err
-		}
-
-		store.Annotations[constants.LabelNameTenantHash] = tenantHash
-		store.Annotations[constants.LabelNameStorageHash] = storageHash
 
 		if err := t.Client.Create(t.Context, store); err != nil {
 			return err

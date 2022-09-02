@@ -1,4 +1,4 @@
-package query_frontend
+package queryfrontend
 
 import (
 	"github.com/kubesphere/whizard/pkg/constants"
