@@ -10,6 +10,18 @@ rules:
   - apps
   resources:
   - deployments
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
   - statefulsets
   verbs:
   - create
@@ -283,7 +295,6 @@ rules:
   - list
   - patch
   - update
-  - verbs=get
   - watch
 - apiGroups:
   - monitoring.whizard.io

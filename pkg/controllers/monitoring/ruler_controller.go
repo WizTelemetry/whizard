@@ -42,9 +42,8 @@ import (
 
 // RulerReconciler reconciles a Ruler object
 type RulerReconciler struct {
-	DefaulterValidator    RulerDefaulterValidator
-	ReloaderConfig        options.PrometheusConfigReloaderConfig
-	RulerQueryProxyConfig options.RulerQueryProxyConfig
+	DefaulterValidator RulerDefaulterValidator
+	Option             *options.RulerOptions
 	client.Client
 	Scheme  *runtime.Scheme
 	Context context.Context
@@ -93,7 +92,7 @@ func (r *RulerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		Context: ctx,
 	}
 
-	if err := ruler.New(baseReconciler, instance, r.ReloaderConfig, r.RulerQueryProxyConfig).Reconcile(); err != nil {
+	if err := ruler.New(baseReconciler, instance, r.Option).Reconcile(); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -180,20 +179,14 @@ func (r *RulerReconciler) mapToRulerFunc(o client.Object) []reconcile.Request {
 
 type RulerDefaulterValidator func(ruler *monitoringv1alpha1.Ruler) (*monitoringv1alpha1.Ruler, error)
 
-func CreateRulerDefaulterValidator(opt options.Options) RulerDefaulterValidator {
-	var replicas int32 = 1
-	var shards int32 = 1
+func CreateRulerDefaulterValidator(opt *options.RulerOptions) RulerDefaulterValidator {
 
 	return func(ruler *monitoringv1alpha1.Ruler) (*monitoringv1alpha1.Ruler, error) {
 
-		if ruler.Spec.Image == "" {
-			ruler.Spec.Image = opt.WhizardImage
-		}
-		if ruler.Spec.Replicas == nil || *ruler.Spec.Replicas < 0 {
-			ruler.Spec.Replicas = &replicas
-		}
+		opt.Apply(&ruler.Spec.CommonSpec)
+
 		if ruler.Spec.Shards == nil || *ruler.Spec.Shards < 0 {
-			ruler.Spec.Shards = &shards
+			ruler.Spec.Shards = opt.Shards
 		}
 
 		return ruler, nil

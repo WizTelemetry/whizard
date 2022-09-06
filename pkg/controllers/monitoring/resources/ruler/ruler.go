@@ -27,19 +27,17 @@ var (
 type Ruler struct {
 	resources.BaseReconciler
 	ruler                    *monitoringv1alpha1.Ruler
-	reloaderConfig           options.PrometheusConfigReloaderConfig
-	rulerQueryProxyConfig    options.RulerQueryProxyConfig
+	Options                  *options.RulerOptions
 	shardsRuleConfigMapNames []map[string]struct{} // rule configmaps for each shard
 }
 
 func New(reconciler resources.BaseReconciler, ruler *monitoringv1alpha1.Ruler,
-	reloaderConfig options.PrometheusConfigReloaderConfig, rulerQueryProxyConfig options.RulerQueryProxyConfig) *Ruler {
+	opt *options.RulerOptions) *Ruler {
 
 	return &Ruler{
-		BaseReconciler:        reconciler,
-		ruler:                 ruler,
-		reloaderConfig:        reloaderConfig,
-		rulerQueryProxyConfig: rulerQueryProxyConfig,
+		BaseReconciler: reconciler,
+		ruler:          ruler,
+		Options:        opt,
 	}
 }
 

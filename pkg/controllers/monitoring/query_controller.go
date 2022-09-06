@@ -41,7 +41,7 @@ type QueryReconciler struct {
 	client.Client
 	Scheme  *runtime.Scheme
 	Context context.Context
-	Options *options.Options
+	Options *options.QueryOptions
 }
 
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=services,verbs=get;list;watch;create;update;patch;delete
@@ -134,17 +134,8 @@ func (r *QueryReconciler) validator(service *monitoringv1alpha1.Service) (*monit
 	}
 
 	if service.Spec.Query != nil {
-		if service.Spec.Query.Replicas == nil || *service.Spec.Query.Replicas < 0 {
-			var replicas int32 = 1
-			service.Spec.Query.Replicas = &replicas
-		}
-		if service.Spec.Query.Image == "" {
-			service.Spec.Query.Image = r.Options.WhizardImage
-		}
-		if service.Spec.Query.Envoy.Image == "" {
-			service.Spec.Query.Envoy.Image = r.Options.EnvoyImage
-		}
-
+		r.Options.Apply(&service.Spec.Query.CommonSpec)
+		r.Options.Envoy.Apply(&service.Spec.Query.Envoy)
 	}
 
 	return service, nil

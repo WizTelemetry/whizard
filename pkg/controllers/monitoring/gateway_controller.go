@@ -38,7 +38,7 @@ type GatewayReconciler struct {
 	client.Client
 	Scheme  *runtime.Scheme
 	Context context.Context
-	Options *options.Options
+	Options *options.GatewayOptions
 }
 
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=services,verbs=get;list;watch;create;update;patch;delete
@@ -99,7 +99,6 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *GatewayReconciler) validator(service *monitoringv1alpha1.Service) (*monitoringv1alpha1.Service, error) {
-	var replicas int32 = 1
 
 	if service.Spec.TenantHeader == "" {
 		service.Spec.TenantHeader = constants.DefaultTenantHeader
@@ -112,13 +111,7 @@ func (r *GatewayReconciler) validator(service *monitoringv1alpha1.Service) (*mon
 	}
 
 	if service.Spec.Gateway != nil {
-		if service.Spec.Gateway.Image == "" {
-			service.Spec.Gateway.Image = r.Options.GatewayImage
-		}
-
-		if service.Spec.Gateway.Replicas == nil || *service.Spec.Gateway.Replicas < 0 {
-			service.Spec.Gateway.Replicas = &replicas
-		}
+		r.Options.Apply(&service.Spec.Gateway.CommonSpec)
 	}
 
 	return service, nil

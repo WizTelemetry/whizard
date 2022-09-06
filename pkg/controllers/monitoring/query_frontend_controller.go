@@ -41,7 +41,7 @@ type QueryFrontendReconciler struct {
 	client.Client
 	Scheme  *runtime.Scheme
 	Context context.Context
-	Options *options.Options
+	Options *options.QueryFrontendOptions
 }
 
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=services,verbs=get;list;watch;create;update;patch;delete
@@ -130,13 +130,7 @@ func (r *QueryFrontendReconciler) Validator(service *monitoringv1alpha1.Service)
 	}
 
 	if service.Spec.QueryFrontend != nil {
-		if service.Spec.QueryFrontend.Replicas == nil || *service.Spec.QueryFrontend.Replicas < 0 {
-			var replicas int32 = 1
-			service.Spec.QueryFrontend.Replicas = &replicas
-		}
-		if service.Spec.QueryFrontend.Image == "" {
-			service.Spec.QueryFrontend.Image = r.Options.WhizardImage
-		}
+		r.Options.Apply(&service.Spec.QueryFrontend.CommonSpec)
 	}
 
 	return service, nil

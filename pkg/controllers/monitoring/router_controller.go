@@ -41,7 +41,7 @@ type RouterReconciler struct {
 	client.Client
 	Scheme  *runtime.Scheme
 	Context context.Context
-	Options *options.Options
+	Options *options.RouterOptions
 }
 
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=services,verbs=get;list;watch;create;update;patch;delete
@@ -133,13 +133,7 @@ func (r *RouterReconciler) validator(service *monitoringv1alpha1.Service) (*moni
 	}
 
 	if service.Spec.Router != nil {
-		if service.Spec.Router.Replicas == nil || *service.Spec.Router.Replicas < 0 {
-			var replicas int32 = 1
-			service.Spec.Router.Replicas = &replicas
-		}
-		if service.Spec.Router.Image == "" {
-			service.Spec.Router.Image = r.Options.WhizardImage
-		}
+		r.Options.Apply(&service.Spec.Router.CommonSpec)
 	}
 
 	return service, nil
