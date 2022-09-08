@@ -13,7 +13,8 @@ const (
 	FinalizerCompactor = "finalizers.monitoring.whizard.io/compactor"
 	FinalizerDeletePVC = "finalizers.monitoring.whizard.io/deletePVC"
 
-	LocalStorage = "default_storage.local"
+	DefaultStorage = "default"
+	LocalStorage   = "local"
 
 	GRPCPort        = 10901
 	HTTPPort        = 10902
@@ -26,7 +27,7 @@ const (
 	ReceiveReplicaLabelName = "receive_replica"
 	RulerReplicaLabelName   = "ruler_replica"
 
-	AppNameGateway       = "whizard-monitoring-gateway"
+	AppNameGateway       = "gateway"
 	AppNameQuery         = "query"
 	AppNameQueryFrontend = "query-frontend"
 	AppNameRouter        = "router"

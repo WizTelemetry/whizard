@@ -1,0 +1,56 @@
+
+---
+apiVersion: monitoring.whizard.io/v1alpha1
+kind: Service
+metadata:
+  name: central
+  namespace: kubesphere-monitoring-system
+spec:
+  tenantHeader: "WHIZARD-TENANT"
+  defaultTenantId: "default-tenant"
+  tenantLabelName: "tenant_id"
+
+---
+apiVersion: monitoring.whizard.io/v1alpha1
+kind: Gateway
+metadata:
+  name: central
+  namespace: kubesphere-monitoring-system
+  labels:
+    monitoring.whizard.io/service: kubesphere-monitoring-system.central
+spec: {}
+
+---
+apiVersion: monitoring.whizard.io/v1alpha1
+kind: Query
+metadata:
+  name: central
+  namespace: kubesphere-monitoring-system
+  labels:
+    monitoring.whizard.io/service: kubesphere-monitoring-system.central
+spec:
+  replicaLabelNames:
+    - prometheus_replica
+    - receive_replica
+    - ruler_replica
+
+---
+apiVersion: monitoring.whizard.io/v1alpha1
+kind: QueryFrontend
+metadata:
+  name: central
+  namespace: kubesphere-monitoring-system
+  labels:
+    monitoring.whizard.io/service: kubesphere-monitoring-system.central
+spec: {}
+
+---
+apiVersion: monitoring.whizard.io/v1alpha1
+kind: Router
+metadata:
+  name: central
+  namespace: kubesphere-monitoring-system
+  labels:
+    monitoring.whizard.io/service: kubesphere-monitoring-system.central
+spec:
+  replicationFactor: 2

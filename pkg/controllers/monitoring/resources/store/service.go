@@ -12,7 +12,7 @@ import (
 )
 
 func (r *Store) service() (runtime.Object, resources.Operation, error) {
-	var s = &corev1.Service{ObjectMeta: r.meta(util.Join("-", r.store.Name, constants.ServiceNameSuffix))}
+	var s = &corev1.Service{ObjectMeta: r.meta(r.name(constants.ServiceNameSuffix))}
 
 	if err := r.Client.Get(r.Context, client.ObjectKeyFromObject(s), s); err != nil {
 		if !util.IsNotFound(err) {

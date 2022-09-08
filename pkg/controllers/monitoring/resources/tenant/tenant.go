@@ -13,12 +13,15 @@ type Tenant struct {
 	Options *options.Options
 }
 
-func New(reconciler resources.BaseReconciler, tenant *monitoringv1alpha1.Tenant, o *options.Options) *Tenant {
+func New(reconciler resources.BaseReconciler, tenant *monitoringv1alpha1.Tenant, o *options.Options) (*Tenant, error) {
+	if err := reconciler.SetService(tenant); err != nil {
+		return nil, err
+	}
 	return &Tenant{
 		tenant:         tenant,
 		BaseReconciler: reconciler,
 		Options:        o,
-	}
+	}, nil
 }
 
 func (t *Tenant) Reconcile() error {

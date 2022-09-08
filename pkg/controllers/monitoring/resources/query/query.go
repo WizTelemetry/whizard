@@ -18,15 +18,18 @@ const (
 )
 
 type Query struct {
-	resources.ServiceBaseReconciler
+	resources.BaseReconciler
 	query *v1alpha1.Query
 }
 
-func New(reconciler resources.ServiceBaseReconciler) *Query {
-	return &Query{
-		ServiceBaseReconciler: reconciler,
-		query:                 reconciler.Service.Spec.Query,
+func New(reconciler resources.BaseReconciler, q *v1alpha1.Query) (*Query, error) {
+	if err := reconciler.SetService(q); err != nil {
+		return nil, err
 	}
+	return &Query{
+		BaseReconciler: reconciler,
+		query:          q,
+	}, nil
 }
 
 type Stores struct {
@@ -50,7 +53,7 @@ func (q *Query) stores() (*Stores, error) {
 	var stores = &Stores{}
 	var listenPort uint32 = 11000
 
-	for _, store := range q.query.Stores {
+	for _, store := range q.query.Spec.Stores {
 		for _, address := range store.Addresses {
 			if store.CASecret == nil {
 				stores.DirectStores = append(stores.DirectStores, DirectStore{Address: address})
@@ -86,16 +89,15 @@ func (q *Query) labels() map[string]string {
 }
 
 func (q *Query) name(nameSuffix ...string) string {
-	return resources.QualifiedName(constants.AppNameQuery, q.Service.Name, nameSuffix...)
+	return q.QualifiedName(constants.AppNameQuery, q.query.Name, nameSuffix...)
 }
 
 func (q *Query) meta(name string) metav1.ObjectMeta {
 
 	return metav1.ObjectMeta{
-		Name:            name,
-		Namespace:       q.Service.Namespace,
-		Labels:          q.labels(),
-		OwnerReferences: q.OwnerReferences(),
+		Name:      name,
+		Namespace: q.Service.Namespace,
+		Labels:    q.labels(),
 	}
 }
 

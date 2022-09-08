@@ -3,6 +3,10 @@
 # It should be run by config/default
 resources:
 - bases/monitoring.whizard.io_services.yaml
+- bases/monitoring.whizard.io_gateways.yaml
+- bases/monitoring.whizard.io_queries.yaml
+- bases/monitoring.whizard.io_queryfrontends.yaml
+- bases/monitoring.whizard.io_routers.yaml
 - bases/monitoring.whizard.io_stores.yaml
 - bases/monitoring.whizard.io_compactors.yaml
 - bases/monitoring.whizard.io_ingesters.yaml

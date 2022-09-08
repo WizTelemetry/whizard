@@ -2,10 +2,10 @@ package query
 
 import (
 	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 func (q *Query) service() (runtime.Object, resources.Operation, error) {
@@ -30,5 +30,5 @@ func (q *Query) service() (runtime.Object, resources.Operation, error) {
 			},
 		},
 	}
-	return s, resources.OperationCreateOrUpdate, nil
+	return s, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(q.query, s, q.Scheme)
 }

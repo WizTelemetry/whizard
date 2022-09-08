@@ -20,9 +20,11 @@ import (
 	"context"
 
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/store"
+	"github.com/kubesphere/whizard/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
 	corev1 "k8s.io/api/core/v1"
@@ -56,7 +58,6 @@ type StoreReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
 // the Service object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
@@ -80,6 +81,12 @@ func (r *StoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	instance, err = r.DefaulterValidator(instance)
 	if err != nil {
 		return ctrl.Result{}, err
+	}
+
+	if instance.Labels == nil ||
+		instance.Labels[constants.ServiceLabelKey] == "" ||
+		instance.Labels[constants.StorageLabelKey] == "" {
+		return ctrl.Result{}, nil
 	}
 
 	baseReconciler := resources.BaseReconciler{
@@ -110,7 +117,7 @@ func (r *StoreReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func (r *StoreReconciler) reconcileRequestFromStorage(o client.Object) []reconcile.Request {
 	storeList := &monitoringv1alpha1.StoreList{}
-	if err := r.Client.List(r.Context, storeList, client.MatchingLabels(monitoringv1alpha1.ManagedLabelByStorage(o))); err != nil {
+	if err := r.Client.List(r.Context, storeList, client.MatchingLabels(util.ManagedLabelByStorage(o))); err != nil {
 		log.FromContext(r.Context).WithValues("storeList", "").Error(err, "")
 		return nil
 	}

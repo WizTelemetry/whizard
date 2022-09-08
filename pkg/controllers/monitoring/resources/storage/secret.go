@@ -14,7 +14,7 @@ func (s *Storage) updateHashAnnotation() (runtime.Object, resources.Operation, e
 		s.storage.Annotations = make(map[string]string)
 	}
 
-	hashStr, err := resources.GetStorageHash(s.Context, s.Client, util.Join(".", s.storage.Namespace, s.storage.Name))
+	hashStr, err := s.GetStorageHash(util.Join(".", s.storage.Namespace, s.storage.Name))
 	if err != nil {
 		return nil, "", err
 	}

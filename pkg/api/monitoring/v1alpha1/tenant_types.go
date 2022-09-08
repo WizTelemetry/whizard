@@ -21,8 +21,7 @@ import (
 )
 
 type TenantSpec struct {
-	Tenant  string           `json:"tenant,omitempty"`
-	Storage *ObjectReference `json:"storage,omitempty"`
+	Tenant string `json:"tenant,omitempty"`
 }
 
 type TenantStatus struct {

@@ -35,13 +35,6 @@ spec:
             type: object
           spec:
             properties:
-              storage:
-                properties:
-                  name:
-                    type: string
-                  namespace:
-                    type: string
-                type: object
               tenant:
                 type: string
             type: object

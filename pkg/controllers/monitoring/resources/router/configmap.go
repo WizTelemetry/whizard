@@ -2,13 +2,15 @@ package router
 
 import (
 	"encoding/json"
-	"github.com/kubesphere/whizard/pkg/constants"
 
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/ingester"
+	"github.com/kubesphere/whizard/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -25,7 +27,7 @@ func (r *Router) hashringsConfigMap() (runtime.Object, resources.Operation, erro
 		Tenants   []string `json:"tenants,omitempty"`
 		Endpoints []string `json:"endpoints"`
 	}
-	var hashrings = []HashringConfig{}
+	var hashrings []HashringConfig
 	var softHashring = HashringConfig{
 		Hashring:  "softs",
 		Endpoints: []string{},
@@ -33,7 +35,7 @@ func (r *Router) hashringsConfigMap() (runtime.Object, resources.Operation, erro
 
 	var ingesterList monitoringv1alpha1.IngesterList
 	if err := r.Client.List(r.Context, &ingesterList,
-		client.MatchingLabels(monitoringv1alpha1.ManagedLabelByService(r.Service))); err != nil {
+		client.MatchingLabels(util.ManagedLabelByService(r.Service))); err != nil {
 
 		r.Log.WithValues("ingesterlist", "").Error(err, "")
 		return nil, resources.OperationCreateOrUpdate, err
@@ -64,5 +66,5 @@ func (r *Router) hashringsConfigMap() (runtime.Object, resources.Operation, erro
 		hashringsFile: string(hashringBytes),
 	}
 
-	return cm, resources.OperationCreateOrUpdate, nil
+	return cm, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(r.router, cm, r.Scheme)
 }

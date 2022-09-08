@@ -15,6 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 var (
@@ -73,8 +74,8 @@ func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
 				ContainerPort: constants.RemoteWritePort,
 			},
 		},
-		LivenessProbe:  resources.DefaultLivenessProbe(),
-		ReadinessProbe: resources.DefaultReadinessProbe(),
+		LivenessProbe:  r.DefaultLivenessProbe(),
+		ReadinessProbe: r.DefaultReadinessProbe(),
 		Env: []corev1.EnvVar{
 			{
 				Name: "POD_NAME",
@@ -87,15 +88,16 @@ func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
 		},
 	}
 
-	resources.AddTSDBVolume(sts, &container, r.ingester.Spec.DataVolume)
+	r.AddTSDBVolume(sts, &container, r.ingester.Spec.DataVolume)
 
 	var storageConfig []byte
-	if r.ingester.Spec.Storage != nil {
-		var err error
-		storageConfig, err = resources.GetStorageConfig(r.Context, r.Client,
-			fmt.Sprintf("%s.%s", r.ingester.Spec.Storage.Namespace, r.ingester.Spec.Storage.Name))
-		if err != nil {
-			return nil, "", err
+	if r.ingester.Labels != nil {
+		if namespacedName := r.ingester.Labels[constants.StorageLabelKey]; namespacedName != "" {
+			var err error
+			storageConfig, err = r.GetStorageConfig(namespacedName)
+			if err != nil {
+				return nil, "", err
+			}
 		}
 	}
 
@@ -113,7 +115,7 @@ func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
 	}
 	if storageConfig != nil {
 		container.Args = append(container.Args, "--objstore.config="+string(storageConfig))
-		volumes, volumeMounts, err := resources.VolumesAndVolumeMountsForStorage(r.Context, r.Client, r.ingester.Labels[constants.StorageLabelKey])
+		volumes, volumeMounts, err := r.VolumesAndVolumeMountsForStorage(r.ingester.Labels[constants.StorageLabelKey])
 		if err != nil {
 			return nil, "", err
 		}
@@ -140,8 +142,7 @@ func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
 		container.Args = append(container.Args, "--tsdb.max-block-duration="+maxBlockDuration.String())
 	}
 
-	namespacedName := monitoringv1alpha1.ServiceNamespacedName(r.ingester)
-
+	namespacedName := util.ServiceNamespacedName(r.ingester)
 	if namespacedName != nil {
 		var service monitoringv1alpha1.Service
 		if err := r.Client.Get(r.Context, *namespacedName, &service); err != nil {
@@ -185,5 +186,5 @@ func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
 
 	sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, container)
 
-	return sts, resources.OperationCreateOrUpdate, nil
+	return sts, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(r.ingester, sts, r.Scheme)
 }

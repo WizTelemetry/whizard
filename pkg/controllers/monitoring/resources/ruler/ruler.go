@@ -5,13 +5,12 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/kubesphere/whizard/pkg/constants"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
-
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 )
 
 const (
@@ -32,13 +31,15 @@ type Ruler struct {
 }
 
 func New(reconciler resources.BaseReconciler, ruler *monitoringv1alpha1.Ruler,
-	opt *options.RulerOptions) *Ruler {
-
+	opt *options.RulerOptions) (*Ruler, error) {
+	if err := reconciler.SetService(ruler); err != nil {
+		return nil, err
+	}
 	return &Ruler{
 		BaseReconciler: reconciler,
 		ruler:          ruler,
 		Options:        opt,
-	}
+	}, nil
 }
 
 func (r *Ruler) labels() map[string]string {
@@ -49,7 +50,7 @@ func (r *Ruler) labels() map[string]string {
 }
 
 func (r *Ruler) name(nameSuffix ...string) string {
-	return resources.QualifiedName(constants.AppNameRuler, r.ruler.Name, nameSuffix...)
+	return r.QualifiedName(constants.AppNameRuler, r.ruler.Name, nameSuffix...)
 }
 
 func (r *Ruler) meta(name string) metav1.ObjectMeta {

@@ -3,13 +3,13 @@ package query
 import (
 	"fmt"
 
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/discovery/targetgroup"
 	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 func (q *Query) proxyConfigMap() (runtime.Object, resources.Operation, error) {
@@ -30,7 +30,7 @@ func (q *Query) proxyConfigMap() (runtime.Object, resources.Operation, error) {
 	}
 	cm.Data = data
 
-	return cm, resources.OperationCreateOrUpdate, nil
+	return cm, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(q.query, cm, q.Scheme)
 }
 
 func (q *Query) storesConfigMap() (runtime.Object, resources.Operation, error) {
@@ -65,5 +65,5 @@ func (q *Query) storesConfigMap() (runtime.Object, resources.Operation, error) {
 		storesFile: string(out),
 	}
 
-	return cm, resources.OperationCreateOrUpdate, nil
+	return cm, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(q.query, cm, q.Scheme)
 }

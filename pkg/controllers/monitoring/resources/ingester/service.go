@@ -4,6 +4,7 @@ import (
 	"github.com/kubesphere/whizard/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 )
@@ -32,5 +33,5 @@ func (r *Ingester) service() (runtime.Object, resources.Operation, error) {
 			},
 		},
 	}
-	return s, resources.OperationCreateOrUpdate, nil
+	return s, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(r.ingester, s, r.Scheme)
 }

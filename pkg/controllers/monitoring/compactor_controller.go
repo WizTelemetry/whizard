@@ -76,6 +76,12 @@ func (r *CompactorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
+	if instance.Labels == nil ||
+		instance.Labels[constants.ServiceLabelKey] == "" ||
+		instance.Labels[constants.StorageLabelKey] == "" {
+		return ctrl.Result{}, nil
+	}
+
 	if instance.GetDeletionTimestamp().IsZero() {
 		if len(instance.Finalizers) == 0 {
 			instance.Finalizers = append(instance.Finalizers, constants.FinalizerDeletePVC)
@@ -126,7 +132,7 @@ func (r *CompactorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func (r *CompactorReconciler) reconcileRequestFromStorage(o client.Object) []reconcile.Request {
 	compactorList := &monitoringv1alpha1.CompactorList{}
-	if err := r.Client.List(r.Context, compactorList, client.MatchingLabels(monitoringv1alpha1.ManagedLabelByStorage(o))); err != nil {
+	if err := r.Client.List(r.Context, compactorList, client.MatchingLabels(util.ManagedLabelByStorage(o))); err != nil {
 		log.FromContext(r.Context).WithValues("compactorList", "").Error(err, "")
 		return nil
 	}

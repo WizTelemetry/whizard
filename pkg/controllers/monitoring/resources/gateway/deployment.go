@@ -4,15 +4,18 @@ import (
 	"fmt"
 	"path/filepath"
 
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-
+	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/query"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/queryfrontend"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/router"
+	"github.com/kubesphere/whizard/pkg/util"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
@@ -23,7 +26,7 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 	}
 
 	d.Spec = appsv1.DeploymentSpec{
-		Replicas: g.gateway.Replicas,
+		Replicas: g.gateway.Spec.Replicas,
 		Selector: &metav1.LabelSelector{
 			MatchLabels: g.labels(),
 		},
@@ -32,18 +35,18 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 				Labels: g.labels(),
 			},
 			Spec: corev1.PodSpec{
-				NodeSelector: g.gateway.NodeSelector,
-				Tolerations:  g.gateway.Tolerations,
-				Affinity:     g.gateway.Affinity,
+				NodeSelector: g.gateway.Spec.NodeSelector,
+				Tolerations:  g.gateway.Spec.Tolerations,
+				Affinity:     g.gateway.Spec.Affinity,
 			},
 		},
 	}
 
 	var container = corev1.Container{
 		Name:      "gateway",
-		Image:     g.gateway.Image,
+		Image:     g.gateway.Spec.Image,
 		Args:      []string{},
-		Resources: g.gateway.Resources,
+		Resources: g.gateway.Spec.Resources,
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          "http",
@@ -75,46 +78,46 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 		// },
 	}
 
-	if g.gateway.ServerCertificate != "" {
+	if g.gateway.Spec.ServerCertificate != "" {
 		serverCertVol := corev1.Volume{
 			Name: "server-certificate",
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					SecretName: g.gateway.ServerCertificate,
+					SecretName: g.gateway.Spec.ServerCertificate,
 				},
 			},
 		}
 		d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, serverCertVol)
 		container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
 			Name:      serverCertVol.Name,
-			MountPath: filepath.Join(secretsDir, g.gateway.ServerCertificate),
+			MountPath: filepath.Join(secretsDir, g.gateway.Spec.ServerCertificate),
 		})
-		container.Args = append(container.Args, "--server-tls-key="+filepath.Join(secretsDir, g.gateway.ServerCertificate, "tls.key"))
-		container.Args = append(container.Args, "--server-tls-crt="+filepath.Join(secretsDir, g.gateway.ServerCertificate, "tls.crt"))
+		container.Args = append(container.Args, "--server-tls-key="+filepath.Join(secretsDir, g.gateway.Spec.ServerCertificate, "tls.key"))
+		container.Args = append(container.Args, "--server-tls-crt="+filepath.Join(secretsDir, g.gateway.Spec.ServerCertificate, "tls.crt"))
 	}
 
-	if g.gateway.ClientCACertificate != "" {
+	if g.gateway.Spec.ClientCACertificate != "" {
 		clientCaCertVol := corev1.Volume{
 			Name: "client-ca-certificate",
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					SecretName: g.gateway.ClientCACertificate,
+					SecretName: g.gateway.Spec.ClientCACertificate,
 				},
 			},
 		}
 		d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, clientCaCertVol)
 		container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
 			Name:      clientCaCertVol.Name,
-			MountPath: filepath.Join(secretsDir, g.gateway.ClientCACertificate),
+			MountPath: filepath.Join(secretsDir, g.gateway.Spec.ClientCACertificate),
 		})
-		container.Args = append(container.Args, "--server-tls-client-ca="+filepath.Join(secretsDir, g.gateway.ClientCACertificate, "tls.crt"))
+		container.Args = append(container.Args, "--server-tls-client-ca="+filepath.Join(secretsDir, g.gateway.Spec.ClientCACertificate, "tls.crt"))
 	}
 
-	if g.gateway.LogLevel != "" {
-		container.Args = append(container.Args, "--log.level="+g.gateway.LogLevel)
+	if g.gateway.Spec.LogLevel != "" {
+		container.Args = append(container.Args, "--log.level="+g.gateway.Spec.LogLevel)
 	}
-	if g.gateway.LogFormat != "" {
-		container.Args = append(container.Args, "--log.format="+g.gateway.LogFormat)
+	if g.gateway.Spec.LogFormat != "" {
+		container.Args = append(container.Args, "--log.format="+g.gateway.Spec.LogFormat)
 	}
 
 	if g.Service.Spec.TenantHeader != "" {
@@ -124,19 +127,84 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 		container.Args = append(container.Args, "--tenant.label-name="+g.Service.Spec.TenantLabelName)
 	}
 
-	if g.Service.Spec.QueryFrontend != nil {
-		qf := queryfrontend.New(g.ServiceBaseReconciler)
-		container.Args = append(container.Args, fmt.Sprintf("--query.address=%s", qf.HttpAddr()))
-	} else if g.Service.Spec.Query != nil {
-		q := query.New(g.ServiceBaseReconciler)
-		container.Args = append(container.Args, fmt.Sprintf("--query.address=%s", q.HttpAddr()))
+	addr, err := g.queryAddress()
+	if err != nil {
+		return nil, "", err
 	}
-	if g.Service.Spec.Router != nil {
-		r := router.New(g.ServiceBaseReconciler)
-		container.Args = append(container.Args, fmt.Sprintf("--remote-write.address=%s", r.RemoteWriteAddr()))
+	container.Args = append(container.Args, fmt.Sprintf("--query.address=%s", addr))
+
+	addr, err = g.remoteWriteAddress()
+	if err != nil {
+		return nil, "", err
 	}
+	container.Args = append(container.Args, fmt.Sprintf("--remote-write.address=%s", addr))
 
 	d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, container)
 
-	return d, resources.OperationCreateOrUpdate, nil
+	return d, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(g.gateway, d, g.Scheme)
+}
+
+func (g *Gateway) queryAddress() (string, error) {
+	queryFrontendList := &v1alpha1.QueryFrontendList{}
+	if err := g.Client.List(g.Context, queryFrontendList, client.MatchingLabels(util.ManagedLabelBySameService(g.gateway))); err != nil {
+		return "", err
+	}
+
+	if len(queryFrontendList.Items) > 0 {
+		if len(queryFrontendList.Items) > 1 {
+			return "", fmt.Errorf("more than one query frontend defined for service %s/%s", g.Service.Name, g.Service.Namespace)
+		}
+
+		q := queryFrontendList.Items[0]
+		r, err := queryfrontend.New(g.BaseReconciler, &q)
+		if err != nil {
+			return "", err
+		}
+
+		return r.HttpAddr(), nil
+	}
+
+	queryList := &v1alpha1.QueryList{}
+	if err := g.Client.List(g.Context, queryList, client.MatchingLabels(util.ManagedLabelBySameService(g.gateway))); err != nil {
+		return "", err
+	}
+
+	if len(queryList.Items) > 0 {
+		if len(queryList.Items) > 1 {
+			return "", fmt.Errorf("more than one query defined for service %s/%s", g.Service.Name, g.Service.Namespace)
+		}
+
+		q := queryList.Items[0]
+		r, err := query.New(g.BaseReconciler, &q)
+		if err != nil {
+			return "", err
+		}
+
+		return r.HttpAddr(), nil
+	}
+
+	return "", fmt.Errorf("no query frontend or query exist for service %s/%s", g.Service.Name, g.Service.Namespace)
+}
+
+func (g *Gateway) remoteWriteAddress() (string, error) {
+	routerList := &v1alpha1.RouterList{}
+	if err := g.Client.List(g.Context, routerList, client.MatchingLabels(util.ManagedLabelBySameService(g.gateway))); err != nil {
+		return "", err
+	}
+
+	if len(routerList.Items) > 0 {
+		if len(routerList.Items) > 1 {
+			return "", fmt.Errorf("more than one router defined for service %s/%s", g.Service.Name, g.Service.Namespace)
+		}
+
+		o := routerList.Items[0]
+		r, err := router.New(g.BaseReconciler, &o)
+		if err != nil {
+			return "", err
+		}
+
+		return r.RemoteWriteAddr(), nil
+	}
+
+	return "", fmt.Errorf("no router defined for service %s/%s", g.Service.Name, g.Service.Namespace)
 }

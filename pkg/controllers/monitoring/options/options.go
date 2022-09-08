@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	DefaultWhizardImage                  = "thanosio/thanos:v0.26.0"
+	DefaultWhizardImage                  = "thanosio/thanos:v0.28.0"
 	DefaultEnvoyImage                    = "envoyproxy/envoy:v1.20.2"
 	DefaultGatewayImage                  = "kubesphere/whizard-monitoring-gateway:latest"
 	DefaultPrometheusConfigReloaderImage = "quay.io/prometheus-operator/prometheus-config-reloader:v0.55.1"

@@ -24,10 +24,13 @@ import (
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/router"
+	"github.com/kubesphere/whizard/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -56,7 +59,6 @@ type RouterReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
 // the Service object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
@@ -68,7 +70,7 @@ func (r *RouterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	l.Info("sync")
 
-	instance := &monitoringv1alpha1.Service{}
+	instance := &monitoringv1alpha1.Router{}
 	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -77,21 +79,24 @@ func (r *RouterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, err
 	}
 
-	instance, err = r.validator(instance)
+	if instance.Labels == nil ||
+		instance.Labels[constants.ServiceLabelKey] == "" {
+		return ctrl.Result{}, nil
+	}
+
+	instance = r.validator(instance)
+	routerReconciler, err := router.New(
+		resources.BaseReconciler{
+			Client:  r.Client,
+			Log:     l,
+			Scheme:  r.Scheme,
+			Context: ctx,
+		},
+		instance,
+	)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-
-	routerReconciler := router.New(
-		resources.ServiceBaseReconciler{
-			Service: instance,
-			BaseReconciler: resources.BaseReconciler{
-				Client:  r.Client,
-				Log:     l,
-				Scheme:  r.Scheme,
-				Context: ctx,
-			},
-		})
 
 	return ctrl.Result{}, routerReconciler.Reconcile()
 }
@@ -99,43 +104,41 @@ func (r *RouterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 // SetupWithManager sets up the controller with the Manager.
 func (r *RouterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&monitoringv1alpha1.Service{}).
+		For(&monitoringv1alpha1.Router{}).
+		Watches(&source.Kind{Type: &monitoringv1alpha1.Service{}},
+			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(util.ManagedLabelByService))).
 		Watches(&source.Kind{Type: &monitoringv1alpha1.Ingester{}},
-			handler.EnqueueRequestsFromMapFunc(r.mapToServiceFunc)).
+			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(util.ManagedLabelBySameService))).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
 		Complete(r)
 }
 
-func (r *RouterReconciler) mapToServiceFunc(o client.Object) []reconcile.Request {
+func (r *RouterReconciler) mapFuncBySelectorFunc(fn func(metav1.Object) map[string]string) handler.MapFunc {
+	return func(o client.Object) []reconcile.Request {
+		routerList := &monitoringv1alpha1.RouterList{}
+		if err := r.Client.List(r.Context, routerList, client.MatchingLabels(fn(o))); err != nil {
+			log.FromContext(r.Context).WithValues("routerList", "").Error(err, "")
+			return nil
+		}
 
-	namespacedName := monitoringv1alpha1.ServiceNamespacedName(o)
+		var reqs []reconcile.Request
+		for _, item := range routerList.Items {
+			reqs = append(reqs, reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Namespace: item.Namespace,
+					Name:      item.Name,
+				},
+			})
+		}
 
-	if namespacedName == nil {
-		return nil
+		return reqs
 	}
-
-	return []reconcile.Request{{
-		NamespacedName: *namespacedName,
-	}}
 }
 
-func (r *RouterReconciler) validator(service *monitoringv1alpha1.Service) (*monitoringv1alpha1.Service, error) {
-	if service.Spec.TenantHeader == "" {
-		service.Spec.TenantHeader = constants.DefaultTenantHeader
-	}
-	if service.Spec.TenantLabelName == "" {
-		service.Spec.TenantLabelName = constants.DefaultTenantLabelName
-	}
-	if service.Spec.DefaultTenantId == "" {
-		service.Spec.DefaultTenantId = constants.DefaultTenantId
-	}
-
-	if service.Spec.Router != nil {
-		r.Options.Apply(&service.Spec.Router.CommonSpec)
-	}
-
-	return service, nil
+func (r *RouterReconciler) validator(router *monitoringv1alpha1.Router) *monitoringv1alpha1.Router {
+	r.Options.Apply(&router.Spec.CommonSpec)
+	return router
 
 }

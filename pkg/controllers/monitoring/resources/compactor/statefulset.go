@@ -30,7 +30,7 @@ var (
 )
 
 func (r *Compactor) statefulSet() (runtime.Object, resources.Operation, error) {
-	var sts = &appsv1.StatefulSet{ObjectMeta: r.meta(r.compactor.Name)}
+	var sts = &appsv1.StatefulSet{ObjectMeta: r.meta(r.name())}
 	if err := r.Client.Get(r.Context, client.ObjectKeyFromObject(sts), sts); err != nil {
 		if !util.IsNotFound(err) {
 			return nil, "", err
@@ -74,9 +74,9 @@ func (r *Compactor) statefulSet() (runtime.Object, resources.Operation, error) {
 	}
 
 	container.VolumeMounts = []corev1.VolumeMount{}
-	resources.AddTSDBVolume(sts, container, r.compactor.Spec.DataVolume)
+	r.AddTSDBVolume(sts, container, r.compactor.Spec.DataVolume)
 
-	volumes, volumeMounts, err := resources.VolumesAndVolumeMountsForStorage(r.Context, r.Client, r.compactor.Labels[constants.StorageLabelKey])
+	volumes, volumeMounts, err := r.VolumesAndVolumeMountsForStorage(r.compactor.Labels[constants.StorageLabelKey])
 	if err != nil {
 		return nil, "", err
 	}
@@ -84,16 +84,16 @@ func (r *Compactor) statefulSet() (runtime.Object, resources.Operation, error) {
 	container.VolumeMounts = append(container.VolumeMounts, volumeMounts...)
 
 	if container.LivenessProbe == nil {
-		container.LivenessProbe = resources.DefaultLivenessProbe()
+		container.LivenessProbe = r.DefaultLivenessProbe()
 	}
 
 	if container.ReadinessProbe == nil {
-		container.ReadinessProbe = resources.DefaultReadinessProbe()
+		container.ReadinessProbe = r.DefaultReadinessProbe()
 	}
 
 	container.Resources = r.compactor.Spec.Resources
 
-	hashCode, err := resources.GetStorageHash(r.Context, r.Client, r.compactor.Labels[constants.StorageLabelKey])
+	hashCode, err := r.GetStorageHash(r.compactor.Labels[constants.StorageLabelKey])
 	if err != nil {
 		return nil, "", err
 	}
@@ -160,7 +160,7 @@ func (r *Compactor) createRelabelConfig() (string, error) {
 
 func (r *Compactor) megerArgs() ([]string, error) {
 
-	storageConfig, err := resources.GetStorageConfig(r.Context, r.Client, r.compactor.Labels[constants.StorageLabelKey])
+	storageConfig, err := r.GetStorageConfig(r.compactor.Labels[constants.StorageLabelKey])
 	if err != nil {
 		return nil, err
 	}
