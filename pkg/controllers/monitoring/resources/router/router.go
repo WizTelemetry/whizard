@@ -15,15 +15,18 @@ const (
 )
 
 type Router struct {
-	resources.ServiceBaseReconciler
+	resources.BaseReconciler
 	router *v1alpha1.Router
 }
 
-func New(reconciler resources.ServiceBaseReconciler) *Router {
-	return &Router{
-		ServiceBaseReconciler: reconciler,
-		router:                reconciler.Service.Spec.Router,
+func New(reconciler resources.BaseReconciler, r *v1alpha1.Router) (*Router, error) {
+	if err := reconciler.SetService(r); err != nil {
+		return nil, err
 	}
+	return &Router{
+		BaseReconciler: reconciler,
+		router:         r,
+	}, nil
 }
 
 func (r *Router) labels() map[string]string {
@@ -34,16 +37,15 @@ func (r *Router) labels() map[string]string {
 }
 
 func (r *Router) name(nameSuffix ...string) string {
-	return resources.QualifiedName(constants.AppNameRouter, r.Service.Name, nameSuffix...)
+	return r.QualifiedName(constants.AppNameRouter, r.router.Name, nameSuffix...)
 }
 
 func (r *Router) meta(name string) metav1.ObjectMeta {
 
 	return metav1.ObjectMeta{
-		Name:            name,
-		Namespace:       r.Service.Namespace,
-		Labels:          r.labels(),
-		OwnerReferences: r.OwnerReferences(),
+		Name:      name,
+		Namespace: r.Service.Namespace,
+		Labels:    r.labels(),
 	}
 }
 

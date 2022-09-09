@@ -5,6 +5,7 @@ import (
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 func (q *QueryFrontend) service() (runtime.Object, resources.Operation, error) {
@@ -25,5 +26,5 @@ func (q *QueryFrontend) service() (runtime.Object, resources.Operation, error) {
 			},
 		},
 	}
-	return s, resources.OperationCreateOrUpdate, nil
+	return s, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(q.queryFrontend, s, q.Scheme)
 }

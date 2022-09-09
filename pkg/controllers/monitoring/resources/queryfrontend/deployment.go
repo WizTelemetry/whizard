@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"sort"
 
+	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/query"
@@ -14,6 +15,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -38,7 +41,7 @@ func (q *QueryFrontend) deployment() (runtime.Object, resources.Operation, error
 	}
 
 	d.Spec = appsv1.DeploymentSpec{
-		Replicas: q.queryFrontend.Replicas,
+		Replicas: q.queryFrontend.Spec.Replicas,
 		Selector: &metav1.LabelSelector{
 			MatchLabels: q.labels(),
 		},
@@ -47,9 +50,9 @@ func (q *QueryFrontend) deployment() (runtime.Object, resources.Operation, error
 				Labels: q.labels(),
 			},
 			Spec: corev1.PodSpec{
-				NodeSelector: q.queryFrontend.NodeSelector,
-				Tolerations:  q.queryFrontend.Tolerations,
-				Affinity:     q.queryFrontend.Affinity,
+				NodeSelector: q.queryFrontend.Spec.NodeSelector,
+				Tolerations:  q.queryFrontend.Spec.Tolerations,
+				Affinity:     q.queryFrontend.Spec.Affinity,
 			},
 		},
 	}
@@ -65,8 +68,8 @@ func (q *QueryFrontend) deployment() (runtime.Object, resources.Operation, error
 		},
 	}
 
-	hashCode, err := resources.GetTenantHash(q.Context, q.Client, map[string]string{
-		constants.ServiceLabelKey: fmt.Sprintf("%s.%s", q.Service.Namespace, q.Service.Name),
+	hashCode, err := q.GetTenantHash(map[string]string{
+		constants.ServiceLabelKey: q.queryFrontend.Labels[constants.ServiceLabelKey],
 	})
 	if err != nil {
 		return nil, "", err
@@ -74,9 +77,9 @@ func (q *QueryFrontend) deployment() (runtime.Object, resources.Operation, error
 
 	var container = corev1.Container{
 		Name:      "query-frontend",
-		Image:     q.queryFrontend.Image,
+		Image:     q.queryFrontend.Spec.Image,
 		Args:      []string{"query-frontend"},
-		Resources: q.queryFrontend.Resources,
+		Resources: q.queryFrontend.Spec.Resources,
 		Ports: []corev1.ContainerPort{
 			{
 				Protocol:      corev1.ProtocolTCP,
@@ -84,8 +87,8 @@ func (q *QueryFrontend) deployment() (runtime.Object, resources.Operation, error
 				ContainerPort: constants.HTTPPort,
 			},
 		},
-		LivenessProbe:  resources.DefaultLivenessProbe(),
-		ReadinessProbe: resources.DefaultReadinessProbe(),
+		LivenessProbe:  q.DefaultLivenessProbe(),
+		ReadinessProbe: q.DefaultReadinessProbe(),
 		VolumeMounts: []corev1.VolumeMount{{
 			Name:      cacheConfigVol.Name,
 			MountPath: configDir,
@@ -99,19 +102,22 @@ func (q *QueryFrontend) deployment() (runtime.Object, resources.Operation, error
 		},
 	}
 
-	query := query.New(q.ServiceBaseReconciler)
-	container.Args = append(container.Args, "--query-frontend.downstream-url="+query.HttpAddr())
+	addr, err := q.queryAddress()
+	if err != nil {
+		return nil, "", err
+	}
+	container.Args = append(container.Args, "--query-frontend.downstream-url="+addr)
 	container.Args = append(container.Args, "--labels.response-cache-config-file="+filepath.Join(configDir, cacheConfigFile))
 	container.Args = append(container.Args, "--query-range.response-cache-config-file="+filepath.Join(configDir, cacheConfigFile))
 
-	if q.queryFrontend.LogLevel != "" {
-		container.Args = append(container.Args, "--log.level="+q.queryFrontend.LogLevel)
+	if q.queryFrontend.Spec.LogLevel != "" {
+		container.Args = append(container.Args, "--log.level="+q.queryFrontend.Spec.LogLevel)
 	}
-	if q.queryFrontend.LogFormat != "" {
-		container.Args = append(container.Args, "--log.format="+q.queryFrontend.LogFormat)
+	if q.queryFrontend.Spec.LogFormat != "" {
+		container.Args = append(container.Args, "--log.format="+q.queryFrontend.Spec.LogFormat)
 	}
 
-	for _, flag := range q.queryFrontend.Flags {
+	for _, flag := range q.queryFrontend.Spec.Flags {
 		arg := util.GetArgName(flag)
 		if util.Contains(unsupportedArgs, arg) {
 			klog.V(3).Infof("ignore the unsupported flag %s", arg)
@@ -136,5 +142,28 @@ func (q *QueryFrontend) deployment() (runtime.Object, resources.Operation, error
 	d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, container)
 	d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, cacheConfigVol)
 
-	return d, resources.OperationCreateOrUpdate, nil
+	return d, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(q.queryFrontend, d, q.Scheme)
+}
+
+func (q *QueryFrontend) queryAddress() (string, error) {
+	queryList := &v1alpha1.QueryList{}
+	if err := q.Client.List(q.Context, queryList, client.MatchingLabels(util.ManagedLabelBySameService(q.queryFrontend))); err != nil {
+		return "", err
+	}
+
+	if len(queryList.Items) > 0 {
+		if len(queryList.Items) > 1 {
+			return "", fmt.Errorf("more than one query defined for service %s/%s", q.Service.Name, q.Service.Namespace)
+		}
+
+		o := queryList.Items[0]
+		r, err := query.New(q.BaseReconciler, &o)
+		if err != nil {
+			return "", err
+		}
+
+		return r.HttpAddr(), nil
+	}
+
+	return "", fmt.Errorf("no query frontend or query exist for service %s/%s", q.Service.Name, q.Service.Namespace)
 }

@@ -13,6 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 var (
@@ -35,7 +36,7 @@ func (r *Router) deployment() (runtime.Object, resources.Operation, error) {
 	}
 
 	d.Spec = appsv1.DeploymentSpec{
-		Replicas: r.router.Replicas,
+		Replicas: r.router.Spec.Replicas,
 		Selector: &metav1.LabelSelector{
 			MatchLabels: r.labels(),
 		},
@@ -44,9 +45,9 @@ func (r *Router) deployment() (runtime.Object, resources.Operation, error) {
 				Labels: r.labels(),
 			},
 			Spec: corev1.PodSpec{
-				NodeSelector: r.router.NodeSelector,
-				Tolerations:  r.router.Tolerations,
-				Affinity:     r.router.Affinity,
+				NodeSelector: r.router.Spec.NodeSelector,
+				Tolerations:  r.router.Spec.Tolerations,
+				Affinity:     r.router.Spec.Affinity,
 			},
 		},
 	}
@@ -65,9 +66,9 @@ func (r *Router) deployment() (runtime.Object, resources.Operation, error) {
 
 	var container = corev1.Container{
 		Name:      "receive",
-		Image:     r.router.Image,
+		Image:     r.router.Spec.Image,
 		Args:      []string{"receive"},
-		Resources: r.router.Resources,
+		Resources: r.router.Spec.Resources,
 		Ports: []corev1.ContainerPort{
 			{
 				Protocol:      corev1.ProtocolTCP,
@@ -85,8 +86,8 @@ func (r *Router) deployment() (runtime.Object, resources.Operation, error) {
 				ContainerPort: constants.RemoteWritePort,
 			},
 		},
-		LivenessProbe:  resources.DefaultLivenessProbe(),
-		ReadinessProbe: resources.DefaultReadinessProbe(),
+		LivenessProbe:  r.DefaultLivenessProbe(),
+		ReadinessProbe: r.DefaultReadinessProbe(),
 		VolumeMounts: []corev1.VolumeMount{{
 			Name:      hashringsVol.Name,
 			MountPath: configDir,
@@ -103,16 +104,16 @@ func (r *Router) deployment() (runtime.Object, resources.Operation, error) {
 			},
 		},
 	}
-	if r.router.LogLevel != "" {
-		container.Args = append(container.Args, "--log.level="+r.router.LogLevel)
+	if r.router.Spec.LogLevel != "" {
+		container.Args = append(container.Args, "--log.level="+r.router.Spec.LogLevel)
 	}
-	if r.router.LogFormat != "" {
-		container.Args = append(container.Args, "--log.format="+r.router.LogFormat)
+	if r.router.Spec.LogFormat != "" {
+		container.Args = append(container.Args, "--log.format="+r.router.Spec.LogFormat)
 	}
 	container.Args = append(container.Args, fmt.Sprintf("--label=%s=\"$(POD_NAME)\"", constants.ReceiveReplicaLabelName))
 	container.Args = append(container.Args, "--receive.hashrings-file="+filepath.Join(configDir, hashringsFile))
-	if r.router.ReplicationFactor != nil {
-		container.Args = append(container.Args, fmt.Sprintf("--receive.replication-factor=%d", *r.router.ReplicationFactor))
+	if r.router.Spec.ReplicationFactor != nil {
+		container.Args = append(container.Args, fmt.Sprintf("--receive.replication-factor=%d", *r.router.Spec.ReplicationFactor))
 	}
 
 	if r.Service.Spec.TenantHeader != "" {
@@ -125,7 +126,7 @@ func (r *Router) deployment() (runtime.Object, resources.Operation, error) {
 		container.Args = append(container.Args, "--receive.default-tenant-id="+r.Service.Spec.DefaultTenantId)
 	}
 
-	for _, flag := range r.router.Flags {
+	for _, flag := range r.router.Spec.Flags {
 		arg := util.GetArgName(flag)
 		if util.Contains(unsupportedArgs, arg) {
 			klog.V(3).Infof("ignore the unsupported flag %s", arg)
@@ -149,5 +150,5 @@ func (r *Router) deployment() (runtime.Object, resources.Operation, error) {
 
 	d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, container)
 
-	return d, resources.OperationCreateOrUpdate, nil
+	return d, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(r.router, d, r.Scheme)
 }

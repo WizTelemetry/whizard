@@ -17,13 +17,11 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"strings"
 	"time"
 
 	"k8s.io/api/autoscaling/v2beta2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -42,18 +40,34 @@ type ServiceSpec struct {
 	TenantLabelName string `json:"tenantLabelName,omitempty"`
 
 	Storage *ObjectReference `json:"storage,omitempty"`
+}
 
-	// Gateway to proxy and auth requests to Query and Router.
-	Gateway *Gateway `json:"gateway,omitempty"`
+// ServiceStatus defines the observed state of Service
+type ServiceStatus struct {
+	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+}
 
-	// Query component querys from the backends such as Ingester and Store by automated discovery.
-	Query *Query `json:"query,omitempty"`
+//+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
+// +genclient
 
-	// Receive Router component routes to the backends such as Ingester by automated discovery.
-	Router *Router `json:"router,omitempty"`
+// Service is the Schema for the monitoring service API
+type Service struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// QueryFrontend component implements a service deployed in front of queriers to improve query parallelization and caching.
-	QueryFrontend *QueryFrontend `json:"queryFrontend,omitempty"`
+	Spec   ServiceSpec   `json:"spec,omitempty"`
+	Status ServiceStatus `json:"status,omitempty"`
+}
+
+//+kubebuilder:object:root=true
+
+// ServiceList contains a list of Service
+type ServiceList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []Service `json:"items"`
 }
 
 type CommonSpec struct {
@@ -85,7 +99,7 @@ type CommonSpec struct {
 	Flags []string `json:"flags,omitempty"`
 }
 
-type Gateway struct {
+type GatewaySpec struct {
 	CommonSpec `json:",inline"`
 
 	// Secret name for HTTP Server certificate (Kubernetes TLS secret type)
@@ -94,7 +108,35 @@ type Gateway struct {
 	ClientCACertificate string `json:"clientCaCertificate,omitempty"`
 }
 
-type Query struct {
+// GatewayStatus defines the observed state of Gateway
+type GatewayStatus struct {
+	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+}
+
+//+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
+// +genclient
+
+// Gateway is the Schema for the monitoring gateway API
+type Gateway struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   GatewaySpec   `json:"spec,omitempty"`
+	Status GatewayStatus `json:"status,omitempty"`
+}
+
+//+kubebuilder:object:root=true
+
+// GatewayList contains a list of Gateway
+type GatewayList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []Gateway `json:"items"`
+}
+
+type QuerySpec struct {
 	CommonSpec `json:",inline"`
 
 	// Additional StoreApi servers from which Query component queries from
@@ -123,18 +165,102 @@ type EnvoySpec struct {
 	Resources corev1.ResourceRequirements `json:"resources,omitempty" yaml:"resources,omitempty"`
 }
 
-type Router struct {
+// QueryStatus defines the observed state of Query
+type QueryStatus struct {
+	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+}
+
+//+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
+// +genclient
+
+// Query is the Schema for the monitoring query API
+type Query struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   QuerySpec   `json:"spec,omitempty"`
+	Status QueryStatus `json:"status,omitempty"`
+}
+
+//+kubebuilder:object:root=true
+
+// QueryList contains a list of Query
+type QueryList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []Query `json:"items"`
+}
+
+type RouterSpec struct {
 	CommonSpec `json:",inline"`
 
 	// How many times to replicate incoming write requests
 	ReplicationFactor *uint64 `json:"replicationFactor,omitempty"`
 }
 
-type QueryFrontend struct {
+// RouterStatus defines the observed state of Query
+type RouterStatus struct {
+	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+}
+
+//+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
+// +genclient
+
+// Router is the Schema for the monitoring router API
+type Router struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   RouterSpec   `json:"spec,omitempty"`
+	Status RouterStatus `json:"status,omitempty"`
+}
+
+//+kubebuilder:object:root=true
+
+// RouterList contains a list of Router
+type RouterList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []Router `json:"items"`
+}
+
+type QueryFrontendSpec struct {
 	CommonSpec `json:",inline"`
 
 	// CacheProviderConfig ...
 	CacheConfig *ResponseCacheProviderConfig `json:"cacheConfig,omitempty"`
+}
+
+// QueryFrontendStatus defines the observed state of QueryFrontend
+type QueryFrontendStatus struct {
+	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+}
+
+//+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
+// +genclient
+
+// QueryFrontend is the Schema for the monitoring queryfrontend API
+type QueryFrontend struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   QueryFrontendSpec   `json:"spec,omitempty"`
+	Status QueryFrontendStatus `json:"status,omitempty"`
+}
+
+//+kubebuilder:object:root=true
+
+// QueryFrontendList contains a list of QueryFrontend
+type QueryFrontendList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []QueryFrontend `json:"items"`
 }
 
 type CacheProvider string
@@ -160,34 +286,6 @@ type InMemoryResponseCacheConfig struct {
 	MaxSizeItems int `json:"maxSizeItems" yaml:"max_size_items"`
 	// Validity represents the expiry duration for the cache.
 	Validity time.Duration `json:"validity" yaml:"validity"`
-}
-
-// ServiceStatus defines the observed state of Service
-type ServiceStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-}
-
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-// +genclient
-
-// Service is the Schema for the monitoring service API
-type Service struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   ServiceSpec   `json:"spec,omitempty"`
-	Status ServiceStatus `json:"status,omitempty"`
-}
-
-//+kubebuilder:object:root=true
-
-// ServiceList contains a list of Service
-type ServiceList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Service `json:"items"`
 }
 
 // KubernetesVolume defines the configured volume for a instance.
@@ -247,8 +345,6 @@ type AutoScaler struct {
 type StoreSpec struct {
 	CommonSpec `json:",inline"`
 
-	Storage *ObjectReference `json:"storage,omitempty"`
-
 	// MinTime specifies start of time range limit to serve
 	MinTime string `json:"minTime,omitempty"`
 	// MaxTime specifies end of time range limit to serve
@@ -299,8 +395,6 @@ type CompactorSpec struct {
 	// Retention configs how long to retain samples
 	Retention *Retention `json:"retention,omitempty"`
 
-	Storage *ObjectReference `json:"storage,omitempty"`
-
 	// DataVolume specifies how volume shall be used
 	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
 
@@ -345,9 +439,6 @@ type IngesterSpec struct {
 
 	// LocalTsdbRetention configs how long to retain raw samples on local storage.
 	LocalTsdbRetention string `json:"localTsdbRetention,omitempty"`
-
-	// If specified, the object key of Storage for long term storage.
-	Storage *ObjectReference `json:"storage,omitempty"`
 
 	// DataVolume specifies how volume shall be used
 	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
@@ -456,32 +547,12 @@ type Duration string
 func init() {
 	SchemeBuilder = SchemeBuilder.
 		Register(&Service{}, &ServiceList{}).
+		Register(&Gateway{}, &GatewayList{}).
+		Register(&Query{}, &QueryList{}).
+		Register(&QueryFrontend{}, &QueryFrontendList{}).
+		Register(&Router{}, &RouterList{}).
 		Register(&Ingester{}, &IngesterList{}).
 		Register(&Ruler{}, &RulerList{}).
 		Register(&Store{}, &StoreList{}).
 		Register(&Compactor{}, &CompactorList{})
-}
-
-func ManagedLabelByService(service metav1.Object) map[string]string {
-	return map[string]string{
-		"monitoring.whizard.io/service": service.GetNamespace() + "." + service.GetName(),
-	}
-}
-
-func ServiceNamespacedName(managedByService metav1.Object) *types.NamespacedName {
-	ls := managedByService.GetLabels()
-	if len(ls) == 0 {
-		return nil
-	}
-
-	namespacedName := ls["monitoring.whizard.io/service"]
-	arr := strings.Split(namespacedName, ".")
-	if len(arr) != 2 {
-		return nil
-	}
-
-	return &types.NamespacedName{
-		Namespace: arr[0],
-		Name:      arr[1],
-	}
 }

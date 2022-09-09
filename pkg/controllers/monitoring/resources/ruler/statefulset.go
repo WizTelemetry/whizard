@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -116,8 +117,8 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 				ContainerPort: constants.HTTPPort,
 			},
 		},
-		LivenessProbe:  resources.DefaultLivenessProbe(),
-		ReadinessProbe: resources.DefaultReadinessProbe(),
+		LivenessProbe:  r.DefaultLivenessProbe(),
+		ReadinessProbe: r.DefaultReadinessProbe(),
 		Env: []corev1.EnvVar{
 			{
 				Name: "POD_NAME",
@@ -218,55 +219,52 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 
 	var queryProxyContainer *corev1.Container
 
-	namespacedName := monitoringv1alpha1.ServiceNamespacedName(r.ruler)
+	namespacedName := util.ServiceNamespacedName(r.ruler)
 
 	if namespacedName != nil {
 		var service monitoringv1alpha1.Service
 		if err := r.Client.Get(r.Context, *namespacedName, &service); err != nil {
 			return nil, resources.OperationCreateOrUpdate, err
 		}
-		query := query.New(resources.ServiceBaseReconciler{
-			BaseReconciler: r.BaseReconciler,
-			Service:        &service,
-		})
 
-		if service.Spec.Router != nil {
-			// remote write config
-			receiveRouter := router.New(resources.ServiceBaseReconciler{
-				BaseReconciler: r.BaseReconciler,
-				Service:        &service,
-			})
-			writeUrl, err := url.Parse(receiveRouter.RemoteWriteAddr() + "/api/v1/receive")
-			if err != nil {
-				return nil, resources.OperationCreateOrUpdate, err
-			}
-			var rwCfg = &promconfig.RemoteWriteConfig{}
-			*rwCfg = promconfig.DefaultRemoteWriteConfig
-			if rwCfg.Headers == nil {
-				rwCfg.Headers = make(map[string]string)
-			}
-			rwCfg.Headers[service.Spec.TenantHeader] = r.ruler.Spec.Tenant
-			rwCfg.URL = &promcommonconfig.URL{URL: writeUrl}
-			var cfgs struct {
-				RemoteWriteConfigs []*promconfig.RemoteWriteConfig `yaml:"remote_write,omitempty"`
-			}
-			rwCfg.WriteRelabelConfigs = append(rwCfg.WriteRelabelConfigs, &relabel.Config{
-				Regex:  relabel.MustNewRegexp(service.Spec.TenantLabelName),
-				Action: relabel.LabelDrop,
-			})
-			cfgs.RemoteWriteConfigs = append(cfgs.RemoteWriteConfigs, rwCfg)
-			content, err := yamlv3.Marshal(&cfgs)
-			if err != nil {
-				return nil, resources.OperationCreateOrUpdate, err
-			}
-			container.Args = append(container.Args, "--remote-write.config="+string(content))
+		addr, err := r.remoteWriteAddress()
+		if err != nil {
+			return nil, "", err
+		}
+		writeUrl, err := url.Parse(addr + "/api/v1/receive")
+		if err != nil {
+			return nil, resources.OperationCreateOrUpdate, err
+		}
+		var rwCfg = &promconfig.RemoteWriteConfig{}
+		*rwCfg = promconfig.DefaultRemoteWriteConfig
+		if rwCfg.Headers == nil {
+			rwCfg.Headers = make(map[string]string)
+		}
+		rwCfg.Headers[service.Spec.TenantHeader] = r.ruler.Spec.Tenant
+		rwCfg.URL = &promcommonconfig.URL{URL: writeUrl}
+		var cfgs struct {
+			RemoteWriteConfigs []*promconfig.RemoteWriteConfig `yaml:"remote_write,omitempty"`
+		}
+		rwCfg.WriteRelabelConfigs = append(rwCfg.WriteRelabelConfigs, &relabel.Config{
+			Regex:  relabel.MustNewRegexp(service.Spec.TenantLabelName),
+			Action: relabel.LabelDrop,
+		})
+		cfgs.RemoteWriteConfigs = append(cfgs.RemoteWriteConfigs, rwCfg)
+		content, err := yamlv3.Marshal(&cfgs)
+		if err != nil {
+			return nil, resources.OperationCreateOrUpdate, err
+		}
+		container.Args = append(container.Args, "--remote-write.config="+string(content))
+
+		addr, err = r.queryAddress()
+		if err != nil {
+			return nil, "", err
 		}
 
 		// query config
 		if r.ruler.Spec.Tenant == "" {
-			container.Args = append(container.Args, "--query="+query.HttpAddr())
+			container.Args = append(container.Args, "--query="+addr)
 		} else {
-
 			queryProxyContainer = &corev1.Container{
 				Name:  "query-proxy",
 				Image: r.Options.RulerQueryProxy.Image,
@@ -276,7 +274,7 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 				Resources: r.Options.RulerQueryProxy.Resources,
 			}
 			queryProxyContainer.Args = append(queryProxyContainer.Args, "--tenant.label-name="+service.Spec.TenantLabelName)
-			queryProxyContainer.Args = append(queryProxyContainer.Args, "--query.address="+query.HttpAddr())
+			queryProxyContainer.Args = append(queryProxyContainer.Args, "--query.address="+addr)
 
 			container.Args = append(container.Args,
 				fmt.Sprintf("--query=http://127.0.0.1:9080/%s", r.ruler.Spec.Tenant))
@@ -330,5 +328,51 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 	}
 	sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, container, reloadContainer)
 
-	return sts, resources.OperationCreateOrUpdate, nil
+	return sts, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(r.ruler, sts, r.Scheme)
+}
+
+func (r *Ruler) remoteWriteAddress() (string, error) {
+	routerList := &monitoringv1alpha1.RouterList{}
+	if err := r.Client.List(r.Context, routerList, client.MatchingLabels(util.ManagedLabelBySameService(r.ruler))); err != nil {
+		return "", err
+	}
+
+	if len(routerList.Items) > 0 {
+		if len(routerList.Items) > 1 {
+			return "", fmt.Errorf("more than one router defined for service %s/%s", r.Service.Name, r.Service.Namespace)
+		}
+
+		o := routerList.Items[0]
+		r, err := router.New(r.BaseReconciler, &o)
+		if err != nil {
+			return "", err
+		}
+
+		return r.RemoteWriteAddr(), nil
+	}
+
+	return "", fmt.Errorf("no router defined for service %s/%s", r.Service.Name, r.Service.Namespace)
+}
+
+func (r *Ruler) queryAddress() (string, error) {
+	queryList := &monitoringv1alpha1.QueryList{}
+	if err := r.Client.List(r.Context, queryList, client.MatchingLabels(util.ManagedLabelBySameService(r.ruler))); err != nil {
+		return "", err
+	}
+
+	if len(queryList.Items) > 0 {
+		if len(queryList.Items) > 1 {
+			return "", fmt.Errorf("more than one query defined for service %s/%s", r.Service.Name, r.Service.Namespace)
+		}
+
+		o := queryList.Items[0]
+		r, err := query.New(r.BaseReconciler, &o)
+		if err != nil {
+			return "", err
+		}
+
+		return r.HttpAddr(), nil
+	}
+
+	return "", fmt.Errorf("no query frontend or query exist for service %s/%s", r.Service.Name, r.Service.Namespace)
 }

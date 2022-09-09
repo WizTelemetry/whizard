@@ -27,6 +27,7 @@ import (
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/ingester"
+	"github.com/kubesphere/whizard/pkg/util"
 	"github.com/prometheus/common/model"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -59,7 +60,6 @@ type IngesterReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
 // the Service object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
@@ -102,6 +102,11 @@ func (r *IngesterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, err
 	}
 
+	if instance.Labels == nil ||
+		instance.Labels[constants.ServiceLabelKey] == "" {
+		return ctrl.Result{}, nil
+	}
+
 	baseReconciler := resources.BaseReconciler{
 		Client:  r.Client,
 		Log:     l,
@@ -121,9 +126,9 @@ func (r *IngesterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&monitoringv1alpha1.Ingester{}).
 		Watches(&source.Kind{Type: &monitoringv1alpha1.Service{}},
-			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(monitoringv1alpha1.ManagedLabelByService))).
+			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(util.ManagedLabelByService))).
 		Watches(&source.Kind{Type: &monitoringv1alpha1.Storage{}},
-			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(monitoringv1alpha1.ManagedLabelByStorage))).
+			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(util.ManagedLabelByStorage))).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Service{}).
 		Complete(r)

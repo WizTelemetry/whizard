@@ -68,7 +68,7 @@ func (t *Tenant) ingester() error {
 	var ingesterList monitoringv1alpha1.IngesterList
 	ls := make(map[string]string, 2)
 	ls[constants.ServiceLabelKey] = t.tenant.Labels[constants.ServiceLabelKey]
-	ls[constants.StorageLabelKey] = t.tenant.Labels[constants.StorageLabelKey]
+	ls[constants.StorageLabelKey] = t.GetStorage(t.tenant.Labels[constants.StorageLabelKey])
 	serviceNamespacedName := strings.Split(t.tenant.Labels[constants.ServiceLabelKey], ".")
 	err := t.Client.List(t.Context, &ingesterList, &client.ListOptions{
 		Namespace:     serviceNamespacedName[0],
@@ -104,7 +104,7 @@ func (t *Tenant) ingester() error {
 	// otherwise check len(ingesterItem.Spec.Tenants) < t.DefaultTenantsPerIngester，if so, select the instance.
 	ingester := &monitoringv1alpha1.Ingester{}
 	for i := 0; i < len(ingesterMapping)+1; i++ {
-		name := createIngesterInstanceName(t.tenant, strconv.Itoa(i))
+		name := t.createIngesterInstanceName(strconv.Itoa(i))
 		if ingesterItem, ok := ingesterMapping[name]; ok {
 			if len(ingesterItem.Spec.Tenants) < t.Options.Ingester.DefaultTenantsPerIngester {
 				ingester = ingesterItem
@@ -112,7 +112,7 @@ func (t *Tenant) ingester() error {
 				break
 			}
 		} else {
-			ingester = createIngesterInstance(name, t.tenant)
+			ingester = t.createIngesterInstance(name, t.tenant)
 			break
 		}
 	}
@@ -157,7 +157,7 @@ func (t *Tenant) needResetIngester() (bool, error) {
 		return true, nil
 	}
 
-	if v, ok := ingester.Labels[constants.StorageLabelKey]; !ok || v != t.tenant.Labels[constants.StorageLabelKey] {
+	if v, ok := ingester.Labels[constants.StorageLabelKey]; !ok || v != t.GetStorage(t.tenant.Labels[constants.StorageLabelKey]) {
 		klog.V(3).Infof("Tenant [%s] and ingester [%s]'s Storage mismatch, need to reset ingester", t.tenant.Name, ingester.Name)
 		return true, nil
 	}
@@ -202,30 +202,32 @@ func (t *Tenant) removeTenantFromIngesterbyName(namespace, name string) error {
 	return nil
 }
 
-func createIngesterInstanceName(tenant *monitoringv1alpha1.Tenant, suffix ...string) string {
-	serviceNamespacedName := strings.Split(tenant.Labels[constants.ServiceLabelKey], ".")
-	storageNamespacedName := strings.Split(tenant.Labels[constants.StorageLabelKey], ".")
+func (t *Tenant) createIngesterInstanceName(suffix ...string) string {
+	storage := t.GetStorage(t.tenant.Labels[constants.StorageLabelKey])
 
-	name := fmt.Sprintf("%s-%s-auto", serviceNamespacedName[1], storageNamespacedName[1])
+	serviceNamespacedName := strings.Split(t.tenant.Labels[constants.ServiceLabelKey], ".")
+	storageNamespacedName := strings.Split(storage, ".")
+	storageName := constants.LocalStorage
+	if len(storageNamespacedName) >= 2 {
+		storageName = storageNamespacedName[1]
+	}
+
+	name := fmt.Sprintf("%s-%s-auto", serviceNamespacedName[1], storageName)
 	if len(suffix) > 0 {
 		name += "-" + strings.Join(suffix, "-")
 	}
 	return name
 }
 
-func createIngesterInstance(name string, tenant *monitoringv1alpha1.Tenant) *monitoringv1alpha1.Ingester {
+func (t *Tenant) createIngesterInstance(name string, tenant *monitoringv1alpha1.Tenant) *monitoringv1alpha1.Ingester {
 	klog.V(3).Infof("create new ingester %s for tenant %s", name, tenant.Name)
+	storage := t.GetStorage(tenant.Labels[constants.StorageLabelKey])
+
 	label := make(map[string]string, 2)
 	label[constants.ServiceLabelKey] = tenant.Labels[constants.ServiceLabelKey]
-	label[constants.StorageLabelKey] = tenant.Labels[constants.StorageLabelKey]
+	label[constants.StorageLabelKey] = storage
 
 	namespacedName := strings.Split(tenant.Labels[constants.ServiceLabelKey], ".")
-	storage := &monitoringv1alpha1.ObjectReference{}
-	if tenant.Labels[constants.StorageLabelKey] != constants.LocalStorage {
-		storageNamespacedName := strings.Split(tenant.Labels[constants.StorageLabelKey], ".")
-		storage.Namespace = storageNamespacedName[0]
-		storage.Name = storageNamespacedName[1]
-	}
 
 	return &monitoringv1alpha1.Ingester{
 		ObjectMeta: metav1.ObjectMeta{
@@ -235,7 +237,6 @@ func createIngesterInstance(name string, tenant *monitoringv1alpha1.Tenant) *mon
 		},
 		Spec: monitoringv1alpha1.IngesterSpec{
 			Tenants: []string{tenant.Spec.Tenant},
-			Storage: storage,
 		},
 	}
 }

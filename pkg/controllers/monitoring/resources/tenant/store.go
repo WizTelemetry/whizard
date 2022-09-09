@@ -1,17 +1,20 @@
 package tenant
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+type elem struct {
+	service string
+	storage string
+	store   *monitoringv1alpha1.Store
+}
 
 func (t *Tenant) store() error {
 
@@ -20,7 +23,7 @@ func (t *Tenant) store() error {
 		return err
 	}
 
-	currentStores := make(map[string]interface{})
+	currentStores := make(map[string]*elem)
 	for _, item := range storeList.Items {
 		store := item
 		if store.DeletionTimestamp != nil || !store.DeletionTimestamp.IsZero() {
@@ -28,62 +31,109 @@ func (t *Tenant) store() error {
 		}
 
 		if store.Labels == nil {
-			continue
+			store.Labels = make(map[string]string)
 		}
 
-		serviceNamespacedName := store.Labels[constants.ServiceLabelKey]
-		if serviceNamespacedName == "" {
-			klog.V(3).Infof("Store [%s.%s] Service mismatch", store.Namespace, store.Name)
-			continue
+		e := &elem{
+			service: store.Labels[constants.ServiceLabelKey],
+			storage: store.Labels[constants.StorageLabelKey],
+			store:   &store,
 		}
 
-		storageNamespacedName := store.Labels[constants.StorageLabelKey]
-		if storageNamespacedName == "" {
-			klog.V(3).Infof("Store [%s.%s] Storage mismatch", store.Namespace, store.Name)
-			continue
-		}
-
-		if currentStores[serviceNamespacedName+storageNamespacedName] != nil {
+		key := e.service + "|" + e.storage
+		if currentStores[key] != nil {
 			if err := t.Client.Delete(t.Context, &store); err != nil {
 				return err
 			}
 		} else {
-			currentStores[serviceNamespacedName+storageNamespacedName] = &store
+			currentStores[key] = e
 		}
 	}
 
-	expectStores, err := sortTenantsByStorageAndService(t.Context, t.Client)
+	expectStores, err := t.sortTenantsByStorageAndService()
 	if err != nil {
 		return err
 	}
 
-	for k := range currentStores {
-		if _, ok := expectStores[k]; ok {
+	for k := range expectStores {
+		if e, ok := currentStores[k]; ok {
+			if e.service != "" && e.storage != "" {
+				store := e.store
+				if store.Annotations == nil {
+					store.Annotations = make(map[string]string)
+				}
+
+				tenantHash, err := t.GetTenantHash(map[string]string{
+					constants.StorageLabelKey: e.storage,
+					constants.ServiceLabelKey: e.service,
+				})
+				if err != nil {
+					return err
+				}
+
+				storageHash, err := t.GetStorageHash(e.storage)
+				if err != nil {
+					return err
+				}
+
+				needUpdate := false
+				if store.Annotations[constants.LabelNameTenantHash] != tenantHash {
+					store.Annotations[constants.LabelNameTenantHash] = tenantHash
+					needUpdate = true
+				}
+
+				if store.Annotations[constants.LabelNameStorageHash] != storageHash {
+					store.Annotations[constants.LabelNameStorageHash] = storageHash
+					needUpdate = true
+				}
+
+				if needUpdate {
+					if err := t.Client.Update(t.Context, store); err != nil {
+						return err
+					}
+				}
+			}
+
 			delete(currentStores, k)
 			delete(expectStores, k)
 		}
 	}
 
-	for _, v := range currentStores {
-		store := v.(*monitoringv1alpha1.Store)
-		if err := t.Client.Delete(t.Context, store); err != nil {
+	for _, e := range currentStores {
+		if err := t.Client.Delete(t.Context, e.store); err != nil {
 			return err
 		}
 
-		klog.V(3).Infof("Delete Store[%s.%s]", store.Namespace, store.Name)
+		klog.V(3).Infof("Delete Store[%s.%s]", e.store.Namespace, e.store.Name)
 	}
 
-	for _, v := range expectStores {
-		m := v.(map[string]string)
-		serviceNamespacedName := strings.Split(m[constants.ServiceLabelKey], ".")
-		storageNamespacedName := strings.Split(m[constants.StorageLabelKey], ".")
+	for _, e := range expectStores {
+		serviceNamespacedName := strings.Split(e.service, ".")
+		storageNamespacedName := strings.Split(e.storage, ".")
 		store := &monitoringv1alpha1.Store{
 			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: fmt.Sprintf("%s-%s-%s-", constants.AppNameStore, serviceNamespacedName[1], storageNamespacedName[1]),
+				GenerateName: fmt.Sprintf("%s-%s-", serviceNamespacedName[1], storageNamespacedName[1]),
 				Namespace:    serviceNamespacedName[0],
-				Labels:       m,
+				Labels: map[string]string{
+					constants.ServiceLabelKey: e.service,
+					constants.StorageLabelKey: e.storage,
+				},
+				Annotations: map[string]string{},
 			},
 		}
+
+		tenantHash, err := t.GetTenantHash(store.Labels)
+		if err != nil {
+			return err
+		}
+
+		storageHash, err := t.GetStorageHash(e.storage)
+		if err != nil {
+			return err
+		}
+
+		store.Annotations[constants.LabelNameTenantHash] = tenantHash
+		store.Annotations[constants.LabelNameStorageHash] = storageHash
 
 		if err := t.Client.Create(t.Context, store); err != nil {
 			return err
@@ -91,20 +141,20 @@ func (t *Tenant) store() error {
 
 		klog.V(3).Infof("Create store[%s.%s] for Service[%s] Storage[%s]",
 			store.Namespace, store.Name,
-			m[constants.ServiceLabelKey],
-			m[constants.StorageLabelKey])
+			e.service,
+			e.storage)
 	}
 
 	return nil
 }
 
-func sortTenantsByStorageAndService(ctx context.Context, c client.Client) (map[string]interface{}, error) {
+func (t *Tenant) sortTenantsByStorageAndService() (map[string]*elem, error) {
 	tenantList := &monitoringv1alpha1.TenantList{}
-	if err := c.List(ctx, tenantList); err != nil {
+	if err := t.Client.List(t.Context, tenantList); err != nil {
 		return nil, err
 	}
 
-	storageMap := make(map[string]interface{})
+	storageMap := make(map[string]*elem)
 	for _, tenant := range tenantList.Items {
 
 		if tenant.DeletionTimestamp != nil || !tenant.DeletionTimestamp.IsZero() {
@@ -112,8 +162,8 @@ func sortTenantsByStorageAndService(ctx context.Context, c client.Client) (map[s
 			continue
 		}
 
-		if tenant.Labels[constants.StorageLabelKey] == constants.LocalStorage {
-			klog.V(3).Infof("ignore tenant %s with local storage", tenant.Name)
+		if tenant.Labels == nil {
+			klog.V(3).Infof("ignore tenant %s without service and storage", tenant.Name)
 			continue
 		}
 
@@ -123,32 +173,15 @@ func sortTenantsByStorageAndService(ctx context.Context, c client.Client) (map[s
 			continue
 		}
 
-		storageNamespacedName := ""
-		if tenant.Spec.Storage != nil {
-			storageNamespacedName = fmt.Sprintf("%s.%s", tenant.Spec.Storage.Namespace, tenant.Spec.Storage.Name)
-		} else {
-			service := &monitoringv1alpha1.Service{}
-			serviceNamespacedName := strings.Split(serviceNamespacedName, ".")
-			if err := c.Get(ctx, types.NamespacedName{
-				Namespace: serviceNamespacedName[0],
-				Name:      serviceNamespacedName[1],
-			}, service); err != nil {
-				klog.V(3).Infof("get service %s failed, %s", serviceNamespacedName, err)
-				return nil, err
-			}
-			if service.Spec.Storage != nil {
-				storageNamespacedName = fmt.Sprintf("%s.%s", service.Spec.Storage.Namespace, service.Spec.Storage.Name)
-			}
-		}
-
-		if storageNamespacedName == "" {
-			klog.V(3).Infof("Tenant [%s] Storage mismatch", tenant.Name)
+		storageNamespacedName := t.GetStorage(tenant.Labels[constants.StorageLabelKey])
+		if storageNamespacedName == constants.LocalStorage {
+			klog.V(3).Infof("ignore tenant %s with local storage", tenant.Name)
 			continue
 		}
 
-		storageMap[serviceNamespacedName+storageNamespacedName] = map[string]string{
-			constants.ServiceLabelKey: serviceNamespacedName,
-			constants.StorageLabelKey: storageNamespacedName,
+		storageMap[serviceNamespacedName+"|"+storageNamespacedName] = &elem{
+			service: serviceNamespacedName,
+			storage: storageNamespacedName,
 		}
 	}
 

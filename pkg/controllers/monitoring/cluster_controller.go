@@ -106,6 +106,7 @@ func (r *ClusterReconciler) createTenantInstance(cluster *clusterv1alpha1.Cluste
 
 	label := make(map[string]string, 1)
 	label[constants.ServiceLabelKey] = r.KubesphereAdapterDefaultService
+	label[constants.StorageLabelKey] = constants.DefaultStorage
 	return &monitoringv1alpha1.Tenant{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   cluster.Name,

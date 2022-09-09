@@ -19,6 +19,12 @@ package monitoring
 import (
 	"context"
 
+	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/ruler"
+	"github.com/kubesphere/whizard/pkg/util"
 	promv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -33,11 +39,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/ruler"
 )
 
 // RulerReconciler reconciles a Ruler object
@@ -59,7 +60,6 @@ type RulerReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
 // the Service object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
@@ -85,6 +85,11 @@ func (r *RulerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, err
 	}
 
+	if instance.Labels == nil ||
+		instance.Labels[constants.ServiceLabelKey] == "" {
+		return ctrl.Result{}, nil
+	}
+
 	baseReconciler := resources.BaseReconciler{
 		Client:  r.Client,
 		Log:     l,
@@ -92,11 +97,12 @@ func (r *RulerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		Context: ctx,
 	}
 
-	if err := ruler.New(baseReconciler, instance, r.Option).Reconcile(); err != nil {
+	rulerReconcile, err := ruler.New(baseReconciler, instance, r.Option)
+	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{}, rulerReconcile.Reconcile()
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -129,19 +135,19 @@ func (r *RulerReconciler) mapRuleToRulerFunc(o client.Object) []reconcile.Reques
 	}
 
 	var reqs []reconcile.Request
-	for _, ruler := range rulerList.Items {
+	for _, item := range rulerList.Items {
 		req := reconcile.Request{
 			NamespacedName: types.NamespacedName{
-				Namespace: ruler.Namespace,
-				Name:      ruler.Name,
+				Namespace: item.Namespace,
+				Name:      item.Name,
 			},
 		}
-		if ruler.Namespace == ns.Name {
+		if item.Namespace == ns.Name {
 			reqs = append(reqs, req)
 			continue
 		}
 
-		ruleNsSelector, err := metav1.LabelSelectorAsSelector(ruler.Spec.RuleNamespaceSelector)
+		ruleNsSelector, err := metav1.LabelSelectorAsSelector(item.Spec.RuleNamespaceSelector)
 		if err != nil {
 			log.FromContext(r.Context).WithValues("ruler", req.NamespacedName).Error(
 				err, "failed to convert RuleNamespaceSelector")
@@ -159,17 +165,17 @@ func (r *RulerReconciler) mapToRulerFunc(o client.Object) []reconcile.Request {
 
 	var rulerList monitoringv1alpha1.RulerList
 	if err := r.Client.List(r.Context, &rulerList,
-		client.MatchingLabels(monitoringv1alpha1.ManagedLabelByService(o))); err != nil {
+		client.MatchingLabels(util.ManagedLabelByService(o))); err != nil {
 		log.FromContext(r.Context).WithValues("rulerlist", "").Error(err, "")
 		return nil
 	}
 
 	var reqs []reconcile.Request
-	for _, ruler := range rulerList.Items {
+	for _, item := range rulerList.Items {
 		reqs = append(reqs, reconcile.Request{
 			NamespacedName: types.NamespacedName{
-				Namespace: ruler.Namespace,
-				Name:      ruler.Name,
+				Namespace: item.Namespace,
+				Name:      item.Name,
 			},
 		})
 	}

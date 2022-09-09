@@ -4,7 +4,10 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/kubesphere/whizard/pkg/constants"
 	"gopkg.in/yaml.v3"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 func AppendLabel(m1, m2 map[string]string) {
@@ -71,4 +74,58 @@ func GetArgName(s string) string {
 
 	keys := strings.Split(s, "=")
 	return keys[0]
+}
+
+func ManagedLabelByService(service metav1.Object) map[string]string {
+	return map[string]string{
+		constants.ServiceLabelKey: service.GetNamespace() + "." + service.GetName(),
+	}
+}
+
+func ManagedLabelBySameService(o metav1.Object) map[string]string {
+	return map[string]string{
+		constants.ServiceLabelKey: o.GetLabels()[constants.ServiceLabelKey],
+	}
+}
+
+func ServiceNamespacedName(managedByService metav1.Object) *types.NamespacedName {
+	ls := managedByService.GetLabels()
+	if len(ls) == 0 {
+		return nil
+	}
+
+	namespacedName := ls[constants.ServiceLabelKey]
+	arr := strings.Split(namespacedName, ".")
+	if len(arr) != 2 {
+		return nil
+	}
+
+	return &types.NamespacedName{
+		Namespace: arr[0],
+		Name:      arr[1],
+	}
+}
+
+func ManagedLabelByStorage(storage metav1.Object) map[string]string {
+	return map[string]string{
+		constants.StorageLabelKey: storage.GetNamespace() + "." + storage.GetName(),
+	}
+}
+
+func StorageNamespacedName(managedByStorage metav1.Object) *types.NamespacedName {
+	ls := managedByStorage.GetLabels()
+	if len(ls) == 0 {
+		return nil
+	}
+
+	namespacedName := ls[constants.StorageLabelKey]
+	arr := strings.Split(namespacedName, ".")
+	if len(arr) != 2 {
+		return nil
+	}
+
+	return &types.NamespacedName{
+		Namespace: arr[0],
+		Name:      arr[1],
+	}
 }

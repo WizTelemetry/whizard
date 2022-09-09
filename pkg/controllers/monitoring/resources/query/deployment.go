@@ -16,6 +16,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -57,7 +58,7 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 	}
 
 	d.Spec = appsv1.DeploymentSpec{
-		Replicas: q.query.Replicas,
+		Replicas: q.query.Spec.Replicas,
 		Selector: &metav1.LabelSelector{
 			MatchLabels: q.labels(),
 		},
@@ -66,9 +67,9 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 				Labels: q.labels(),
 			},
 			Spec: corev1.PodSpec{
-				NodeSelector: q.query.NodeSelector,
-				Tolerations:  q.query.Tolerations,
-				Affinity:     q.query.Affinity,
+				NodeSelector: q.query.Spec.NodeSelector,
+				Tolerations:  q.query.Spec.Tolerations,
+				Affinity:     q.query.Spec.Affinity,
 			},
 		},
 	}
@@ -98,9 +99,9 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 
 	var queryContainer = corev1.Container{
 		Name:      "query",
-		Image:     q.query.Image,
+		Image:     q.query.Spec.Image,
 		Args:      []string{"query"},
-		Resources: q.query.Resources,
+		Resources: q.query.Spec.Resources,
 		Ports: []corev1.ContainerPort{
 			{
 				Protocol:      corev1.ProtocolTCP,
@@ -113,8 +114,8 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 				ContainerPort: constants.HTTPPort,
 			},
 		},
-		LivenessProbe:  resources.DefaultLivenessProbe(),
-		ReadinessProbe: resources.DefaultReadinessProbe(),
+		LivenessProbe:  q.DefaultLivenessProbe(),
+		ReadinessProbe: q.DefaultReadinessProbe(),
 		VolumeMounts: []corev1.VolumeMount{{
 			Name:      storesConfigVol.Name,
 			MountPath: configDir,
@@ -122,20 +123,20 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 		}},
 	}
 
-	if q.query.LogLevel != "" {
-		queryContainer.Args = append(queryContainer.Args, "--log.level="+q.query.LogLevel)
+	if q.query.Spec.LogLevel != "" {
+		queryContainer.Args = append(queryContainer.Args, "--log.level="+q.query.Spec.LogLevel)
 	}
-	if q.query.LogFormat != "" {
-		queryContainer.Args = append(queryContainer.Args, "--log.format="+q.query.LogFormat)
+	if q.query.Spec.LogFormat != "" {
+		queryContainer.Args = append(queryContainer.Args, "--log.format="+q.query.Spec.LogFormat)
 	}
 	queryContainer.Args = append(queryContainer.Args, "--store.sd-files="+filepath.Join(configDir, storesFile))
-	for _, labelName := range q.query.ReplicaLabelNames {
+	for _, labelName := range q.query.Spec.ReplicaLabelNames {
 		queryContainer.Args = append(queryContainer.Args, "--query.replica-label="+labelName)
 	}
 
 	var ingesterList monitoringv1alpha1.IngesterList
 	if err := q.Client.List(q.Context, &ingesterList,
-		client.MatchingLabels(monitoringv1alpha1.ManagedLabelByService(q.Service))); err != nil {
+		client.MatchingLabels(util.ManagedLabelByService(q.Service))); err != nil {
 
 		q.Log.WithValues("ingesterlist", "").Error(err, "")
 		return nil, resources.OperationCreateOrUpdate, err
@@ -149,13 +150,13 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 
 	var storeList monitoringv1alpha1.StoreList
 	if err := q.Client.List(q.Context, &storeList,
-		client.MatchingLabels(monitoringv1alpha1.ManagedLabelByService(q.Service))); err != nil {
+		client.MatchingLabels(util.ManagedLabelByService(q.Service))); err != nil {
 
 		q.Log.WithValues("storelist", "").Error(err, "")
 		return nil, resources.OperationCreateOrUpdate, err
 	}
 	for _, item := range storeList.Items {
-		storeSvcName := util.Join("-", item.Name, constants.ServiceNameSuffix)
+		storeSvcName := util.Join("-", constants.AppNameStore, item.Name, constants.ServiceNameSuffix)
 		endpoint := fmt.Sprintf("%s.%s.svc:%d", storeSvcName, item.Namespace, constants.GRPCPort)
 		queryContainer.Args = append(queryContainer.Args, "--endpoint="+endpoint)
 	}
@@ -163,7 +164,7 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 	// add ruler endpoint to query args
 	var rulerList monitoringv1alpha1.RulerList
 	if err := q.Client.List(q.Context, &rulerList,
-		client.MatchingLabels(monitoringv1alpha1.ManagedLabelByService(q.Service))); err != nil {
+		client.MatchingLabels(util.ManagedLabelByService(q.Service))); err != nil {
 
 		q.Log.WithValues("rulerlist", "").Error(err, "")
 		return nil, resources.OperationCreateOrUpdate, err
@@ -177,13 +178,13 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 		}
 		for shardSn := 0; shardSn < int(shards); shardSn++ {
 			addr := fmt.Sprintf("%s.%s.svc:%d",
-				resources.QualifiedName(constants.AppNameRuler, item.Name, strconv.Itoa(shardSn), constants.ServiceNameSuffix),
+				q.QualifiedName(constants.AppNameRuler, item.Name, strconv.Itoa(shardSn), constants.ServiceNameSuffix),
 				item.Namespace, constants.GRPCPort)
 			queryContainer.Args = append(queryContainer.Args, "--endpoint="+addr)
 		}
 	}
 
-	for _, flag := range q.query.Flags {
+	for _, flag := range q.query.Spec.Flags {
 		arg := util.GetArgName(flag)
 		if util.Contains(unsupportedArgs, arg) {
 			klog.V(3).Infof("ignore the unsupported flag %s", arg)
@@ -207,14 +208,14 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 
 	var envoyContainer = corev1.Container{
 		Name:  "proxy",
-		Image: q.query.Envoy.Image,
+		Image: q.query.Spec.Envoy.Image,
 		Args: []string{
 			"-c",
 			filepath.Join(envoyConfigDir, envoyConfigFile),
 			// "-l",
 			// "debug",
 		},
-		Resources: q.query.Envoy.Resources,
+		Resources: q.query.Spec.Envoy.Resources,
 		VolumeMounts: []corev1.VolumeMount{{
 			Name:      proxyConfigVol.Name,
 			MountPath: envoyConfigDir,
@@ -222,7 +223,7 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 		}},
 	}
 
-	for _, store := range q.query.Stores {
+	for _, store := range q.query.Spec.Stores {
 		if store.CASecret == nil {
 			continue
 		}
@@ -246,5 +247,5 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 	d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, queryContainer)
 	d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, envoyContainer)
 
-	return d, resources.OperationCreateOrUpdate, nil
+	return d, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(q.query, d, q.Scheme)
 }

@@ -20,7 +20,7 @@ const (
 )
 
 func (r *Store) statefulSet() (runtime.Object, resources.Operation, error) {
-	var sts = &appsv1.StatefulSet{ObjectMeta: r.meta(r.store.Name)}
+	var sts = &appsv1.StatefulSet{ObjectMeta: r.meta(r.name())}
 	if err := r.Client.Get(r.Context, client.ObjectKeyFromObject(sts), sts); err != nil {
 		if !util.IsNotFound(err) {
 			return nil, "", err
@@ -73,9 +73,9 @@ func (r *Store) statefulSet() (runtime.Object, resources.Operation, error) {
 	}
 
 	container.VolumeMounts = []corev1.VolumeMount{}
-	resources.AddTSDBVolume(sts, container, r.store.Spec.DataVolume)
+	r.AddTSDBVolume(sts, container, r.store.Spec.DataVolume)
 
-	volumes, volumeMounts, err := resources.VolumesAndVolumeMountsForStorage(r.Context, r.Client, r.store.Labels[constants.StorageLabelKey])
+	volumes, volumeMounts, err := r.VolumesAndVolumeMountsForStorage(r.store.Labels[constants.StorageLabelKey])
 	if err != nil {
 		return nil, "", err
 	}
@@ -83,16 +83,16 @@ func (r *Store) statefulSet() (runtime.Object, resources.Operation, error) {
 	container.VolumeMounts = append(container.VolumeMounts, volumeMounts...)
 
 	if container.LivenessProbe == nil {
-		container.LivenessProbe = resources.DefaultLivenessProbe()
+		container.LivenessProbe = r.DefaultLivenessProbe()
 	}
 
 	if container.ReadinessProbe == nil {
-		container.ReadinessProbe = resources.DefaultReadinessProbe()
+		container.ReadinessProbe = r.DefaultReadinessProbe()
 	}
 
 	container.Resources = r.store.Spec.Resources
 
-	storageHash, err := resources.GetStorageHash(r.Context, r.Client, r.store.Labels[constants.StorageLabelKey])
+	storageHash, err := r.GetStorageHash(r.store.Labels[constants.StorageLabelKey])
 	if err != nil {
 		return nil, "", err
 	}
@@ -108,7 +108,7 @@ func (r *Store) statefulSet() (runtime.Object, resources.Operation, error) {
 		container.Env = append(container.Env, env)
 	}
 
-	tenantHash, err := resources.GetTenantHash(r.Context, r.Client, map[string]string{
+	tenantHash, err := r.GetTenantHash(map[string]string{
 		constants.StorageLabelKey: r.store.Labels[constants.StorageLabelKey],
 		constants.ServiceLabelKey: r.store.Labels[constants.ServiceLabelKey],
 	})
@@ -141,7 +141,7 @@ func (r *Store) statefulSet() (runtime.Object, resources.Operation, error) {
 }
 
 func (r *Store) megerArgs() ([]string, error) {
-	storageConfig, err := resources.GetStorageConfig(r.Context, r.Client, r.store.Labels[constants.StorageLabelKey])
+	storageConfig, err := r.GetStorageConfig(r.store.Labels[constants.StorageLabelKey])
 	if err != nil {
 		return nil, err
 	}

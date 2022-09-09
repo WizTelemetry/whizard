@@ -120,14 +120,16 @@ type GatewayOptions struct {
 }
 
 func NewGatewayOptions() *GatewayOptions {
-	return &GatewayOptions{
+	o := &GatewayOptions{
 		CommonOptions: NewCommonOptions(),
 	}
+
+	o.Image = DefaultGatewayImage
+	return o
 }
 
 func (o *GatewayOptions) ApplyTo(options *GatewayOptions) {
 	o.CommonOptions.ApplyTo(&options.CommonOptions)
-
 }
 
 func (o *GatewayOptions) Validate() []error {

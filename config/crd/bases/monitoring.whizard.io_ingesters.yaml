@@ -1226,15 +1226,6 @@ spec:
                       to an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
                     type: object
                 type: object
-              storage:
-                description: If specified, the object key of Storage for long term
-                  storage.
-                properties:
-                  name:
-                    type: string
-                  namespace:
-                    type: string
-                type: object
               tenants:
                 description: Tenants if not empty indicates current config is for
                   hard tenants; otherwise, it is for soft tenants.

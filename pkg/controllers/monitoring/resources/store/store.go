@@ -32,6 +32,10 @@ func (r *Store) labels() map[string]string {
 	return labels
 }
 
+func (r *Store) name(nameSuffix ...string) string {
+	return r.QualifiedName(constants.AppNameStore, r.store.Name, nameSuffix...)
+}
+
 func (r *Store) meta(name string) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
 		Name:            name,

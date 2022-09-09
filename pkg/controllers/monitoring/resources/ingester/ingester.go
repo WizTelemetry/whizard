@@ -7,7 +7,6 @@ import (
 	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
 )
 
 type Ingester struct {
@@ -30,28 +29,15 @@ func (r *Ingester) labels() map[string]string {
 }
 
 func (r *Ingester) name(nameSuffix ...string) string {
-	return resources.QualifiedName(constants.AppNameIngester, r.ingester.Name, nameSuffix...)
+	return r.QualifiedName(constants.AppNameIngester, r.ingester.Name, nameSuffix...)
 }
 
 func (r *Ingester) meta(name string) metav1.ObjectMeta {
 
 	return metav1.ObjectMeta{
-		Name:            name,
-		Namespace:       r.ingester.Namespace,
-		Labels:          r.labels(),
-		OwnerReferences: r.OwnerReferences(),
-	}
-}
-
-func (r *Ingester) OwnerReferences() []metav1.OwnerReference {
-	return []metav1.OwnerReference{
-		{
-			APIVersion: r.ingester.APIVersion,
-			Kind:       r.ingester.Kind,
-			Name:       r.ingester.Name,
-			UID:        r.ingester.UID,
-			Controller: pointer.BoolPtr(true),
-		},
+		Name:      name,
+		Namespace: r.ingester.Namespace,
+		Labels:    r.labels(),
 	}
 }
 

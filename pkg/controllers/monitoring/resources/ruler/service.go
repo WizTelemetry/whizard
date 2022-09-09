@@ -4,12 +4,12 @@ import (
 	"strconv"
 	"strings"
 
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func (r *Ruler) services() (retResources []resources.Resource) {
@@ -75,5 +75,5 @@ func (r *Ruler) service(shardSn int) (runtime.Object, resources.Operation, error
 			},
 		},
 	}
-	return s, resources.OperationCreateOrUpdate, nil
+	return s, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(r.ruler, s, r.Scheme)
 }

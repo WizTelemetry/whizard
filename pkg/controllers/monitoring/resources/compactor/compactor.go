@@ -29,6 +29,10 @@ func (r *Compactor) labels() map[string]string {
 	return labels
 }
 
+func (r *Compactor) name(nameSuffix ...string) string {
+	return r.QualifiedName(constants.AppNameCompactor, r.compactor.Name, nameSuffix...)
+}
+
 func (r *Compactor) meta(name string) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
 		Name:            name,

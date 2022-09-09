@@ -15,15 +15,18 @@ const (
 )
 
 type QueryFrontend struct {
-	resources.ServiceBaseReconciler
+	resources.BaseReconciler
 	queryFrontend *monitoringv1alpha1.QueryFrontend
 }
 
-func New(reconciler resources.ServiceBaseReconciler) *QueryFrontend {
-	return &QueryFrontend{
-		ServiceBaseReconciler: reconciler,
-		queryFrontend:         reconciler.Service.Spec.QueryFrontend,
+func New(reconciler resources.BaseReconciler, q *monitoringv1alpha1.QueryFrontend) (*QueryFrontend, error) {
+	if err := reconciler.SetService(q); err != nil {
+		return nil, err
 	}
+	return &QueryFrontend{
+		BaseReconciler: reconciler,
+		queryFrontend:  q,
+	}, nil
 }
 
 func (q *QueryFrontend) labels() map[string]string {
@@ -34,16 +37,15 @@ func (q *QueryFrontend) labels() map[string]string {
 }
 
 func (q *QueryFrontend) name(nameSuffix ...string) string {
-	return resources.QualifiedName(constants.AppNameQueryFrontend, q.Service.Name, nameSuffix...)
+	return q.QualifiedName(constants.AppNameQueryFrontend, q.queryFrontend.Name, nameSuffix...)
 }
 
 func (q *QueryFrontend) meta(name string) metav1.ObjectMeta {
 
 	return metav1.ObjectMeta{
-		Name:            name,
-		Namespace:       q.Service.Namespace,
-		Labels:          q.labels(),
-		OwnerReferences: q.OwnerReferences(),
+		Name:      name,
+		Namespace: q.Service.Namespace,
+		Labels:    q.labels(),
 	}
 }
 

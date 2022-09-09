@@ -24,10 +24,13 @@ import (
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/queryfrontend"
+	"github.com/kubesphere/whizard/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -54,7 +57,6 @@ type QueryFrontendReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
 // the Service object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
@@ -66,7 +68,7 @@ func (r *QueryFrontendReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	l.Info("sync")
 
-	instance := &monitoringv1alpha1.Service{}
+	instance := &monitoringv1alpha1.QueryFrontend{}
 	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -75,21 +77,24 @@ func (r *QueryFrontendReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, err
 	}
 
-	instance, err = r.Validator(instance)
+	if instance.Labels == nil ||
+		instance.Labels[constants.ServiceLabelKey] == "" {
+		return ctrl.Result{}, nil
+	}
+
+	instance = r.Validator(instance)
+	queryFrontendReconciler, err := queryfrontend.New(
+		resources.BaseReconciler{
+			Client:  r.Client,
+			Log:     l,
+			Scheme:  r.Scheme,
+			Context: ctx,
+		},
+		instance,
+	)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-
-	queryFrontendReconciler := queryfrontend.New(
-		resources.ServiceBaseReconciler{
-			Service: instance,
-			BaseReconciler: resources.BaseReconciler{
-				Client:  r.Client,
-				Log:     l,
-				Scheme:  r.Scheme,
-				Context: ctx,
-			},
-		})
 
 	return ctrl.Result{}, queryFrontendReconciler.Reconcile()
 }
@@ -97,42 +102,43 @@ func (r *QueryFrontendReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 // SetupWithManager sets up the controller with the Manager.
 func (r *QueryFrontendReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&monitoringv1alpha1.Service{}).
+		For(&monitoringv1alpha1.QueryFrontend{}).
+		Watches(&source.Kind{Type: &monitoringv1alpha1.Service{}},
+			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(util.ManagedLabelByService))).
+		Watches(&source.Kind{Type: &monitoringv1alpha1.Query{}},
+			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(util.ManagedLabelBySameService))).
 		Watches(&source.Kind{Type: &monitoringv1alpha1.Tenant{}},
-			handler.EnqueueRequestsFromMapFunc(r.mapToServiceFunc)).
+			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(util.ManagedLabelBySameService))).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
 		Complete(r)
 }
 
-func (r *QueryFrontendReconciler) mapToServiceFunc(o client.Object) []reconcile.Request {
-	namespacedName := monitoringv1alpha1.ServiceNamespacedName(o)
-	if namespacedName == nil {
-		return nil
-	}
+func (r *QueryFrontendReconciler) mapFuncBySelectorFunc(fn func(metav1.Object) map[string]string) handler.MapFunc {
+	return func(o client.Object) []reconcile.Request {
+		queryFrontendList := &monitoringv1alpha1.QueryFrontendList{}
+		if err := r.Client.List(r.Context, queryFrontendList, client.MatchingLabels(fn(o))); err != nil {
+			log.FromContext(r.Context).WithValues("queryFrontendList", "").Error(err, "")
+			return nil
+		}
 
-	return []reconcile.Request{{
-		NamespacedName: *namespacedName,
-	}}
+		var reqs []reconcile.Request
+		for _, item := range queryFrontendList.Items {
+			reqs = append(reqs, reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Namespace: item.Namespace,
+					Name:      item.Name,
+				},
+			})
+		}
+
+		return reqs
+	}
 }
 
-func (r *QueryFrontendReconciler) Validator(service *monitoringv1alpha1.Service) (*monitoringv1alpha1.Service, error) {
-
-	if service.Spec.TenantHeader == "" {
-		service.Spec.TenantHeader = constants.DefaultTenantHeader
-	}
-	if service.Spec.TenantLabelName == "" {
-		service.Spec.TenantLabelName = constants.DefaultTenantLabelName
-	}
-	if service.Spec.DefaultTenantId == "" {
-		service.Spec.DefaultTenantId = constants.DefaultTenantId
-	}
-
-	if service.Spec.QueryFrontend != nil {
-		r.Options.Apply(&service.Spec.QueryFrontend.CommonSpec)
-	}
-
-	return service, nil
+func (r *QueryFrontendReconciler) Validator(q *monitoringv1alpha1.QueryFrontend) *monitoringv1alpha1.QueryFrontend {
+	r.Options.Apply(&q.Spec.CommonSpec)
+	return q
 
 }

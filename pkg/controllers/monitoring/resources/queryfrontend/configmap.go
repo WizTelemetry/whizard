@@ -5,10 +5,10 @@ import (
 
 	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
-
 	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 func (q *QueryFrontend) cacheConfigConfigMap() (runtime.Object, resources.Operation, error) {
@@ -33,15 +33,15 @@ func (q *QueryFrontend) cacheConfigConfigMap() (runtime.Object, resources.Operat
 		},
 	}
 
-	if q.queryFrontend.CacheConfig != nil {
-		switch q.queryFrontend.CacheConfig.Type {
+	if q.queryFrontend.Spec.CacheConfig != nil {
+		switch q.queryFrontend.Spec.CacheConfig.Type {
 		case v1alpha1.INMEMORY:
-			if q.queryFrontend.CacheConfig.InMemoryResponseCacheConfig == nil {
+			if q.queryFrontend.Spec.CacheConfig.InMemoryResponseCacheConfig == nil {
 				cacheConfig = defaultINMEMORYCacheConfig
 			} else {
 				cacheConfig = CacheProviderConfig{
 					Type:   string(v1alpha1.INMEMORY),
-					Config: *q.queryFrontend.CacheConfig.InMemoryResponseCacheConfig,
+					Config: *q.queryFrontend.Spec.CacheConfig.InMemoryResponseCacheConfig,
 				}
 			}
 
@@ -65,6 +65,5 @@ func (q *QueryFrontend) cacheConfigConfigMap() (runtime.Object, resources.Operat
 		cacheConfigFile: string(cacheConfigBytes),
 	}
 
-	return cm, resources.OperationCreateOrUpdate, nil
-
+	return cm, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(q.queryFrontend, cm, q.Scheme)
 }

@@ -17,13 +17,9 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"strings"
-
-	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/prometheus/common/model"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 type StorageSpec struct {
@@ -114,30 +110,6 @@ type StorageList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Storage `json:"items"`
-}
-
-func ManagedLabelByStorage(storage metav1.Object) map[string]string {
-	return map[string]string{
-		constants.StorageLabelKey: storage.GetNamespace() + "." + storage.GetName(),
-	}
-}
-
-func StorageNamespacedName(managedByStorage metav1.Object) *types.NamespacedName {
-	ls := managedByStorage.GetLabels()
-	if len(ls) == 0 {
-		return nil
-	}
-
-	namespacedName := ls[constants.StorageLabelKey]
-	arr := strings.Split(namespacedName, ".")
-	if len(arr) != 2 {
-		return nil
-	}
-
-	return &types.NamespacedName{
-		Namespace: arr[0],
-		Name:      arr[1],
-	}
 }
 
 func init() {

@@ -9,6 +9,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/go-logr/logr"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/pkg/errors"
 	promv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/prometheus-operator/prometheus-operator/pkg/prometheus"
@@ -16,8 +17,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 )
 
 var maxConfigMapDataSize = int(float64(corev1.MaxSecretSize) * 0.5)
