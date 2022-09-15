@@ -117,6 +117,8 @@ type GatewayOptions struct {
 	ServerCertificate string `json:"serverCertificate,omitempty"`
 	// Secret name for HTTP Client CA certificate (Kubernetes TLS secret type)
 	ClientCACertificate string `json:"clientCaCertificate,omitempty"`
+
+	NodePort int32 `json:"nodePort,omitempty"`
 }
 
 func NewGatewayOptions() *GatewayOptions {
@@ -130,6 +132,10 @@ func NewGatewayOptions() *GatewayOptions {
 
 func (o *GatewayOptions) ApplyTo(options *GatewayOptions) {
 	o.CommonOptions.ApplyTo(&options.CommonOptions)
+
+	if options.NodePort == 0 {
+		options.NodePort = o.NodePort
+	}
 }
 
 func (o *GatewayOptions) Validate() []error {
@@ -449,4 +455,106 @@ func (o *StoreOptions) Validate() []error {
 
 func (o *StoreOptions) AddFlags(fs *pflag.FlagSet, s *StoreOptions) {
 	o.CommonOptions.AddFlags(fs, &s.CommonOptions, "store")
+}
+
+type StorageOptions struct {
+	Bucket *BucketOptions `json:"bucket,omitempty"`
+}
+
+type BucketOptions struct {
+	Enable             *bool `json:"enable,omitempty"`
+	CommonOptions      `json:",inline"`
+	ServiceAccountName string           `json:"serviceAccountName,omitempty"`
+	Refresh            *metav1.Duration `json:"refresh,omitempty"`
+	GC                 *BucketGCOptions `json:"gc,omitempty"`
+}
+
+type BucketGCOptions struct {
+	Enable          *bool                       `json:"enable,omitempty"`
+	Resources       corev1.ResourceRequirements `json:"resources,omitempty"`
+	Image           string                      `json:"image,omitempty"`
+	ImagePullPolicy corev1.PullPolicy           `json:"imagePullPolicy,omitempty"`
+	Interval        *metav1.Duration            `json:"interval,omitempty"`
+	CleanupTimeout  *metav1.Duration            `json:"cleanupTimeout,omitempty"`
+}
+
+func NewStorageOptions() *StorageOptions {
+	enable := true
+	refresh := metav1.Duration{time.Minute}
+	return &StorageOptions{
+		Bucket: &BucketOptions{
+			Enable:        &enable,
+			CommonOptions: NewCommonOptions(),
+			Refresh:       &refresh,
+			GC: &BucketGCOptions{
+				Enable: &enable,
+				Image:  DefaultBucketImage,
+			},
+			ServiceAccountName: DefaultServiceAccount,
+		},
+	}
+}
+
+func (o *StorageOptions) ApplyTo(options *StorageOptions) {
+	if o.Bucket != nil {
+		if options.Bucket == nil {
+			options.Bucket = o.Bucket
+		} else {
+			o.Bucket.CommonOptions.ApplyTo(&options.Bucket.CommonOptions)
+
+			if options.Bucket.Enable == nil {
+				options.Bucket.Enable = o.Bucket.Enable
+			}
+
+			if options.Bucket.Refresh == nil || options.Bucket.Refresh.Duration == 0 {
+				options.Bucket.Refresh = o.Bucket.Refresh
+			}
+			if options.Bucket.ServiceAccountName == "" {
+				options.Bucket.ServiceAccountName = o.Bucket.ServiceAccountName
+			}
+
+			if o.Bucket.GC != nil {
+				if options.Bucket.GC == nil {
+					options.Bucket.GC = o.Bucket.GC
+				} else {
+					if options.Bucket.GC.Image == "" {
+						options.Bucket.GC.Image = o.Bucket.GC.Image
+					}
+
+					if options.Bucket.GC.ImagePullPolicy == "" {
+						options.Bucket.GC.ImagePullPolicy = o.Bucket.GC.ImagePullPolicy
+					}
+
+					if options.Bucket.GC.Interval == nil ||
+						options.Bucket.GC.Interval.Duration == 0 {
+						options.Bucket.GC.Interval = o.Bucket.GC.Interval
+					}
+
+					if options.Bucket.GC.CleanupTimeout == nil ||
+						options.Bucket.GC.CleanupTimeout.Duration == 0 {
+						options.Bucket.GC.CleanupTimeout = o.Bucket.GC.CleanupTimeout
+					}
+
+					if options.Bucket.GC.Enable == nil {
+						options.Bucket.GC.Enable = o.Bucket.GC.Enable
+					}
+				}
+			}
+		}
+	}
+}
+
+func (o *StorageOptions) Validate() []error {
+	var errs []error
+	if o.Bucket != nil {
+		errs = append(errs, o.Bucket.CommonOptions.Validate()...)
+	}
+
+	return errs
+}
+
+func (o *StorageOptions) AddFlags(fs *pflag.FlagSet, s *StorageOptions) {
+	if o.Bucket != nil && s.Bucket != nil {
+		o.Bucket.CommonOptions.AddFlags(fs, &s.Bucket.CommonOptions, "storage")
+	}
 }

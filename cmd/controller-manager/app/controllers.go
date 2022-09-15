@@ -111,6 +111,7 @@ func addControllers(mgr manager.Manager, client k8s.Client, informerFactory info
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
 		Context: ctx,
+		Options: cmOptions.MonitoringOptions.Storage,
 	}).SetupWithManager(mgr); err != nil {
 		klog.Errorf("Unable to create Storage controller: %v", err)
 		return err

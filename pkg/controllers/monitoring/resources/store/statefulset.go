@@ -11,12 +11,21 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
 	mainContainerName = "store"
+)
+
+var (
+	// unsupportedArgs is the args that are not allowed to be set by the user.
+	unsupportedArgs = []string{
+		"--http-address",
+		"--grpc-address",
+	}
 )
 
 func (r *Store) statefulSet() (runtime.Object, resources.Operation, error) {
@@ -172,10 +181,15 @@ func (r *Store) megerArgs() ([]string, error) {
 	}
 
 	for _, flag := range r.store.Spec.Flags {
+		arg := util.GetArgName(flag)
+		if util.Contains(unsupportedArgs, arg) {
+			klog.V(3).Infof("ignore the unsupported flag %s", arg)
+			continue
+		}
+
 		replaced := util.ReplaceInSlice(defaultArgs, func(v interface{}) bool {
 			return util.GetArgName(v.(string)) == util.GetArgName(flag)
 		}, flag)
-
 		if !replaced {
 			defaultArgs = append(defaultArgs, flag)
 		}

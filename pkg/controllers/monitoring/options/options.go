@@ -11,6 +11,7 @@ const (
 	DefaultEnvoyImage                    = "envoyproxy/envoy:v1.20.2"
 	DefaultGatewayImage                  = "kubesphere/whizard-monitoring-gateway:latest"
 	DefaultPrometheusConfigReloaderImage = "quay.io/prometheus-operator/prometheus-config-reloader:v0.55.1"
+	DefaultBucketImage                   = "kubesphere/whizard-monitoring-bucket:latest"
 
 	DefaultService = "kubesphere-monitoring-system.central"
 
@@ -23,6 +24,8 @@ const (
 	DefaultRulerEvaluationInterval        = time.Second * 30
 	DefaultStoreMinReplicas        int32  = 2
 	DefaultStoreMaxReplicas        int32  = 20
+
+	DefaultServiceAccount = "whizard-controller-manager"
 )
 
 type Options struct {
@@ -37,6 +40,7 @@ type Options struct {
 	Router        *RouterOptions        `json:"router,omitempty" yaml:"router,omitempty" mapstructure:"router"`
 	Ruler         *RulerOptions         `json:"ruler,omitempty" yaml:"ruler,omitempty" mapstructure:"ruler"`
 	Store         *StoreOptions         `json:"store,omitempty" yaml:"store,omitempty" mapstructure:"store"`
+	Storage       *StorageOptions       `json:"storage,omitempty" yaml:"storage,omitempty" mapstructure:"storage"`
 }
 
 func NewOptions() *Options {
@@ -53,6 +57,7 @@ func NewOptions() *Options {
 		Router:        NewRouterOptions(),
 		Ruler:         NewRulerOptions(),
 		Store:         NewStoreOptions(),
+		Storage:       NewStorageOptions(),
 	}
 }
 
@@ -67,6 +72,7 @@ func (o *Options) Validate() []error {
 	errs = append(errs, o.Router.Validate()...)
 	errs = append(errs, o.Ruler.Validate()...)
 	errs = append(errs, o.Store.Validate()...)
+	errs = append(errs, o.Storage.Validate()...)
 	return errs
 }
 
@@ -85,6 +91,7 @@ func (o *Options) ApplyTo(options *Options) {
 	o.Router.ApplyTo(options.Router)
 	o.Ruler.ApplyTo(options.Ruler)
 	o.Store.ApplyTo(options.Store)
+	o.Storage.ApplyTo(options.Storage)
 }
 
 func (o *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
@@ -99,4 +106,5 @@ func (o *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
 	o.Router.AddFlags(fs, o.Router)
 	o.Ruler.AddFlags(fs, o.Ruler)
 	o.Store.AddFlags(fs, c.Store)
+	o.Storage.AddFlags(fs, c.Storage)
 }

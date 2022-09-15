@@ -16,6 +16,11 @@ package monitoring
 import (
 	"context"
 
+	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/storage"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -26,10 +31,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/storage"
 )
 
 // StorageReconciler reconciles a Storage object
@@ -37,6 +38,8 @@ type StorageReconciler struct {
 	client.Client
 	Scheme  *runtime.Scheme
 	Context context.Context
+
+	Options *options.StorageOptions
 }
 
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=storages,verbs=get;list;watch;create;update;patch;delete
@@ -64,6 +67,7 @@ func (r *StorageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 		return ctrl.Result{}, err
 	}
+	instance = r.validate(instance)
 
 	baseReconciler := resources.BaseReconciler{
 		Client:  r.Client,
@@ -84,6 +88,8 @@ func (r *StorageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&monitoringv1alpha1.Storage{}).
 		Watches(&source.Kind{Type: &corev1.Secret{}},
 			handler.EnqueueRequestsFromMapFunc(r.mapToStoragebySecretRefFunc)).
+		Owns(&appsv1.Deployment{}).
+		Owns(&corev1.Service{}).
 		Owns(&corev1.Secret{}).
 		Complete(r)
 }
@@ -117,4 +123,36 @@ func (r *StorageReconciler) mapToStoragebySecretRefFunc(o client.Object) []recon
 	}
 
 	return reqs
+}
+
+func (r *StorageReconciler) validate(storage *monitoringv1alpha1.Storage) *monitoringv1alpha1.Storage {
+
+	if storage.Spec.Bucket != nil && storage.Spec.Bucket.Enable != nil && *(storage.Spec.Bucket.Enable) {
+		r.Options.Bucket.Apply(&storage.Spec.Bucket.CommonSpec)
+
+		if storage.Spec.Bucket.Refresh == nil || storage.Spec.Bucket.Refresh.Duration == 0 {
+			storage.Spec.Bucket.Refresh = r.Options.Bucket.Refresh
+		}
+
+		if storage.Spec.Bucket.ServiceAccountName == "" {
+			storage.Spec.Bucket.ServiceAccountName = r.Options.Bucket.ServiceAccountName
+		}
+
+		if storage.Spec.Bucket.GC != nil && storage.Spec.Bucket.GC.Enable != nil && *storage.Spec.Bucket.GC.Enable {
+			if storage.Spec.Bucket.GC.Image == "" {
+				storage.Spec.Bucket.GC.Image = r.Options.Bucket.GC.Image
+			}
+			if storage.Spec.Bucket.GC.ImagePullPolicy == "" {
+				storage.Spec.Bucket.GC.ImagePullPolicy = r.Options.Bucket.GC.ImagePullPolicy
+			}
+			if storage.Spec.Bucket.GC.Resources.Limits == nil {
+				storage.Spec.Bucket.GC.Resources.Limits = r.Options.Bucket.GC.Resources.Limits
+			}
+			if storage.Spec.Bucket.GC.Resources.Requests == nil {
+				storage.Spec.Bucket.GC.Resources.Requests = r.Options.Bucket.GC.Resources.Requests
+			}
+		}
+	}
+
+	return storage
 }

@@ -187,7 +187,7 @@ cat <<EOF | kubectl apply -f -
             requests:
               cpu: 50m
               memory: 100Mi
-  ---
+---
   apiVersion: v1
   kind: Service
   metadata:

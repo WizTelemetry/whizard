@@ -16,8 +16,8 @@ func (r *Router) service() (runtime.Object, resources.Operation, error) {
 	}
 
 	s.Spec = corev1.ServiceSpec{
-		ClusterIP: corev1.ClusterIPNone,
-		Selector:  r.labels(),
+		Type:     corev1.ServiceTypeClusterIP,
+		Selector: r.labels(),
 		Ports: []corev1.ServicePort{
 			{
 				Protocol: corev1.ProtocolTCP,

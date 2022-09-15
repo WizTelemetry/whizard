@@ -30,6 +30,7 @@ var (
 	unsupportedArgs = []string{
 		// Deprecation
 		"--log.request.decision",
+		"--http-address",
 	}
 )
 

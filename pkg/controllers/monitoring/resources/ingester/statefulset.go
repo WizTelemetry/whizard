@@ -28,6 +28,8 @@ var (
 	unsupportedArgs = []string{
 		"--receive.hashrings",
 		"--receive.hashrings-file",
+		"--http-address",
+		"--grpc-address",
 	}
 )
 

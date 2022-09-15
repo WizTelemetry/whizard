@@ -35,6 +35,8 @@ const (
 	AppNameRuler         = "ruler"
 	AppNameStore         = "store"
 	AppNameCompactor     = "compactor"
+	AppNameStorage       = "storage"
+	AppNameBucket        = "bucket"
 
 	ServiceNameSuffix = "operated"
 

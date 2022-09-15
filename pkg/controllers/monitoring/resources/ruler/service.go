@@ -60,8 +60,8 @@ func (r *Ruler) service(shardSn int) (runtime.Object, resources.Operation, error
 	ls[constants.LabelNameRulerShardSn] = strconv.Itoa(shardSn)
 
 	s.Spec = corev1.ServiceSpec{
-		ClusterIP: corev1.ClusterIPNone,
-		Selector:  ls,
+		Type:     corev1.ServiceTypeClusterIP,
+		Selector: ls,
 		Ports: []corev1.ServicePort{
 			{
 				Protocol: corev1.ProtocolTCP,
