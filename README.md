@@ -1,6 +1,11 @@
 # Whizard
 
-Whizard is an observability platform for Kubernetes infrastructure and applications, which integrates your metrics, logs, events and so on accross kubernetes clusters.
+Whizard is a Cloud Native observability platform for Cloud Native and traditional infrastructure and applications.
+Currently, Whizard supports managing massive metrics data from multiple tenants, and the support for managing logs and tracing data will be added in the future.
+
+## Architecture
+
+<div align=center><img src=docs/images/whizard.svg></div>
 
 ## Status
 
