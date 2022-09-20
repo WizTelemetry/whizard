@@ -33,7 +33,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // ClusterReconciler reconciles a Service object
@@ -90,16 +89,6 @@ func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&clusterv1alpha1.Cluster{}).WithEventFilter(&ResourceCustomPredicate{}).
 		Owns(&monitoringv1alpha1.Tenant{}).
 		Complete(r)
-}
-
-func (r *ClusterReconciler) mapToTenantFunc(o client.Object) []reconcile.Request {
-	req := types.NamespacedName{
-		Name: o.GetName(),
-	}
-	return []ctrl.Request{{
-		NamespacedName: req,
-	},
-	}
 }
 
 func (r *ClusterReconciler) createTenantInstance(cluster *clusterv1alpha1.Cluster) *monitoringv1alpha1.Tenant {

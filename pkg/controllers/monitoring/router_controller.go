@@ -138,7 +138,7 @@ func (r *RouterReconciler) mapFuncBySelectorFunc(fn func(metav1.Object) map[stri
 }
 
 func (r *RouterReconciler) validator(router *monitoringv1alpha1.Router) *monitoringv1alpha1.Router {
-	r.Options.Apply(&router.Spec.CommonSpec)
+	r.Options.Override(&router.Spec)
 	return router
 
 }

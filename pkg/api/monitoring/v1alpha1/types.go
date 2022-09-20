@@ -151,7 +151,7 @@ type QuerySpec struct {
 	ReplicaLabelNames []string `json:"replicaLabelNames,omitempty"`
 
 	// Envoy is used to config sidecar which proxies requests requiring auth to the secure stores
-	Envoy EnvoySpec `json:"envoy,omitempty"`
+	Envoy SidecarSpec `json:"envoy,omitempty"`
 }
 
 type QueryStores struct {
@@ -161,11 +161,10 @@ type QueryStores struct {
 	CASecret *corev1.SecretKeySelector `json:"caSecret,omitempty"`
 }
 
-// EnvoySpec defines the desired state of envoy proxy sidecar which delegates requests to the secure stores
-type EnvoySpec struct {
+type SidecarSpec struct {
 	// Image is the envoy image with tag/version
 	Image string `json:"image,omitempty" yaml:"image,omitempty"`
-	// Define resources requests and limits for envoy container.
+	// Define resources requests and limits for sidecar container.
 	Resources corev1.ResourceRequirements `json:"resources,omitempty" yaml:"resources,omitempty"`
 }
 
@@ -484,6 +483,10 @@ type IngesterList struct {
 // RulerSpec defines the desired state of a Ruler
 type RulerSpec struct {
 	CommonSpec `json:",inline"`
+
+	RulerQueryProxy SidecarSpec `json:"rulerQueryProxy,omitempty"`
+
+	PrometheusConfigReloader SidecarSpec `json:"prometheusConfigReloader,omitempty"`
 
 	// A label selector to select which PrometheusRules to mount for alerting and
 	// recording.

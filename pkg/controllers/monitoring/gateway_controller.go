@@ -138,6 +138,6 @@ func (r *GatewayReconciler) mapFuncBySelectorFunc(fn func(metav1.Object) map[str
 }
 
 func (r *GatewayReconciler) validator(g *monitoringv1alpha1.Gateway) *monitoringv1alpha1.Gateway {
-	r.Options.Apply(&g.Spec.CommonSpec)
+	r.Options.Override(&g.Spec)
 	return g
 }

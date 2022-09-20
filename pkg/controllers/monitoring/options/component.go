@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/util"
 	"github.com/spf13/pflag"
 	"k8s.io/api/autoscaling/v2beta2"
 	corev1 "k8s.io/api/core/v1"
@@ -13,6 +14,8 @@ import (
 
 type CompactorOptions struct {
 	CommonOptions `json:",inline" yaml:",inline" mapstructure:",squash"`
+
+	DataVolume *v1alpha1.KubernetesVolume `json:"dataVolume,omitempty" yaml:"dataVolume,omitempty"`
 
 	DefaultTenantsPerCompactor int `json:"defaultTenantsPerCompactor,omitempty" yaml:"defaultTenantsPerCompactor,omitempty"`
 	// DisableDownsampling specifies whether to disable downsampling
@@ -28,11 +31,30 @@ func NewCompactorOptions() *CompactorOptions {
 	}
 }
 
+func (o *CompactorOptions) AddFlags(fs *pflag.FlagSet, c *CompactorOptions) {
+	o.CommonOptions.AddFlags(fs, &c.CommonOptions, "compactor")
+	fs.IntVar(&c.DefaultTenantsPerCompactor, "default-tenants-per-compactor", c.DefaultTenantsPerCompactor, "Number of tenants processed per compactor")
+}
+
 func (o *CompactorOptions) ApplyTo(options *CompactorOptions) {
 	o.CommonOptions.ApplyTo(&options.CommonOptions)
 
 	if o.DefaultTenantsPerCompactor != 0 {
 		options.DefaultTenantsPerCompactor = o.DefaultTenantsPerCompactor
+	}
+
+	if o.DataVolume != nil {
+		if options.DataVolume == nil {
+			options.DataVolume = o.DataVolume
+		} else {
+			if o.DataVolume.PersistentVolumeClaim != nil {
+				options.DataVolume.PersistentVolumeClaim = o.DataVolume.PersistentVolumeClaim
+			}
+
+			if o.DataVolume.EmptyDir != nil {
+				options.DataVolume.EmptyDir = o.DataVolume.EmptyDir
+			}
+		}
 	}
 
 	if o.DisableDownsampling != nil {
@@ -43,18 +65,23 @@ func (o *CompactorOptions) ApplyTo(options *CompactorOptions) {
 		if options.Retention == nil {
 			options.Retention = o.Retention
 		} else {
-			if o.Retention.Retention1h != "" {
-				options.Retention.Retention1h = o.Retention.Retention1h
-			}
-
-			if o.Retention.RetentionRaw != "" {
-				options.Retention.RetentionRaw = o.Retention.RetentionRaw
-			}
-
-			if o.Retention.Retention5m != "" {
-				options.Retention.Retention5m = o.Retention.Retention5m
-			}
+			util.Override(options.Retention, o.Retention)
 		}
+	}
+}
+
+// Override the Options overrides the spec field when it is empty
+func (o *CompactorOptions) Override(spec *v1alpha1.CompactorSpec) {
+	o.CommonOptions.Override(&spec.CommonSpec)
+
+	if spec.DataVolume == nil {
+		spec.DataVolume = o.DataVolume
+	}
+	if spec.DisableDownsampling == nil {
+		spec.DisableDownsampling = o.DisableDownsampling
+	}
+	if spec.Retention == nil {
+		spec.Retention = o.Retention
 	}
 }
 
@@ -66,16 +93,14 @@ func (o *CompactorOptions) Validate() []error {
 	return errs
 }
 
-func (o *CompactorOptions) AddFlags(fs *pflag.FlagSet, c *CompactorOptions) {
-	o.CommonOptions.AddFlags(fs, &c.CommonOptions, "compactor")
-	fs.IntVar(&c.DefaultTenantsPerCompactor, "default-tenants-per-compactor", DefaultTenantsPerCompactor, "Number of tenants processed per compactor")
-}
-
 type IngesterOptions struct {
-	CommonOptions `json:",inline" yaml:",inline"`
+	CommonOptions `json:",inline" yaml:",inline"  mapstructure:",squash"`
+
+	DataVolume *v1alpha1.KubernetesVolume `json:"dataVolume,omitempty" yaml:"dataVolume,omitempty"`
 
 	DefaultTenantsPerIngester int `json:"defaultTenantsPerIngester,omitempty" yaml:"defaultTenantsPerIngester,omitempty"`
-	// DefaultIngesterRetentionPeriod ... Maybe it can be clearer?
+
+	// DefaultIngesterRetentionPeriod Whizard default ingester retention period when it has no tenant.
 	DefaultIngesterRetentionPeriod time.Duration `json:"defaultIngesterRetentionPeriod,omitempty" yaml:"defaultIngesterRetentionPeriod,omitempty"`
 
 	// LocalTsdbRetention configs how long to retain raw samples on local storage.
@@ -91,8 +116,52 @@ func NewIngesterOptions() *IngesterOptions {
 	}
 }
 
+func (o *IngesterOptions) AddFlags(fs *pflag.FlagSet, io *IngesterOptions) {
+	o.CommonOptions.AddFlags(fs, &io.CommonOptions, "ingester")
+
+	fs.IntVar(&io.DefaultTenantsPerIngester, "defaultTenantsPerIngester", io.DefaultTenantsPerIngester, "Whizard default tenant count per ingester.")
+	fs.DurationVar(&io.DefaultIngesterRetentionPeriod, "defaultIngesterRetentionPeriod", io.DefaultIngesterRetentionPeriod, "Whizard default ingester retention period  when it has no tenant.")
+}
+
 func (o *IngesterOptions) ApplyTo(options *IngesterOptions) {
 	o.CommonOptions.ApplyTo(&options.CommonOptions)
+
+	if o.DataVolume != nil {
+		if options.DataVolume == nil {
+			options.DataVolume = o.DataVolume
+		} else {
+			if o.DataVolume.PersistentVolumeClaim != nil {
+				options.DataVolume.PersistentVolumeClaim = o.DataVolume.PersistentVolumeClaim
+			}
+
+			if o.DataVolume.EmptyDir != nil {
+				options.DataVolume.EmptyDir = o.DataVolume.EmptyDir
+			}
+		}
+	}
+
+	if o.DefaultTenantsPerIngester != 0 {
+		options.DefaultTenantsPerIngester = o.DefaultTenantsPerIngester
+	}
+	if o.DefaultIngesterRetentionPeriod != 0 {
+		options.DefaultIngesterRetentionPeriod = o.DefaultIngesterRetentionPeriod
+	}
+	if o.LocalTsdbRetention != "" {
+		options.LocalTsdbRetention = o.LocalTsdbRetention
+	}
+
+}
+
+// Override the Options overrides the spec field when it is empty
+func (o *IngesterOptions) Override(spec *v1alpha1.IngesterSpec) {
+
+	if spec.DataVolume == nil {
+		spec.DataVolume = o.DataVolume
+	}
+	if spec.LocalTsdbRetention == "" {
+		spec.LocalTsdbRetention = o.LocalTsdbRetention
+	}
+
 }
 
 func (o *IngesterOptions) Validate() []error {
@@ -103,15 +172,8 @@ func (o *IngesterOptions) Validate() []error {
 	return errs
 }
 
-func (o *IngesterOptions) AddFlags(fs *pflag.FlagSet, io *IngesterOptions) {
-	o.CommonOptions.AddFlags(fs, &io.CommonOptions, "ingester")
-
-	fs.IntVar(&io.DefaultTenantsPerIngester, "defaultTenantsPerIngester", DefaultTenantsPerIngester, "Whizard default tenant count per ingester.")
-	fs.DurationVar(&io.DefaultIngesterRetentionPeriod, "defaultIngesterRetentionPeriod", DefaultIngesterRetentionPeriod, "Whizard default ingester retention period.")
-}
-
 type GatewayOptions struct {
-	CommonOptions `json:",inline" yaml:",inline"`
+	CommonOptions `json:",inline" yaml:",inline"  mapstructure:",squash"`
 
 	// Secret name for HTTP Server certificate (Kubernetes TLS secret type)
 	ServerCertificate string `json:"serverCertificate,omitempty"`
@@ -122,19 +184,40 @@ type GatewayOptions struct {
 }
 
 func NewGatewayOptions() *GatewayOptions {
-	o := &GatewayOptions{
-		CommonOptions: NewCommonOptions(),
-	}
+	var replicas int32 = 1
 
-	o.Image = DefaultGatewayImage
-	return o
+	return &GatewayOptions{
+		CommonOptions: CommonOptions{
+			Image:    DefaultGatewayImage,
+			Replicas: &replicas,
+		},
+	}
 }
 
 func (o *GatewayOptions) ApplyTo(options *GatewayOptions) {
 	o.CommonOptions.ApplyTo(&options.CommonOptions)
 
-	if options.NodePort == 0 {
+	if o.NodePort == 0 {
 		options.NodePort = o.NodePort
+	}
+	if o.ClientCACertificate != "" {
+		options.ClientCACertificate = o.ClientCACertificate
+	}
+	if o.ServerCertificate != "" {
+		options.ServerCertificate = o.ServerCertificate
+	}
+}
+
+func (o *GatewayOptions) Override(spec *v1alpha1.GatewaySpec) {
+	o.CommonOptions.Override(&spec.CommonSpec)
+	if spec.NodePort == 0 {
+		spec.NodePort = o.NodePort
+	}
+	if spec.ServerCertificate != "" {
+		spec.ServerCertificate = o.ServerCertificate
+	}
+	if spec.ClientCACertificate != "" {
+		spec.ClientCACertificate = o.ClientCACertificate
 	}
 }
 
@@ -151,15 +234,22 @@ func (o *GatewayOptions) AddFlags(fs *pflag.FlagSet, g *GatewayOptions) {
 }
 
 type QueryOptions struct {
-	CommonOptions `json:",inline" yaml:",inline"`
+	CommonOptions `json:",inline" yaml:",inline"  mapstructure:",squash"`
 
-	Envoy *ContainerOptions `json:"envoy,omitempty" yaml:"envoy,omitempty"`
+	Envoy *SidecarOptions `json:"envoy,omitempty" yaml:"envoy,omitempty"`
+
+	// Additional StoreApi servers from which Query component queries from
+	Stores []v1alpha1.QueryStores `json:"stores,omitempty"`
+	// Selector labels that will be exposed in info endpoint.
+	SelectorLabels map[string]string `json:"selectorLabels,omitempty"`
+	// Labels to treat as a replica indicator along which data is deduplicated.
+	ReplicaLabelNames []string `json:"replicaLabelNames,omitempty"`
 }
 
 func NewQueryOptions() *QueryOptions {
 	return &QueryOptions{
 		CommonOptions: NewCommonOptions(),
-		Envoy: &ContainerOptions{
+		Envoy: &SidecarOptions{
 			Image: DefaultEnvoyImage,
 			Resources: corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
@@ -179,6 +269,31 @@ func (o *QueryOptions) ApplyTo(options *QueryOptions) {
 	o.CommonOptions.ApplyTo(&options.CommonOptions)
 	o.Envoy.ApplyTo(options.Envoy)
 
+	if o.Stores != nil {
+		options.Stores = o.Stores
+	}
+	if o.SelectorLabels != nil {
+		options.SelectorLabels = o.SelectorLabels
+	}
+	if o.ReplicaLabelNames != nil {
+		options.ReplicaLabelNames = o.ReplicaLabelNames
+	}
+}
+
+// Override the Options overrides the spec field when it is empty
+func (o *QueryOptions) Override(spec *v1alpha1.QuerySpec) {
+	o.CommonOptions.Override(&spec.CommonSpec)
+	o.Envoy.Override(&spec.Envoy)
+
+	if spec.Stores == nil {
+		spec.Stores = o.Stores
+	}
+	if spec.SelectorLabels == nil {
+		spec.SelectorLabels = o.SelectorLabels
+	}
+	if o.ReplicaLabelNames == nil {
+		spec.ReplicaLabelNames = o.ReplicaLabelNames
+	}
 }
 
 func (o *QueryOptions) Validate() []error {
@@ -195,7 +310,7 @@ func (o *QueryOptions) AddFlags(fs *pflag.FlagSet, qo *QueryOptions) {
 }
 
 type QueryFrontendOptions struct {
-	CommonOptions `json:",inline" yaml:",inline"`
+	CommonOptions `json:",inline" yaml:",inline"  mapstructure:",squash"`
 
 	CacheConfig *v1alpha1.ResponseCacheProviderConfig `json:"cacheConfig,omitempty" yaml:"cacheConfig,omitempty"`
 }
@@ -208,7 +323,17 @@ func NewQueryFrontendOptions() *QueryFrontendOptions {
 
 func (o *QueryFrontendOptions) ApplyTo(options *QueryFrontendOptions) {
 	o.CommonOptions.ApplyTo(&options.CommonOptions)
+	if o.CacheConfig != nil {
+		options.CacheConfig = o.CacheConfig
+	}
+}
 
+// Override the Options overrides the spec field when it is empty
+func (o *QueryFrontendOptions) Override(spec *v1alpha1.QueryFrontendSpec) {
+	o.CommonOptions.Override(&spec.CommonSpec)
+	if spec.CacheConfig == nil {
+		spec.CacheConfig = o.CacheConfig
+	}
 }
 
 func (o *QueryFrontendOptions) Validate() []error {
@@ -224,7 +349,7 @@ func (o *QueryFrontendOptions) AddFlags(fs *pflag.FlagSet, qfo *QueryFrontendOpt
 }
 
 type RouterOptions struct {
-	CommonOptions `json:",inline" yaml:",inline"`
+	CommonOptions `json:",inline" yaml:",inline"  mapstructure:",squash"`
 
 	// How many times to replicate incoming write requests
 	ReplicationFactor *uint64 `json:"replicationFactor,omitempty"`
@@ -242,6 +367,18 @@ func NewRouterOptions() *RouterOptions {
 func (o *RouterOptions) ApplyTo(options *RouterOptions) {
 	o.CommonOptions.ApplyTo(&options.CommonOptions)
 
+	if o.ReplicationFactor != nil {
+		options.ReplicationFactor = o.ReplicationFactor
+	}
+}
+
+// Override the Options overrides the spec field when it is empty
+func (o *RouterOptions) Override(spec *v1alpha1.RouterSpec) {
+	o.CommonOptions.Override(&spec.CommonSpec)
+
+	if spec.ReplicationFactor == nil {
+		spec.ReplicationFactor = o.ReplicationFactor
+	}
 }
 
 func (o *RouterOptions) Validate() []error {
@@ -255,16 +392,16 @@ func (o *RouterOptions) Validate() []error {
 func (o *RouterOptions) AddFlags(fs *pflag.FlagSet, ro *RouterOptions) {
 	var factor uint64
 	o.CommonOptions.AddFlags(fs, &ro.CommonOptions, "router")
-	fs.Uint64Var(&factor, "router.replicationFactor", DefaultRouterReplicationFactor, "Whizard router replication factor.")
+	fs.Uint64Var(&factor, "router.replicationFactor", *ro.ReplicationFactor, "Whizard router replication factor.")
 
 	ro.ReplicationFactor = &factor
 }
 
 type RulerOptions struct {
-	CommonOptions `json:",inline" yaml:",inline"`
+	CommonOptions `json:",inline" yaml:",inline"  mapstructure:",squash"`
 
-	PrometheusConfigReloader *ContainerOptions `json:"prometheusConfigReloader,omitempty" yaml:"prometheusConfigReloader,omitempty"`
-	RulerQueryProxy          *ContainerOptions `json:"rulerQueryProxy" yaml:"rulerQueryProxy,omitempty"`
+	PrometheusConfigReloader SidecarOptions `json:"prometheusConfigReloader,omitempty" yaml:"prometheusConfigReloader,omitempty"`
+	RulerQueryProxy          SidecarOptions `json:"rulerQueryProxy" yaml:"rulerQueryProxy,omitempty"`
 
 	// Number of shards to take the hash of fully qualified name of the rule group in order to split rules.
 	// Each shard of rules will be bound to one separate statefulset.
@@ -296,7 +433,7 @@ func NewRulerOptions() *RulerOptions {
 		Shards:             &shards,
 		EvaluationInterval: DefaultRulerEvaluationInterval,
 
-		PrometheusConfigReloader: &ContainerOptions{
+		PrometheusConfigReloader: SidecarOptions{
 			Image: DefaultPrometheusConfigReloaderImage,
 			Resources: corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
@@ -309,7 +446,7 @@ func NewRulerOptions() *RulerOptions {
 				},
 			},
 		},
-		RulerQueryProxy: &ContainerOptions{
+		RulerQueryProxy: SidecarOptions{
 			Image: DefaultGatewayImage,
 			Resources: corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
@@ -327,8 +464,60 @@ func NewRulerOptions() *RulerOptions {
 
 func (o *RulerOptions) ApplyTo(options *RulerOptions) {
 	o.CommonOptions.ApplyTo(&options.CommonOptions)
-	o.PrometheusConfigReloader.ApplyTo(options.PrometheusConfigReloader)
+	o.PrometheusConfigReloader.ApplyTo(&options.PrometheusConfigReloader)
+	o.RulerQueryProxy.ApplyTo(&options.RulerQueryProxy)
 
+	if *o.Shards != 0 {
+		options.Shards = o.Shards
+	}
+	if o.RuleSelector != nil {
+		options.RuleSelector = o.RuleSelector
+	}
+	if o.RuleNamespaceSelector != nil {
+		options.RuleNamespaceSelector = o.RuleNamespaceSelector
+	}
+	if o.Labels != nil {
+		options.Labels = o.Labels
+	}
+	if o.AlertDropLabels != nil {
+		options.AlertDropLabels = o.AlertDropLabels
+	}
+	if o.AlertManagersConfig != nil {
+		options.AlertManagersConfig = o.AlertManagersConfig
+	}
+	if o.EvaluationInterval != 0 {
+		options.EvaluationInterval = o.EvaluationInterval
+	}
+
+}
+
+// Override the Options overrides the spec field when it is empty
+func (o *RulerOptions) Override(spec *v1alpha1.RulerSpec) {
+	o.CommonOptions.Override(&spec.CommonSpec)
+	o.PrometheusConfigReloader.Override(&spec.PrometheusConfigReloader)
+	o.RulerQueryProxy.Override(&spec.RulerQueryProxy)
+
+	if spec.Shards == nil {
+		spec.Shards = o.Shards
+	}
+	if spec.RuleSelector == nil {
+		spec.RuleSelector = o.RuleSelector
+	}
+	if spec.RuleNamespaceSelector == nil {
+		spec.RuleNamespaceSelector = o.RuleNamespaceSelector
+	}
+	if spec.Labels == nil {
+		spec.Labels = o.Labels
+	}
+	if spec.AlertDropLabels == nil {
+		spec.AlertDropLabels = o.AlertDropLabels
+	}
+	if spec.AlertManagersConfig == nil {
+		spec.AlertManagersConfig = o.AlertManagersConfig
+	}
+	if spec.EvaluationInterval == "" {
+		spec.EvaluationInterval = v1alpha1.Duration(o.EvaluationInterval.String())
+	}
 }
 
 func (o *RulerOptions) Validate() []error {
@@ -341,12 +530,18 @@ func (o *RulerOptions) Validate() []error {
 
 func (o *RulerOptions) AddFlags(fs *pflag.FlagSet, ro *RulerOptions) {
 	o.CommonOptions.AddFlags(fs, &ro.CommonOptions, "ruler")
-	o.PrometheusConfigReloader.AddFlags(fs, ro.PrometheusConfigReloader, "ruler.prometheus-config-reloader")
-	o.RulerQueryProxy.AddFlags(fs, ro.RulerQueryProxy, "ruler.query-proxy")
+	o.PrometheusConfigReloader.AddFlags(fs, &ro.PrometheusConfigReloader, "ruler.prometheus-config-reloader")
+	o.RulerQueryProxy.AddFlags(fs, &ro.RulerQueryProxy, "ruler.query-proxy")
 }
 
 type StoreOptions struct {
-	CommonOptions              `json:",inline" yaml:",inline"`
+	CommonOptions `json:",inline" yaml:",inline"  mapstructure:",squash"`
+
+	// MinTime specifies start of time range limit to serve
+	MinTime string `json:"minTime,omitempty" yaml:"minTime,omitempty"`
+	// MaxTime specifies end of time range limit to serve
+	MaxTime                    string `json:"maxTime,omitempty" yaml:"maxTime,omitempty"`
+	*v1alpha1.KubernetesVolume `json:"dataVolume,omitempty" yaml:"dataVolume,omitempty"`
 	*v1alpha1.IndexCacheConfig `json:"indexCacheConfig,omitempty" yaml:"indexCacheConfig,omitempty"`
 	*v1alpha1.AutoScaler       `json:"scaler,omitempty" yaml:"scaler,omitempty"`
 }
@@ -410,6 +605,27 @@ func NewStoreOptions() *StoreOptions {
 func (o *StoreOptions) ApplyTo(options *StoreOptions) {
 	o.CommonOptions.ApplyTo(&options.CommonOptions)
 
+	if o.MinTime != "" {
+		options.MinTime = o.MinTime
+	}
+	if o.MaxTime != "" {
+		options.MaxTime = o.MaxTime
+	}
+
+	if o.KubernetesVolume != nil {
+		if options.KubernetesVolume == nil {
+			options.KubernetesVolume = o.KubernetesVolume
+		} else {
+			if o.KubernetesVolume.PersistentVolumeClaim != nil {
+				options.KubernetesVolume.PersistentVolumeClaim = o.KubernetesVolume.PersistentVolumeClaim
+			}
+
+			if o.KubernetesVolume.EmptyDir != nil {
+				options.KubernetesVolume.EmptyDir = o.KubernetesVolume.EmptyDir
+			}
+		}
+	}
+
 	if o.IndexCacheConfig != nil {
 		if options.IndexCacheConfig == nil {
 			options.IndexCacheConfig = o.IndexCacheConfig
@@ -441,6 +657,54 @@ func (o *StoreOptions) ApplyTo(options *StoreOptions) {
 
 		if o.Behavior != nil {
 			options.Behavior = o.Behavior
+		}
+	}
+}
+
+// Override the Options overrides the spec field when it is empty
+func (o *StoreOptions) Override(spec *v1alpha1.StoreSpec) {
+	o.CommonOptions.Override(&spec.CommonSpec)
+
+	if spec.MinTime == "" {
+		spec.MinTime = o.MinTime
+	}
+	if spec.MaxTime != "" {
+		spec.MaxTime = o.MaxTime
+	}
+
+	if spec.DataVolume == nil {
+		spec.DataVolume = o.KubernetesVolume
+	}
+	if spec.IndexCacheConfig == nil {
+		spec.IndexCacheConfig = o.IndexCacheConfig
+	} else {
+		if spec.IndexCacheConfig.InMemoryIndexCacheConfig == nil {
+			spec.IndexCacheConfig.InMemoryIndexCacheConfig = o.IndexCacheConfig.InMemoryIndexCacheConfig
+		} else {
+			if spec.IndexCacheConfig.MaxSize == "" {
+				spec.IndexCacheConfig.MaxSize = o.MaxSize
+			}
+		}
+	}
+
+	if spec.Scaler == nil {
+		spec.Scaler = o.AutoScaler
+	} else {
+		if spec.Scaler.MaxReplicas == 0 {
+			spec.Scaler.MaxReplicas = o.MaxReplicas
+		}
+
+		if spec.Scaler.MinReplicas == nil || *spec.Scaler.MinReplicas == 0 {
+			min := *o.MinReplicas
+			spec.Scaler.MinReplicas = &min
+		}
+
+		if spec.Scaler.Metrics == nil {
+			spec.Scaler.Metrics = o.Metrics
+		}
+
+		if spec.Scaler.Behavior == nil {
+			spec.Scaler.Behavior = o.Behavior
 		}
 	}
 }

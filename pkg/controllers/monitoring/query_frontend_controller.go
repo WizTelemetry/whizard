@@ -138,7 +138,7 @@ func (r *QueryFrontendReconciler) mapFuncBySelectorFunc(fn func(metav1.Object) m
 }
 
 func (r *QueryFrontendReconciler) Validator(q *monitoringv1alpha1.QueryFrontend) *monitoringv1alpha1.QueryFrontend {
-	r.Options.Apply(&q.Spec.CommonSpec)
+	r.Options.Override(&q.Spec)
 	return q
 
 }

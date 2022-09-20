@@ -156,11 +156,7 @@ func CreateCompactorDefaulterValidator(opt *options.CompactorOptions) CompactorD
 
 	return func(compactor *monitoringv1alpha1.Compactor) (*monitoringv1alpha1.Compactor, error) {
 
-		opt.Apply(&compactor.Spec.CommonSpec)
-
-		if compactor.Spec.DataVolume != nil {
-			compactor.Spec.DataVolume = opt.DataVolume
-		}
+		opt.Override(&compactor.Spec)
 
 		return compactor, nil
 	}

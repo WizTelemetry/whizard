@@ -141,44 +141,7 @@ func CreateStoreDefaulterValidator(opt *options.StoreOptions) StoreDefaulterVali
 
 	return func(store *monitoringv1alpha1.Store) (*monitoringv1alpha1.Store, error) {
 
-		opt.Apply(&store.Spec.CommonSpec)
-
-		if store.Spec.IndexCacheConfig == nil {
-			store.Spec.IndexCacheConfig = opt.IndexCacheConfig
-		} else {
-			if store.Spec.IndexCacheConfig.InMemoryIndexCacheConfig == nil {
-				store.Spec.IndexCacheConfig.InMemoryIndexCacheConfig = opt.IndexCacheConfig.InMemoryIndexCacheConfig
-			} else {
-				if store.Spec.IndexCacheConfig.MaxSize == "" {
-					store.Spec.IndexCacheConfig.MaxSize = opt.MaxSize
-				}
-			}
-		}
-
-		if store.Spec.Scaler == nil {
-			store.Spec.Scaler = opt.AutoScaler
-		} else {
-			if store.Spec.Scaler.MaxReplicas == 0 {
-				store.Spec.Scaler.MaxReplicas = opt.MaxReplicas
-			}
-
-			if store.Spec.Scaler.MinReplicas == nil || *store.Spec.Scaler.MinReplicas == 0 {
-				min := *opt.MinReplicas
-				store.Spec.Scaler.MinReplicas = &min
-			}
-
-			if store.Spec.Scaler.Metrics == nil {
-				store.Spec.Scaler.Metrics = opt.Metrics
-			}
-
-			if store.Spec.Scaler.Behavior == nil {
-				store.Spec.Scaler.Behavior = opt.Behavior
-			}
-		}
-
-		if store.Spec.DataVolume == nil {
-			store.Spec.DataVolume = opt.DataVolume
-		}
+		opt.Override(&store.Spec)
 
 		return store, nil
 	}

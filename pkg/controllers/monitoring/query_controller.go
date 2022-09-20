@@ -142,7 +142,6 @@ func (r *QueryReconciler) mapFuncBySelectorFunc(fn func(metav1.Object) map[strin
 }
 
 func (r *QueryReconciler) validator(q *monitoringv1alpha1.Query) *monitoringv1alpha1.Query {
-	r.Options.Apply(&q.Spec.CommonSpec)
-	r.Options.Envoy.Apply(&q.Spec.Envoy)
+	r.Options.Override(&q.Spec)
 	return q
 }

@@ -162,11 +162,7 @@ func CreateIngesterDefaulterValidator(opt *options.IngesterOptions) IngesterDefa
 
 	return func(ingester *monitoringv1alpha1.Ingester) (*monitoringv1alpha1.Ingester, error) {
 
-		opt.Apply(&ingester.Spec.CommonSpec)
-
-		if ingester.Spec.DataVolume != nil {
-			ingester.Spec.DataVolume = opt.DataVolume
-		}
+		opt.Override(&ingester.Spec)
 
 		if ingester.Spec.LocalTsdbRetention != "" {
 			_, err := model.ParseDuration(ingester.Spec.LocalTsdbRetention)
