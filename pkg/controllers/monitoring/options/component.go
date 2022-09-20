@@ -154,6 +154,7 @@ func (o *IngesterOptions) ApplyTo(options *IngesterOptions) {
 
 // Override the Options overrides the spec field when it is empty
 func (o *IngesterOptions) Override(spec *v1alpha1.IngesterSpec) {
+	o.CommonOptions.Override(&spec.CommonSpec)
 
 	if spec.DataVolume == nil {
 		spec.DataVolume = o.DataVolume
@@ -406,9 +407,9 @@ type RulerOptions struct {
 	// Number of shards to take the hash of fully qualified name of the rule group in order to split rules.
 	// Each shard of rules will be bound to one separate statefulset.
 	Shards *int32 `json:"shards,omitempty"`
-	// A label selector to select which PrometheusRules to mount for alerting and
-	// recording.
-	RuleSelector *metav1.LabelSelector `json:"ruleSelector,omitempty"`
+	// Label selectors to select which PrometheusRules to mount for alerting and recording.
+	// The result of multiple selectors are ORed.
+	RuleSelectors []*metav1.LabelSelector `json:"ruleSelector,omitempty"`
 	// Namespaces to be selected for PrometheusRules discovery. If unspecified, only
 	// the same namespace as the Ruler object is in is used.
 	RuleNamespaceSelector *metav1.LabelSelector `json:"ruleNamespaceSelector,omitempty"`
@@ -419,8 +420,12 @@ type RulerOptions struct {
 	// AlertDropLabels configure the label names which should be dropped in Ruler alerts.
 	// The replica label `ruler_replica` will always be dropped in alerts.
 	AlertDropLabels []string `json:"alertDropLabels,omitempty"`
+	// Define URLs to send alerts to Alertmanager.
+	// Note: this field will be ignored if AlertmanagersConfig is specified.
+	// Maps to the `alertmanagers.url` arg.
+	AlertmanagersURL []string `json:"alertmanagersUrl,omitempty"`
 	// Define configuration for connecting to alertmanager. Maps to the `alertmanagers.config` arg.
-	AlertManagersConfig *corev1.SecretKeySelector `json:"alertmanagersConfig,omitempty"`
+	AlertmanagersConfig *corev1.SecretKeySelector `json:"alertmanagersConfig,omitempty"`
 
 	// Interval between consecutive evaluations.
 	EvaluationInterval time.Duration `json:"evaluationInterval,omitempty"`
@@ -470,8 +475,8 @@ func (o *RulerOptions) ApplyTo(options *RulerOptions) {
 	if *o.Shards != 0 {
 		options.Shards = o.Shards
 	}
-	if o.RuleSelector != nil {
-		options.RuleSelector = o.RuleSelector
+	if o.RuleSelectors != nil {
+		options.RuleSelectors = o.RuleSelectors
 	}
 	if o.RuleNamespaceSelector != nil {
 		options.RuleNamespaceSelector = o.RuleNamespaceSelector
@@ -482,8 +487,8 @@ func (o *RulerOptions) ApplyTo(options *RulerOptions) {
 	if o.AlertDropLabels != nil {
 		options.AlertDropLabels = o.AlertDropLabels
 	}
-	if o.AlertManagersConfig != nil {
-		options.AlertManagersConfig = o.AlertManagersConfig
+	if o.AlertmanagersConfig != nil {
+		options.AlertmanagersConfig = o.AlertmanagersConfig
 	}
 	if o.EvaluationInterval != 0 {
 		options.EvaluationInterval = o.EvaluationInterval
@@ -500,8 +505,8 @@ func (o *RulerOptions) Override(spec *v1alpha1.RulerSpec) {
 	if spec.Shards == nil {
 		spec.Shards = o.Shards
 	}
-	if spec.RuleSelector == nil {
-		spec.RuleSelector = o.RuleSelector
+	if spec.RuleSelectors == nil {
+		spec.RuleSelectors = o.RuleSelectors
 	}
 	if spec.RuleNamespaceSelector == nil {
 		spec.RuleNamespaceSelector = o.RuleNamespaceSelector
@@ -512,8 +517,8 @@ func (o *RulerOptions) Override(spec *v1alpha1.RulerSpec) {
 	if spec.AlertDropLabels == nil {
 		spec.AlertDropLabels = o.AlertDropLabels
 	}
-	if spec.AlertManagersConfig == nil {
-		spec.AlertManagersConfig = o.AlertManagersConfig
+	if spec.AlertmanagersConfig == nil {
+		spec.AlertmanagersConfig = o.AlertmanagersConfig
 	}
 	if spec.EvaluationInterval == "" {
 		spec.EvaluationInterval = v1alpha1.Duration(o.EvaluationInterval.String())
@@ -817,6 +822,8 @@ func (o *StorageOptions) ApplyTo(options *StorageOptions) {
 }
 
 func (o *StorageOptions) Override(spec *v1alpha1.StorageSpec) {
+	o.BlockManager.CommonOptions.Override(&spec.BlockManager.CommonSpec)
+
 	if spec.BlockManager.BlockSyncInterval == nil || spec.BlockManager.BlockSyncInterval.Duration == 0 {
 		spec.BlockManager.BlockSyncInterval = o.BlockManager.BlockSyncInterval
 	}

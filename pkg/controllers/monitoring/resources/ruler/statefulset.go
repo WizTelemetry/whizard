@@ -194,14 +194,18 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 		})
 	}
 
-	if r.ruler.Spec.AlertManagersConfig != nil {
+	if r.ruler.Spec.AlertmanagersConfig != nil {
 		container.Args = append(container.Args, "--alertmanagers.config=$(ALERTMANAGERS_CONFIG)")
 		container.Env = append(container.Env, corev1.EnvVar{
 			Name: "ALERTMANAGERS_CONFIG",
 			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: r.ruler.Spec.AlertManagersConfig,
+				SecretKeyRef: r.ruler.Spec.AlertmanagersConfig,
 			},
 		})
+	} else if len(r.ruler.Spec.AlertmanagersURL) > 0 {
+		for _, url := range r.ruler.Spec.AlertmanagersURL {
+			container.Args = append(container.Args, fmt.Sprintf("--alertmanagers.url=%s", url))
+		}
 	}
 
 	if r.ruler.Spec.LogLevel != "" {

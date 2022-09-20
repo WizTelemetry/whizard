@@ -488,9 +488,9 @@ type RulerSpec struct {
 
 	PrometheusConfigReloader SidecarSpec `json:"prometheusConfigReloader,omitempty"`
 
-	// A label selector to select which PrometheusRules to mount for alerting and
-	// recording.
-	RuleSelector *metav1.LabelSelector `json:"ruleSelector,omitempty"`
+	// Label selectors to select which PrometheusRules to mount for alerting and recording.
+	// The result of multiple selectors are ORed.
+	RuleSelectors []*metav1.LabelSelector `json:"ruleSelectors,omitempty"`
 	// Namespaces to be selected for PrometheusRules discovery. If unspecified, only
 	// the same namespace as the Ruler object is in is used.
 	RuleNamespaceSelector *metav1.LabelSelector `json:"ruleNamespaceSelector,omitempty"`
@@ -509,8 +509,12 @@ type RulerSpec struct {
 	// AlertDropLabels configure the label names which should be dropped in Ruler alerts.
 	// The replica label `ruler_replica` will always be dropped in alerts.
 	AlertDropLabels []string `json:"alertDropLabels,omitempty"`
+	// Define URLs to send alerts to Alertmanager.
+	// Note: this field will be ignored if AlertmanagersConfig is specified.
+	// Maps to the `alertmanagers.url` arg.
+	AlertmanagersURL []string `json:"alertmanagersUrl,omitempty"`
 	// Define configuration for connecting to alertmanager. Maps to the `alertmanagers.config` arg.
-	AlertManagersConfig *corev1.SecretKeySelector `json:"alertmanagersConfig,omitempty"`
+	AlertmanagersConfig *corev1.SecretKeySelector `json:"alertmanagersConfig,omitempty"`
 	// Interval between consecutive evaluations.
 	EvaluationInterval Duration `json:"evaluationInterval,omitempty"`
 

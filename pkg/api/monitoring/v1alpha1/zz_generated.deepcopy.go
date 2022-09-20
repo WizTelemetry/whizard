@@ -982,10 +982,16 @@ func (in *RulerSpec) DeepCopyInto(out *RulerSpec) {
 	in.CommonSpec.DeepCopyInto(&out.CommonSpec)
 	in.RulerQueryProxy.DeepCopyInto(&out.RulerQueryProxy)
 	in.PrometheusConfigReloader.DeepCopyInto(&out.PrometheusConfigReloader)
-	if in.RuleSelector != nil {
-		in, out := &in.RuleSelector, &out.RuleSelector
-		*out = new(v1.LabelSelector)
-		(*in).DeepCopyInto(*out)
+	if in.RuleSelectors != nil {
+		in, out := &in.RuleSelectors, &out.RuleSelectors
+		*out = make([]*v1.LabelSelector, len(*in))
+		for i := range *in {
+			if (*in)[i] != nil {
+				in, out := &(*in)[i], &(*out)[i]
+				*out = new(v1.LabelSelector)
+				(*in).DeepCopyInto(*out)
+			}
+		}
 	}
 	if in.RuleNamespaceSelector != nil {
 		in, out := &in.RuleNamespaceSelector, &out.RuleNamespaceSelector
@@ -1009,8 +1015,13 @@ func (in *RulerSpec) DeepCopyInto(out *RulerSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
-	if in.AlertManagersConfig != nil {
-		in, out := &in.AlertManagersConfig, &out.AlertManagersConfig
+	if in.AlertmanagersURL != nil {
+		in, out := &in.AlertmanagersURL, &out.AlertmanagersURL
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.AlertmanagersConfig != nil {
+		in, out := &in.AlertmanagersConfig, &out.AlertmanagersConfig
 		*out = new(corev1.SecretKeySelector)
 		(*in).DeepCopyInto(*out)
 	}

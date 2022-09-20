@@ -15,6 +15,7 @@ import (
 	"github.com/prometheus-operator/prometheus-operator/pkg/prometheus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -186,20 +187,31 @@ func (r *Ruler) selectPrometheusRules() (map[string]*promv1.PrometheusRuleSpec, 
 	if err != nil {
 		return nil, err
 	}
-	ruleSelector, err := metav1.LabelSelectorAsSelector(r.ruler.Spec.RuleSelector)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, ns := range namespaces {
-		var prometheusRuleList promv1.PrometheusRuleList
-		err = r.Client.List(r.Context, &prometheusRuleList,
-			client.MatchingLabelsSelector{Selector: ruleSelector}, client.InNamespace(ns))
+	var ruleSelectors []labels.Selector
+	for _, s := range r.ruler.Spec.RuleSelectors {
+		ruleSelector, err := metav1.LabelSelectorAsSelector(s)
 		if err != nil {
 			return nil, err
 		}
-		for _, promRule := range prometheusRuleList.Items {
-			rules[fmt.Sprintf("%v-%v.yaml", promRule.Namespace, promRule.Name)] = promRule.Spec.DeepCopy()
+		ruleSelectors = append(ruleSelectors, ruleSelector)
+	}
+
+	for _, ns := range namespaces {
+		var prometheusRules []*promv1.PrometheusRule
+		for _, s := range ruleSelectors {
+			var prometheusRuleList promv1.PrometheusRuleList
+			err = r.Client.List(r.Context, &prometheusRuleList,
+				client.MatchingLabelsSelector{Selector: s}, client.InNamespace(ns))
+			if err != nil {
+				return nil, err
+			}
+			prometheusRules = append(prometheusRules, prometheusRuleList.Items...)
+		}
+		for _, promRule := range prometheusRules {
+			file := fmt.Sprintf("%v-%v.yaml", promRule.Namespace, promRule.Name)
+			if _, ok := rules[file]; !ok {
+				rules[file] = promRule.Spec.DeepCopy()
+			}
 		}
 	}
 
