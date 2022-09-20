@@ -1314,7 +1314,7 @@ spec:
                 description: 'Log filtering level. Possible options: error, warn, info, debug.'
                 type: string
               nodePort:
-                description: NodePort is the port used to expose the gateway service. If set, the gateway service type will be NodePort.
+                description: NodePort is the port used to expose the gateway service. If this is a valid node port, the gateway service type will be set to NodePort accordingly.
                 format: int32
                 type: integer
               nodeSelector:
@@ -5135,7 +5135,7 @@ spec:
                 - endpoint
                 - secretKey
                 type: object
-              bucket:
+              blockManager:
                 properties:
                   affinity:
                     description: If specified, the pod's scheduling constraints.
@@ -5598,6 +5598,9 @@ spec:
                             type: array
                         type: object
                     type: object
+                  blockSyncInterval:
+                    description: Interval to sync block metadata from object storage
+                    type: string
                   enable:
                     type: boolean
                   flags:
@@ -5611,13 +5614,13 @@ spec:
                         type: string
                       enable:
                         type: boolean
+                      gcInterval:
+                        type: string
                       image:
                         description: Image is the component image with tag/version.
                         type: string
                       imagePullPolicy:
                         description: Image pull policy. One of Always, Never, IfNotPresent. Defaults to Always if :latest tag is specified, or IfNotPresent otherwise. Cannot be updated.
-                        type: string
-                      interval:
                         type: string
                       resources:
                         description: Define resources requests and limits for main container.
@@ -5655,7 +5658,7 @@ spec:
                     description: 'Log filtering level. Possible options: error, warn, info, debug.'
                     type: string
                   nodePort:
-                    description: NodePort is the port used to expose the bucket service. If set, the gateway service type will be NodePort.
+                    description: NodePort is the port used to expose the bucket service. If this is a valid node port, the gateway service type will be set to NodePort accordingly.
                     format: int32
                     type: integer
                   nodeSelector:
@@ -5663,9 +5666,6 @@ spec:
                       type: string
                     description: Define which Nodes the Pods are scheduled on.
                     type: object
-                  refresh:
-                    description: Refresh interval to download metadata from remote storage
-                    type: string
                   replicas:
                     description: Number of replicas for a component.
                     format: int32

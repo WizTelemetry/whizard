@@ -14,9 +14,9 @@ import (
 func (s *Storage) service() (runtime.Object, resources.Operation, error) {
 	var svc = &corev1.Service{ObjectMeta: s.meta(s.name(constants.ServiceNameSuffix))}
 
-	if s.storage.Spec.Bucket == nil ||
-		s.storage.Spec.Bucket.Enable == nil ||
-		*s.storage.Spec.Bucket.Enable == false {
+	if s.storage.Spec.BlockManager == nil ||
+		s.storage.Spec.BlockManager.Enable == nil ||
+		*s.storage.Spec.BlockManager.Enable == false {
 		return svc, resources.OperationDelete, nil
 	}
 
@@ -35,9 +35,9 @@ func (s *Storage) service() (runtime.Object, resources.Operation, error) {
 		TargetPort: intstr.FromInt(constants.HTTPPort),
 	}
 
-	if s.storage.Spec.Bucket.NodePort != 0 {
+	if s.storage.Spec.BlockManager.NodePort != 0 {
 		svc.Spec.Type = corev1.ServiceTypeNodePort
-		port.NodePort = s.storage.Spec.Bucket.NodePort
+		port.NodePort = s.storage.Spec.BlockManager.NodePort
 	} else {
 		svc.Spec.Type = corev1.ServiceTypeClusterIP
 	}

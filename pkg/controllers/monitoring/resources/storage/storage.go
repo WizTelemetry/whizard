@@ -29,7 +29,7 @@ func (s *Storage) labels() map[string]string {
 }
 
 func (s *Storage) name(nameSuffix ...string) string {
-	return s.QualifiedName(constants.AppNameBucket, s.storage.Name, nameSuffix...)
+	return s.QualifiedName(constants.AppNameBlockManager, s.storage.Name, nameSuffix...)
 }
 
 func (s *Storage) meta(name string) metav1.ObjectMeta {

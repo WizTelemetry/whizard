@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/kubesphere/whizard/pkg/bucket"
+	"github.com/kubesphere/whizard/pkg/block"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"k8s.io/klog/v2"
@@ -21,19 +21,19 @@ var (
 )
 
 func AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&tenantLabelName, "tenant.label-name", "tenant_id", "Label name through which the tenant will be announcede")
-	fs.StringVar(&defaultTenantId, "tenant.default-id", "default-tenant", "Default tenant ID to use when none is provided via a header.")
+	fs.StringVar(&tenantLabelName, "tenant.label-name", "tenant_id", "Label name used to identify a tenant, default to tenant_id")
+	fs.StringVar(&defaultTenantId, "tenant.default-id", "default-tenant", "Default tenant ID to use when no tenant is specified in the header.")
 	fs.StringVar(&storageConfig, "objstore.config", "", "The storage config used to access the object storage")
 	fs.StringVar(&storageConfigFile, "objstore.config-file", "", "The storage config file used to access the object storage")
-	fs.DurationVar(&interval, "interval", time.Minute, "The garbage collection interval")
-	fs.DurationVar(&cleanupTimeout, "cleanup-timeout", time.Hour, "The maximum time a cleanup can execute")
+	fs.DurationVar(&interval, "gc.interval", time.Minute*10, "The garbage collection interval")
+	fs.DurationVar(&cleanupTimeout, "gc.cleanup-timeout", time.Hour, "The timeout of cleanup deleted blocks in a bucket")
 }
 
 func NewCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
-		Use:          "bucket garbage collection",
-		Short:        `Whizard bucket garbage collection`,
+		Use:          "block manager",
+		Short:        `Whizard block manager`,
 		Run:          run,
 		SilenceUsage: true,
 	}
@@ -53,7 +53,7 @@ func run(_ *cobra.Command, _ []string) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	b := bucket.NewBackend(ctx, tenantLabelName, defaultTenantId, storageConfig, storageConfigFile, interval, cleanupTimeout)
+	b := block.NewBlockManager(ctx, tenantLabelName, defaultTenantId, storageConfig, storageConfigFile, interval, cleanupTimeout)
 	if err := b.Run(); err != nil {
 		klog.Error(err)
 		os.Exit(1)

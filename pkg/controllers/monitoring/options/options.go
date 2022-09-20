@@ -11,7 +11,7 @@ const (
 	DefaultEnvoyImage                    = "envoyproxy/envoy:v1.20.2"
 	DefaultGatewayImage                  = "kubesphere/whizard-monitoring-gateway:latest"
 	DefaultPrometheusConfigReloaderImage = "quay.io/prometheus-operator/prometheus-config-reloader:v0.55.1"
-	DefaultBucketImage                   = "kubesphere/whizard-monitoring-bucket:latest"
+	DefaultBlockManagerImage             = "kubesphere/whizard-monitoring-block-manager:latest"
 
 	DefaultService = "kubesphere-monitoring-system.central"
 

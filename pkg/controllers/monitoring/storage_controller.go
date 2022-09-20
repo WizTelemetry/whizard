@@ -127,29 +127,39 @@ func (r *StorageReconciler) mapToStoragebySecretRefFunc(o client.Object) []recon
 
 func (r *StorageReconciler) validate(storage *monitoringv1alpha1.Storage) *monitoringv1alpha1.Storage {
 
-	if storage.Spec.Bucket != nil && storage.Spec.Bucket.Enable != nil && *(storage.Spec.Bucket.Enable) {
-		r.Options.Bucket.Apply(&storage.Spec.Bucket.CommonSpec)
+	if storage.Spec.BlockManager != nil && storage.Spec.BlockManager.Enable != nil && *(storage.Spec.BlockManager.Enable) {
+		r.Options.BlockManager.Apply(&storage.Spec.BlockManager.CommonSpec)
 
-		if storage.Spec.Bucket.Refresh == nil || storage.Spec.Bucket.Refresh.Duration == 0 {
-			storage.Spec.Bucket.Refresh = r.Options.Bucket.Refresh
+		if storage.Spec.BlockManager.BlockSyncInterval == nil || storage.Spec.BlockManager.BlockSyncInterval.Duration == 0 {
+			storage.Spec.BlockManager.BlockSyncInterval = r.Options.BlockManager.BlockSyncInterval
 		}
 
-		if storage.Spec.Bucket.ServiceAccountName == "" {
-			storage.Spec.Bucket.ServiceAccountName = r.Options.Bucket.ServiceAccountName
+		if storage.Spec.BlockManager.ServiceAccountName == "" {
+			storage.Spec.BlockManager.ServiceAccountName = r.Options.BlockManager.ServiceAccountName
 		}
 
-		if storage.Spec.Bucket.GC != nil && storage.Spec.Bucket.GC.Enable != nil && *storage.Spec.Bucket.GC.Enable {
-			if storage.Spec.Bucket.GC.Image == "" {
-				storage.Spec.Bucket.GC.Image = r.Options.Bucket.GC.Image
+		if storage.Spec.BlockManager.GC != nil &&
+			storage.Spec.BlockManager.GC.Enable != nil &&
+			*storage.Spec.BlockManager.GC.Enable {
+			if storage.Spec.BlockManager.GC.Image == "" {
+				storage.Spec.BlockManager.GC.Image = r.Options.BlockManager.GC.Image
 			}
-			if storage.Spec.Bucket.GC.ImagePullPolicy == "" {
-				storage.Spec.Bucket.GC.ImagePullPolicy = r.Options.Bucket.GC.ImagePullPolicy
+			if storage.Spec.BlockManager.GC.ImagePullPolicy == "" {
+				storage.Spec.BlockManager.GC.ImagePullPolicy = r.Options.BlockManager.GC.ImagePullPolicy
 			}
-			if storage.Spec.Bucket.GC.Resources.Limits == nil {
-				storage.Spec.Bucket.GC.Resources.Limits = r.Options.Bucket.GC.Resources.Limits
+			if storage.Spec.BlockManager.GC.Resources.Limits == nil {
+				storage.Spec.BlockManager.GC.Resources.Limits = r.Options.BlockManager.GC.Resources.Limits
 			}
-			if storage.Spec.Bucket.GC.Resources.Requests == nil {
-				storage.Spec.Bucket.GC.Resources.Requests = r.Options.Bucket.GC.Resources.Requests
+			if storage.Spec.BlockManager.GC.Resources.Requests == nil {
+				storage.Spec.BlockManager.GC.Resources.Requests = r.Options.BlockManager.GC.Resources.Requests
+			}
+			if storage.Spec.BlockManager.GC.GCInterval == nil ||
+				storage.Spec.BlockManager.GC.GCInterval.Duration == 0 {
+				storage.Spec.BlockManager.GC.GCInterval = r.Options.BlockManager.GC.GCInterval
+			}
+			if storage.Spec.BlockManager.GC.CleanupTimeout == nil ||
+				storage.Spec.BlockManager.GC.GCInterval.Duration == 0 {
+				storage.Spec.BlockManager.GC.CleanupTimeout = r.Options.BlockManager.GC.CleanupTimeout
 			}
 		}
 	}

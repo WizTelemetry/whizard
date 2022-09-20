@@ -108,7 +108,7 @@ type GatewaySpec struct {
 	ClientCACertificate string `json:"clientCaCertificate,omitempty"`
 
 	// NodePort is the port used to expose the gateway service.
-	// If set, the gateway service type will be NodePort.
+	// If this is a valid node port, the gateway service type will be set to NodePort accordingly.
 	NodePort int32 `json:"nodePort,omitempty"`
 }
 

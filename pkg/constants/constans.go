@@ -36,7 +36,7 @@ const (
 	AppNameStore         = "store"
 	AppNameCompactor     = "compactor"
 	AppNameStorage       = "storage"
-	AppNameBucket        = "bucket"
+	AppNameBlockManager  = "block-manager"
 
 	ServiceNameSuffix = "operated"
 

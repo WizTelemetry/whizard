@@ -458,37 +458,37 @@ func (o *StoreOptions) AddFlags(fs *pflag.FlagSet, s *StoreOptions) {
 }
 
 type StorageOptions struct {
-	Bucket *BucketOptions `json:"bucket,omitempty"`
+	BlockManager *BlockManagerOptions `json:"blockManager,omitempty"`
 }
 
-type BucketOptions struct {
+type BlockManagerOptions struct {
 	Enable             *bool `json:"enable,omitempty"`
 	CommonOptions      `json:",inline"`
 	ServiceAccountName string           `json:"serviceAccountName,omitempty"`
-	Refresh            *metav1.Duration `json:"refresh,omitempty"`
-	GC                 *BucketGCOptions `json:"gc,omitempty"`
+	BlockSyncInterval  *metav1.Duration `json:"blockSyncInterval,omitempty"`
+	GC                 *BlockGCOptions  `json:"gc,omitempty"`
 }
 
-type BucketGCOptions struct {
+type BlockGCOptions struct {
 	Enable          *bool                       `json:"enable,omitempty"`
 	Resources       corev1.ResourceRequirements `json:"resources,omitempty"`
 	Image           string                      `json:"image,omitempty"`
 	ImagePullPolicy corev1.PullPolicy           `json:"imagePullPolicy,omitempty"`
-	Interval        *metav1.Duration            `json:"interval,omitempty"`
+	GCInterval      *metav1.Duration            `json:"gcInterval,omitempty"`
 	CleanupTimeout  *metav1.Duration            `json:"cleanupTimeout,omitempty"`
 }
 
 func NewStorageOptions() *StorageOptions {
 	enable := true
-	refresh := metav1.Duration{time.Minute}
+	blockSyncInterval := metav1.Duration{time.Minute}
 	return &StorageOptions{
-		Bucket: &BucketOptions{
-			Enable:        &enable,
-			CommonOptions: NewCommonOptions(),
-			Refresh:       &refresh,
-			GC: &BucketGCOptions{
+		BlockManager: &BlockManagerOptions{
+			Enable:            &enable,
+			CommonOptions:     NewCommonOptions(),
+			BlockSyncInterval: &blockSyncInterval,
+			GC: &BlockGCOptions{
 				Enable: &enable,
-				Image:  DefaultBucketImage,
+				Image:  DefaultBlockManagerImage,
 			},
 			ServiceAccountName: DefaultServiceAccount,
 		},
@@ -496,47 +496,55 @@ func NewStorageOptions() *StorageOptions {
 }
 
 func (o *StorageOptions) ApplyTo(options *StorageOptions) {
-	if o.Bucket != nil {
-		if options.Bucket == nil {
-			options.Bucket = o.Bucket
+	if o.BlockManager != nil {
+		if options.BlockManager == nil {
+			options.BlockManager = o.BlockManager
 		} else {
-			o.Bucket.CommonOptions.ApplyTo(&options.Bucket.CommonOptions)
+			o.BlockManager.CommonOptions.ApplyTo(&options.BlockManager.CommonOptions)
 
-			if options.Bucket.Enable == nil {
-				options.Bucket.Enable = o.Bucket.Enable
+			if options.BlockManager.Enable == nil {
+				options.BlockManager.Enable = o.BlockManager.Enable
 			}
 
-			if options.Bucket.Refresh == nil || options.Bucket.Refresh.Duration == 0 {
-				options.Bucket.Refresh = o.Bucket.Refresh
+			if options.BlockManager.BlockSyncInterval == nil || options.BlockManager.BlockSyncInterval.Duration == 0 {
+				options.BlockManager.BlockSyncInterval = o.BlockManager.BlockSyncInterval
 			}
-			if options.Bucket.ServiceAccountName == "" {
-				options.Bucket.ServiceAccountName = o.Bucket.ServiceAccountName
+			if options.BlockManager.ServiceAccountName == "" {
+				options.BlockManager.ServiceAccountName = o.BlockManager.ServiceAccountName
 			}
 
-			if o.Bucket.GC != nil {
-				if options.Bucket.GC == nil {
-					options.Bucket.GC = o.Bucket.GC
+			if o.BlockManager.GC != nil {
+				if options.BlockManager.GC == nil {
+					options.BlockManager.GC = o.BlockManager.GC
 				} else {
-					if options.Bucket.GC.Image == "" {
-						options.Bucket.GC.Image = o.Bucket.GC.Image
+					if options.BlockManager.GC.Image == "" {
+						options.BlockManager.GC.Image = o.BlockManager.GC.Image
 					}
 
-					if options.Bucket.GC.ImagePullPolicy == "" {
-						options.Bucket.GC.ImagePullPolicy = o.Bucket.GC.ImagePullPolicy
+					if options.BlockManager.GC.ImagePullPolicy == "" {
+						options.BlockManager.GC.ImagePullPolicy = o.BlockManager.GC.ImagePullPolicy
 					}
 
-					if options.Bucket.GC.Interval == nil ||
-						options.Bucket.GC.Interval.Duration == 0 {
-						options.Bucket.GC.Interval = o.Bucket.GC.Interval
+					if options.BlockManager.GC.Resources.Limits == nil {
+						options.BlockManager.GC.Resources.Limits = o.BlockManager.GC.Resources.Limits
 					}
 
-					if options.Bucket.GC.CleanupTimeout == nil ||
-						options.Bucket.GC.CleanupTimeout.Duration == 0 {
-						options.Bucket.GC.CleanupTimeout = o.Bucket.GC.CleanupTimeout
+					if options.BlockManager.GC.Resources.Requests == nil {
+						options.BlockManager.GC.Resources.Requests = o.BlockManager.GC.Resources.Requests
 					}
 
-					if options.Bucket.GC.Enable == nil {
-						options.Bucket.GC.Enable = o.Bucket.GC.Enable
+					if options.BlockManager.GC.GCInterval == nil ||
+						options.BlockManager.GC.GCInterval.Duration == 0 {
+						options.BlockManager.GC.GCInterval = o.BlockManager.GC.GCInterval
+					}
+
+					if options.BlockManager.GC.CleanupTimeout == nil ||
+						options.BlockManager.GC.CleanupTimeout.Duration == 0 {
+						options.BlockManager.GC.CleanupTimeout = o.BlockManager.GC.CleanupTimeout
+					}
+
+					if options.BlockManager.GC.Enable == nil {
+						options.BlockManager.GC.Enable = o.BlockManager.GC.Enable
 					}
 				}
 			}
@@ -546,15 +554,15 @@ func (o *StorageOptions) ApplyTo(options *StorageOptions) {
 
 func (o *StorageOptions) Validate() []error {
 	var errs []error
-	if o.Bucket != nil {
-		errs = append(errs, o.Bucket.CommonOptions.Validate()...)
+	if o.BlockManager != nil {
+		errs = append(errs, o.BlockManager.CommonOptions.Validate()...)
 	}
 
 	return errs
 }
 
 func (o *StorageOptions) AddFlags(fs *pflag.FlagSet, s *StorageOptions) {
-	if o.Bucket != nil && s.Bucket != nil {
-		o.Bucket.CommonOptions.AddFlags(fs, &s.Bucket.CommonOptions, "storage")
+	if o.BlockManager != nil && s.BlockManager != nil {
+		o.BlockManager.CommonOptions.AddFlags(fs, &s.BlockManager.CommonOptions, "storage")
 	}
 }

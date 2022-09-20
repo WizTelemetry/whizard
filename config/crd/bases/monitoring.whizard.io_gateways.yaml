@@ -886,7 +886,8 @@ spec:
                 type: string
               nodePort:
                 description: NodePort is the port used to expose the gateway service.
-                  If set, the gateway service type will be NodePort.
+                  If this is a valid node port, the gateway service type will be set
+                  to NodePort accordingly.
                 format: int32
                 type: integer
               nodeSelector:

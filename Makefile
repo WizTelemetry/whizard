@@ -4,7 +4,7 @@ TAG ?= latest
 CONTROLLER_MANAGER_IMG=${REPO}/whizard-controller-manager:${TAG}
 MONITORING_GATEWAY_IMG=${REPO}/whizard-monitoring-gateway:${TAG}
 MONITORING_AGENT_PROXY_IMG=${REPO}/whizard-monitoring-agent-proxy:${TAG}
-MONITORING_BUCKET_IMG=${REPO}/whizard-monitoring-bucket:${TAG}
+MONITORING_BLOCK_MANAGER_IMG=${REPO}/whizard-monitoring-block-manager:${TAG}
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
 
@@ -47,7 +47,7 @@ test: manifests generate fmt vet ## Run tests.
 
 ##@ Build
 
-build: controller-manager monitoring-gateway monitoring-agent-proxy monitoring-bucket
+build: controller-manager monitoring-gateway monitoring-agent-proxy monitoring-block-manager
 
 controller-manager: 
 	go build -o bin/controller-manager cmd/controller-manager/controller-manager.go
@@ -58,8 +58,8 @@ monitoring-gateway:
 monitoring-agent-proxy:
 	go build -o bin/monitoring-agent-proxy cmd/monitoring-agent-proxy/monitoring-agent-proxy.go
 
-monitoring-bucket:
-	go build -o bin/monitoring-bucket cmd/monitoring-bucket/bucket.go
+monitoring-block-manager:
+	go build -o bin/monitoring-block-manager cmd/monitoring-block-manager/block-manager.go
 
 docker-build: docker-build-controller-manager docker-build-monitoring-gateway docker-build-monitoring-agent-proxy
 
@@ -72,8 +72,8 @@ docker-build-monitoring-gateway:
 docker-build-monitoring-agent-proxy:
 	docker build -t $(MONITORING_AGENT_PROXY_IMG) -f build/monitoring-agent-proxy/Dockerfile .
 
-docker-build-monitoring-bucket:
-	docker build -t $(MONITORING_BUCKET_IMG) -f build/monitoring-bucket/Dockerfile .
+docker-build-monitoring-block-manager:
+	docker build -t $(MONITORING_BLOCK_MANAGER_IMG) -f build/monitoring-block-manager/Dockerfile .
 
 ##@ Deployment
 

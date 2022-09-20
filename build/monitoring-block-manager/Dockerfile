@@ -15,13 +15,13 @@ COPY cmd/ cmd/
 COPY pkg/ pkg/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o bucket cmd/monitoring-bucket/bucket.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o block-manager cmd/monitoring-block-manager/block-manager.go
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM thanosio/thanos:v0.28.0
 WORKDIR /
-COPY --from=builder /workspace/bucket .
+COPY --from=builder /workspace/block-manager .
 USER 65532:65532
 
-ENTRYPOINT ["/bucket"]
+ENTRYPOINT ["/block-manager"]

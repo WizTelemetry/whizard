@@ -23,24 +23,24 @@ import (
 )
 
 type StorageSpec struct {
-	Bucket *Bucket `json:"bucket,omitempty"`
-	S3     *S3     `json:"S3,omitempty"`
+	BlockManager *BlockManager `json:"blockManager,omitempty"`
+	S3           *S3           `json:"S3,omitempty"`
 }
 
-type Bucket struct {
+type BlockManager struct {
 	Enable     *bool `json:"enable,omitempty"`
 	CommonSpec `json:",inline"`
 	// ServiceAccountName is the name of the ServiceAccount to use to run bucket Pods.
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
 	// NodePort is the port used to expose the bucket service.
-	// If set, the gateway service type will be NodePort.
+	// If this is a valid node port, the gateway service type will be set to NodePort accordingly.
 	NodePort int32 `json:"nodePort,omitempty"`
-	// Refresh interval to download metadata from remote storage
-	Refresh *metav1.Duration `json:"refresh,omitempty"`
-	GC      *BucketGC        `json:"gc,omitempty"`
+	// Interval to sync block metadata from object storage
+	BlockSyncInterval *metav1.Duration `json:"blockSyncInterval,omitempty"`
+	GC                *BlockGC         `json:"gc,omitempty"`
 }
 
-type BucketGC struct {
+type BlockGC struct {
 	Enable *bool `json:"enable,omitempty"`
 	// Define resources requests and limits for main container.
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
@@ -53,7 +53,7 @@ type BucketGC struct {
 	// +optional
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 
-	Interval       *metav1.Duration `json:"interval,omitempty"`
+	GCInterval     *metav1.Duration `json:"gcInterval,omitempty"`
 	CleanupTimeout *metav1.Duration `json:"cleanupTimeout,omitempty"`
 }
 

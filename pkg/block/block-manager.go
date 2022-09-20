@@ -1,4 +1,4 @@
-package bucket
+package block
 
 import (
 	"context"
@@ -34,7 +34,7 @@ const (
 	markURL = "/api/v1/blocks/mark"
 )
 
-type Backend struct {
+type BlockManager struct {
 	ctx context.Context
 
 	client.Client
@@ -45,16 +45,16 @@ type Backend struct {
 	defaultTenantId   string
 	storageConfig     string
 	storageConfigFile string
-	interval          time.Duration
-	cleanupTimeout    time.Duration
+	gcInterval        time.Duration
+	gcCleanupTimeout  time.Duration
 }
 
-func NewBackend(ctx context.Context,
+func NewBlockManager(ctx context.Context,
 	tenantLabelName,
 	defaultTenantId,
 	storageConfig,
 	storageConfigFile string,
-	interval, cleanupTimeout time.Duration) *Backend {
+	interval, cleanupTimeout time.Duration) *BlockManager {
 	cfg, err := kconfig.GetConfig()
 	if err != nil {
 		klog.Errorf("Failed to get kubeconfig, %s ", err)
@@ -96,21 +96,21 @@ func NewBackend(ctx context.Context,
 		os.Exit(1)
 	}
 
-	return &Backend{
+	return &BlockManager{
 		ctx:               ctx,
 		Client:            delegatingClient,
 		Scheme:            scheme,
 		Cache:             informerCache,
 		storageConfig:     storageConfig,
 		storageConfigFile: storageConfigFile,
-		interval:          interval,
-		cleanupTimeout:    cleanupTimeout,
+		gcInterval:        interval,
+		gcCleanupTimeout:  cleanupTimeout,
 		tenantLabelName:   tenantLabelName,
 		defaultTenantId:   defaultTenantId,
 	}
 }
 
-func (b *Backend) Run() error {
+func (b *BlockManager) Run() error {
 
 	go func() {
 		_ = b.Start(b.ctx)
@@ -123,9 +123,9 @@ func (b *Backend) Run() error {
 	return b.gc()
 }
 
-func (b *Backend) gc() error {
+func (b *BlockManager) gc() error {
 	for {
-		timer := time.NewTimer(b.interval)
+		timer := time.NewTimer(b.gcInterval)
 		select {
 		case <-b.ctx.Done():
 			return nil
@@ -134,7 +134,7 @@ func (b *Backend) gc() error {
 			break
 		}
 
-		blocks, err := b.listBlock()
+		blocks, err := b.listBlocks()
 		if err != nil {
 			klog.Errorf("list block failed, %s", err)
 			continue
@@ -153,13 +153,13 @@ func (b *Backend) gc() error {
 			}
 
 			if !util.Contains(tenants, tenant) {
-				if err := b.markBlock(block); err != nil {
+				if err := b.markBlockForDeletion(block); err != nil {
 					klog.Errorf("mark block %s for deleting failed, %s", block.ULID, err)
 				}
 			}
 		}
 
-		b.cleanupBlock()
+		b.cleanupBlocks()
 	}
 }
 
@@ -183,7 +183,7 @@ type Thanos struct {
 	Labels map[string]string `json:"labels"`
 }
 
-func (b *Backend) listBlock() ([]Meta, error) {
+func (b *BlockManager) listBlocks() ([]Meta, error) {
 
 	resp, err := http.Get(host + listURL)
 	if err != nil {
@@ -216,7 +216,7 @@ type response struct {
 	Warnings  []string    `json:"warnings,omitempty"`
 }
 
-func (b *Backend) markBlock(m Meta) error {
+func (b *BlockManager) markBlockForDeletion(m Meta) error {
 
 	postMessageURL, err := url.Parse(host + markURL)
 	if err != nil {
@@ -262,7 +262,7 @@ func (b *Backend) markBlock(m Meta) error {
 	return nil
 }
 
-func (b *Backend) cleanupBlock() {
+func (b *BlockManager) cleanupBlocks() {
 
 	args := []string{
 		"tools",
@@ -284,19 +284,19 @@ func (b *Backend) cleanupBlock() {
 	stopCh := make(chan struct{}, 1)
 	go func() {
 		if err := cmd.Run(); err != nil {
-			klog.Errorf("run bucket cleanup failed, %s", err)
+			klog.Errorf("run block cleanup failed, %s", err)
 		}
 		stopCh <- struct{}{}
 	}()
 
-	timer := time.NewTimer(b.cleanupTimeout)
+	timer := time.NewTimer(b.gcCleanupTimeout)
 	select {
 	case <-timer.C:
-		klog.Errorf("bucket cleanup timeout")
+		klog.Errorf("block cleanup timeout")
 		timer.Stop()
 		if cmd != nil {
 			if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
-				klog.Errorf("terminate bucket cleanup faile, %s", err)
+				klog.Errorf("terminate block cleanup faile, %s", err)
 			}
 		}
 		return
@@ -305,7 +305,7 @@ func (b *Backend) cleanupBlock() {
 	}
 }
 
-func (b *Backend) listTenants() ([]string, error) {
+func (b *BlockManager) listTenants() ([]string, error) {
 	tenantList := &v1alpha1.TenantList{}
 
 	if err := b.Client.List(b.ctx, tenantList); err != nil {
