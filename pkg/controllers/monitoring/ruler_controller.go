@@ -189,7 +189,7 @@ func CreateRulerDefaulterValidator(opt *options.RulerOptions) RulerDefaulterVali
 
 	return func(ruler *monitoringv1alpha1.Ruler) (*monitoringv1alpha1.Ruler, error) {
 
-		opt.Apply(&ruler.Spec.CommonSpec)
+		opt.Override(&ruler.Spec)
 
 		if ruler.Spec.Shards == nil || *ruler.Spec.Shards < 0 {
 			ruler.Spec.Shards = opt.Shards

@@ -7,7 +7,9 @@ import (
 	"sync"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/klog/v2"
 
 	"github.com/kubesphere/whizard/pkg/client/k8s"
@@ -17,6 +19,13 @@ import (
 var (
 	// singleton instance of config package
 	_config = defaultConfig()
+
+	// decodeHook is used to configure mapstructure.DecoderConfig options
+	decodeHook = mapstructure.ComposeDecodeHookFunc(
+		StringToResourceQuantityHookFunc(),
+		mapstructure.StringToTimeDurationHookFunc(),
+		mapstructure.StringToSliceHookFunc(","),
+	)
 )
 
 const (
@@ -38,7 +47,7 @@ func (c *config) watchConfig() <-chan Config {
 		viper.WatchConfig()
 		viper.OnConfigChange(func(in fsnotify.Event) {
 			cfg := New()
-			if err := viper.Unmarshal(cfg); err != nil {
+			if err := viper.Unmarshal(cfg, viper.DecodeHook(decodeHook)); err != nil {
 				klog.Warning("config reload error", err)
 			} else {
 				c.cfgChangeCh <- *cfg
@@ -56,7 +65,7 @@ func (c *config) loadFromDisk() (*Config, error) {
 				err = fmt.Errorf("error parsing configuration file %s", err)
 			}
 		}
-		err = viper.Unmarshal(c.cfg)
+		err = viper.Unmarshal(c.cfg, viper.DecodeHook(decodeHook))
 	})
 	return c.cfg, err
 }
@@ -134,4 +143,23 @@ func (conf *Config) ToMap() map[string]bool {
 
 // Remove invalid options before serializing to json or yaml
 func (conf *Config) stripEmptyOptions() {
+}
+
+// StringToResourceQuantityHookFunc returns a DecodeHookFunc that converts
+// strings to resource.Quantity.
+func StringToResourceQuantityHookFunc() mapstructure.DecodeHookFunc {
+	return func(
+		f reflect.Type,
+		t reflect.Type,
+		data interface{}) (interface{}, error) {
+		if f.Kind() != reflect.String {
+			return data, nil
+		}
+		if t != reflect.TypeOf(resource.MustParse("100Mi")) {
+			return data, nil
+		}
+
+		// Convert it by parsing
+		return resource.ParseQuantity(data.(string))
+	}
 }

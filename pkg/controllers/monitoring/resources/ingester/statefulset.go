@@ -125,6 +125,7 @@ func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
 		container.VolumeMounts = append(container.VolumeMounts, volumeMounts...)
 	} else {
 		// set tsdb.max-block-duration by localTsdbRetention to enable block compact when using only local storage
+		// https://prometheus.io/docs/prometheus/latest/storage/#compaction
 		maxBlockDuration, err := model.ParseDuration("31d")
 		if err != nil {
 			return nil, resources.OperationCreateOrUpdate, err
