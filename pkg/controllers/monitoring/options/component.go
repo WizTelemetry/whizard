@@ -117,6 +117,8 @@ type GatewayOptions struct {
 	ServerCertificate string `json:"serverCertificate,omitempty"`
 	// Secret name for HTTP Client CA certificate (Kubernetes TLS secret type)
 	ClientCACertificate string `json:"clientCaCertificate,omitempty"`
+
+	NodePort int32 `json:"nodePort,omitempty"`
 }
 
 func NewGatewayOptions() *GatewayOptions {
@@ -130,6 +132,10 @@ func NewGatewayOptions() *GatewayOptions {
 
 func (o *GatewayOptions) ApplyTo(options *GatewayOptions) {
 	o.CommonOptions.ApplyTo(&options.CommonOptions)
+
+	if options.NodePort == 0 {
+		options.NodePort = o.NodePort
+	}
 }
 
 func (o *GatewayOptions) Validate() []error {
@@ -449,4 +455,114 @@ func (o *StoreOptions) Validate() []error {
 
 func (o *StoreOptions) AddFlags(fs *pflag.FlagSet, s *StoreOptions) {
 	o.CommonOptions.AddFlags(fs, &s.CommonOptions, "store")
+}
+
+type StorageOptions struct {
+	BlockManager *BlockManagerOptions `json:"blockManager,omitempty"`
+}
+
+type BlockManagerOptions struct {
+	Enable             *bool `json:"enable,omitempty"`
+	CommonOptions      `json:",inline"`
+	ServiceAccountName string           `json:"serviceAccountName,omitempty"`
+	BlockSyncInterval  *metav1.Duration `json:"blockSyncInterval,omitempty"`
+	GC                 *BlockGCOptions  `json:"gc,omitempty"`
+}
+
+type BlockGCOptions struct {
+	Enable          *bool                       `json:"enable,omitempty"`
+	Resources       corev1.ResourceRequirements `json:"resources,omitempty"`
+	Image           string                      `json:"image,omitempty"`
+	ImagePullPolicy corev1.PullPolicy           `json:"imagePullPolicy,omitempty"`
+	GCInterval      *metav1.Duration            `json:"gcInterval,omitempty"`
+	CleanupTimeout  *metav1.Duration            `json:"cleanupTimeout,omitempty"`
+}
+
+func NewStorageOptions() *StorageOptions {
+	enable := true
+	blockSyncInterval := metav1.Duration{time.Minute}
+	return &StorageOptions{
+		BlockManager: &BlockManagerOptions{
+			Enable:            &enable,
+			CommonOptions:     NewCommonOptions(),
+			BlockSyncInterval: &blockSyncInterval,
+			GC: &BlockGCOptions{
+				Enable: &enable,
+				Image:  DefaultBlockManagerImage,
+			},
+			ServiceAccountName: DefaultServiceAccount,
+		},
+	}
+}
+
+func (o *StorageOptions) ApplyTo(options *StorageOptions) {
+	if o.BlockManager != nil {
+		if options.BlockManager == nil {
+			options.BlockManager = o.BlockManager
+		} else {
+			o.BlockManager.CommonOptions.ApplyTo(&options.BlockManager.CommonOptions)
+
+			if options.BlockManager.Enable == nil {
+				options.BlockManager.Enable = o.BlockManager.Enable
+			}
+
+			if options.BlockManager.BlockSyncInterval == nil || options.BlockManager.BlockSyncInterval.Duration == 0 {
+				options.BlockManager.BlockSyncInterval = o.BlockManager.BlockSyncInterval
+			}
+			if options.BlockManager.ServiceAccountName == "" {
+				options.BlockManager.ServiceAccountName = o.BlockManager.ServiceAccountName
+			}
+
+			if o.BlockManager.GC != nil {
+				if options.BlockManager.GC == nil {
+					options.BlockManager.GC = o.BlockManager.GC
+				} else {
+					if options.BlockManager.GC.Image == "" {
+						options.BlockManager.GC.Image = o.BlockManager.GC.Image
+					}
+
+					if options.BlockManager.GC.ImagePullPolicy == "" {
+						options.BlockManager.GC.ImagePullPolicy = o.BlockManager.GC.ImagePullPolicy
+					}
+
+					if options.BlockManager.GC.Resources.Limits == nil {
+						options.BlockManager.GC.Resources.Limits = o.BlockManager.GC.Resources.Limits
+					}
+
+					if options.BlockManager.GC.Resources.Requests == nil {
+						options.BlockManager.GC.Resources.Requests = o.BlockManager.GC.Resources.Requests
+					}
+
+					if options.BlockManager.GC.GCInterval == nil ||
+						options.BlockManager.GC.GCInterval.Duration == 0 {
+						options.BlockManager.GC.GCInterval = o.BlockManager.GC.GCInterval
+					}
+
+					if options.BlockManager.GC.CleanupTimeout == nil ||
+						options.BlockManager.GC.CleanupTimeout.Duration == 0 {
+						options.BlockManager.GC.CleanupTimeout = o.BlockManager.GC.CleanupTimeout
+					}
+
+					if options.BlockManager.GC.Enable == nil {
+						options.BlockManager.GC.Enable = o.BlockManager.GC.Enable
+					}
+				}
+			}
+		}
+	}
+}
+
+func (o *StorageOptions) Validate() []error {
+	var errs []error
+	if o.BlockManager != nil {
+		errs = append(errs, o.BlockManager.CommonOptions.Validate()...)
+	}
+
+	return errs
+}
+
+func (o *StorageOptions) AddFlags(fs *pflag.FlagSet, s *StorageOptions) {
+	if o.BlockManager != nil && s.BlockManager != nil {
+		o.BlockManager.CommonOptions.AddFlags(fs, &s.BlockManager.CommonOptions, "storage")
+	}
 }

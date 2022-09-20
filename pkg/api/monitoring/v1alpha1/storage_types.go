@@ -23,7 +23,38 @@ import (
 )
 
 type StorageSpec struct {
-	S3 *S3 `json:"S3,omitempty"`
+	BlockManager *BlockManager `json:"blockManager,omitempty"`
+	S3           *S3           `json:"S3,omitempty"`
+}
+
+type BlockManager struct {
+	Enable     *bool `json:"enable,omitempty"`
+	CommonSpec `json:",inline"`
+	// ServiceAccountName is the name of the ServiceAccount to use to run bucket Pods.
+	ServiceAccountName string `json:"serviceAccountName,omitempty"`
+	// NodePort is the port used to expose the bucket service.
+	// If this is a valid node port, the gateway service type will be set to NodePort accordingly.
+	NodePort int32 `json:"nodePort,omitempty"`
+	// Interval to sync block metadata from object storage
+	BlockSyncInterval *metav1.Duration `json:"blockSyncInterval,omitempty"`
+	GC                *BlockGC         `json:"gc,omitempty"`
+}
+
+type BlockGC struct {
+	Enable *bool `json:"enable,omitempty"`
+	// Define resources requests and limits for main container.
+	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
+	// Image is the component image with tag/version.
+	Image string `json:"image,omitempty"`
+	// Image pull policy.
+	// One of Always, Never, IfNotPresent.
+	// Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
+	// Cannot be updated.
+	// +optional
+	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+
+	GCInterval     *metav1.Duration `json:"gcInterval,omitempty"`
+	CleanupTimeout *metav1.Duration `json:"cleanupTimeout,omitempty"`
 }
 
 // Config stores the configuration for s3 bucket.

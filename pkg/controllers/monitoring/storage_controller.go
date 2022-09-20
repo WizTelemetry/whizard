@@ -16,6 +16,11 @@ package monitoring
 import (
 	"context"
 
+	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/storage"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -26,10 +31,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/storage"
 )
 
 // StorageReconciler reconciles a Storage object
@@ -37,6 +38,8 @@ type StorageReconciler struct {
 	client.Client
 	Scheme  *runtime.Scheme
 	Context context.Context
+
+	Options *options.StorageOptions
 }
 
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=storages,verbs=get;list;watch;create;update;patch;delete
@@ -64,6 +67,7 @@ func (r *StorageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 		return ctrl.Result{}, err
 	}
+	instance = r.validate(instance)
 
 	baseReconciler := resources.BaseReconciler{
 		Client:  r.Client,
@@ -84,6 +88,8 @@ func (r *StorageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&monitoringv1alpha1.Storage{}).
 		Watches(&source.Kind{Type: &corev1.Secret{}},
 			handler.EnqueueRequestsFromMapFunc(r.mapToStoragebySecretRefFunc)).
+		Owns(&appsv1.Deployment{}).
+		Owns(&corev1.Service{}).
 		Owns(&corev1.Secret{}).
 		Complete(r)
 }
@@ -117,4 +123,46 @@ func (r *StorageReconciler) mapToStoragebySecretRefFunc(o client.Object) []recon
 	}
 
 	return reqs
+}
+
+func (r *StorageReconciler) validate(storage *monitoringv1alpha1.Storage) *monitoringv1alpha1.Storage {
+
+	if storage.Spec.BlockManager != nil && storage.Spec.BlockManager.Enable != nil && *(storage.Spec.BlockManager.Enable) {
+		r.Options.BlockManager.Apply(&storage.Spec.BlockManager.CommonSpec)
+
+		if storage.Spec.BlockManager.BlockSyncInterval == nil || storage.Spec.BlockManager.BlockSyncInterval.Duration == 0 {
+			storage.Spec.BlockManager.BlockSyncInterval = r.Options.BlockManager.BlockSyncInterval
+		}
+
+		if storage.Spec.BlockManager.ServiceAccountName == "" {
+			storage.Spec.BlockManager.ServiceAccountName = r.Options.BlockManager.ServiceAccountName
+		}
+
+		if storage.Spec.BlockManager.GC != nil &&
+			storage.Spec.BlockManager.GC.Enable != nil &&
+			*storage.Spec.BlockManager.GC.Enable {
+			if storage.Spec.BlockManager.GC.Image == "" {
+				storage.Spec.BlockManager.GC.Image = r.Options.BlockManager.GC.Image
+			}
+			if storage.Spec.BlockManager.GC.ImagePullPolicy == "" {
+				storage.Spec.BlockManager.GC.ImagePullPolicy = r.Options.BlockManager.GC.ImagePullPolicy
+			}
+			if storage.Spec.BlockManager.GC.Resources.Limits == nil {
+				storage.Spec.BlockManager.GC.Resources.Limits = r.Options.BlockManager.GC.Resources.Limits
+			}
+			if storage.Spec.BlockManager.GC.Resources.Requests == nil {
+				storage.Spec.BlockManager.GC.Resources.Requests = r.Options.BlockManager.GC.Resources.Requests
+			}
+			if storage.Spec.BlockManager.GC.GCInterval == nil ||
+				storage.Spec.BlockManager.GC.GCInterval.Duration == 0 {
+				storage.Spec.BlockManager.GC.GCInterval = r.Options.BlockManager.GC.GCInterval
+			}
+			if storage.Spec.BlockManager.GC.CleanupTimeout == nil ||
+				storage.Spec.BlockManager.GC.GCInterval.Duration == 0 {
+				storage.Spec.BlockManager.GC.CleanupTimeout = r.Options.BlockManager.GC.CleanupTimeout
+			}
+		}
+	}
+
+	return storage
 }

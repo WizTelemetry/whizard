@@ -15,8 +15,8 @@ func (q *Query) service() (runtime.Object, resources.Operation, error) {
 		return s, resources.OperationDelete, nil
 	}
 	s.Spec = corev1.ServiceSpec{
-		ClusterIP: "None",
-		Selector:  q.labels(),
+		Type:     corev1.ServiceTypeClusterIP,
+		Selector: q.labels(),
 		Ports: []corev1.ServicePort{
 			{
 				Protocol: corev1.ProtocolTCP,

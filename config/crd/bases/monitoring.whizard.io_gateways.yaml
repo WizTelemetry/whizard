@@ -884,6 +884,12 @@ spec:
                 description: 'Log filtering level. Possible options: error, warn,
                   info, debug.'
                 type: string
+              nodePort:
+                description: NodePort is the port used to expose the gateway service.
+                  If this is a valid node port, the gateway service type will be set
+                  to NodePort accordingly.
+                format: int32
+                type: integer
               nodeSelector:
                 additionalProperties:
                   type: string

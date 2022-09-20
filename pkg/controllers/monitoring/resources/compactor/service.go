@@ -19,7 +19,7 @@ func (r *Compactor) service() (runtime.Object, resources.Operation, error) {
 		}
 	}
 
-	s.Spec.ClusterIP = corev1.ClusterIPNone
+	s.Spec.Type = corev1.ServiceTypeClusterIP
 	s.Spec.Selector = r.labels()
 
 	ports := []corev1.ServicePort{

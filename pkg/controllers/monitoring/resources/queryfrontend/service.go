@@ -16,8 +16,8 @@ func (q *QueryFrontend) service() (runtime.Object, resources.Operation, error) {
 	}
 
 	s.Spec = corev1.ServiceSpec{
-		ClusterIP: corev1.ClusterIPNone,
-		Selector:  q.labels(),
+		Type:     corev1.ServiceTypeClusterIP,
+		Selector: q.labels(),
 		Ports: []corev1.ServicePort{
 			{
 				Protocol: corev1.ProtocolTCP,

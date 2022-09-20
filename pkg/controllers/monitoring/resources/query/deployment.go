@@ -47,6 +47,8 @@ var (
 		"--target",
 		// Deprecation
 		"--store-strict",
+		"--grpc-address",
+		"--http-address",
 	}
 )
 

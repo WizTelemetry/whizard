@@ -106,6 +106,10 @@ type GatewaySpec struct {
 	ServerCertificate string `json:"serverCertificate,omitempty"`
 	// Secret name for HTTP Client CA certificate (Kubernetes TLS secret type)
 	ClientCACertificate string `json:"clientCaCertificate,omitempty"`
+
+	// NodePort is the port used to expose the gateway service.
+	// If this is a valid node port, the gateway service type will be set to NodePort accordingly.
+	NodePort int32 `json:"nodePort,omitempty"`
 }
 
 // GatewayStatus defines the observed state of Gateway
