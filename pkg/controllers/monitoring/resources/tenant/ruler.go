@@ -86,16 +86,21 @@ func (t *Tenant) createOrUpdateRulerinstance() *monitoringv1alpha1.Ruler {
 	label[constants.ServiceLabelKey] = t.tenant.Labels[constants.ServiceLabelKey]
 
 	serviceNamespacedName := strings.Split(t.tenant.Labels[constants.ServiceLabelKey], ".")
-	// the tenant(cluster) is associated with the alerting rule
-	// RuleNamespaceSelector is nil and will use the ruler's namespace
-	ruleLabelSelector := &metav1.LabelSelector{
+
+	var ruleSelectors []*metav1.LabelSelector
+	// add default rule selectors. (mainly used to select recording rules)
+	ruleSelectors = append(ruleSelectors, t.Options.Ruler.RuleSelectors...)
+	// select alerting rules associated with this tenant(cluster)
+	ruleSelectors = append(ruleSelectors, &metav1.LabelSelector{
 		MatchLabels: map[string]string{
 			PrometheusRuleResourceLabelKeyOwnerCluster: t.tenant.Spec.Tenant,
-			PrometheusRuleResourceLabelKeyRuleLevel:    string(RuleLevelCluster),
 		},
-	}
-
-	// todo: the tenant(cluster) is associated with the recording rule
+		MatchExpressions: []metav1.LabelSelectorRequirement{{
+			Key:      PrometheusRuleResourceLabelKeyRuleLevel,
+			Operator: metav1.LabelSelectorOpIn,
+			Values:   []string{string(RuleLevelCluster), string(RuleLevelNamesapce)},
+		}},
+	})
 
 	return &monitoringv1alpha1.Ruler{ObjectMeta: metav1.ObjectMeta{
 		Name:      t.tenant.Name,
@@ -112,8 +117,9 @@ func (t *Tenant) createOrUpdateRulerinstance() *monitoringv1alpha1.Ruler {
 		},
 	},
 		Spec: monitoringv1alpha1.RulerSpec{
-			Tenant:       t.tenant.Spec.Tenant,
-			RuleSelector: ruleLabelSelector,
+			Tenant: t.tenant.Spec.Tenant,
+			// Only set RuleSelectors. The RuleNamespaceSelector is nil and will use the ruler's namespace
+			RuleSelectors: ruleSelectors,
 		},
 	}
 }
