@@ -128,40 +128,7 @@ func (r *StorageReconciler) mapToStoragebySecretRefFunc(o client.Object) []recon
 func (r *StorageReconciler) validate(storage *monitoringv1alpha1.Storage) *monitoringv1alpha1.Storage {
 
 	if storage.Spec.BlockManager != nil && storage.Spec.BlockManager.Enable != nil && *(storage.Spec.BlockManager.Enable) {
-		r.Options.BlockManager.Apply(&storage.Spec.BlockManager.CommonSpec)
-
-		if storage.Spec.BlockManager.BlockSyncInterval == nil || storage.Spec.BlockManager.BlockSyncInterval.Duration == 0 {
-			storage.Spec.BlockManager.BlockSyncInterval = r.Options.BlockManager.BlockSyncInterval
-		}
-
-		if storage.Spec.BlockManager.ServiceAccountName == "" {
-			storage.Spec.BlockManager.ServiceAccountName = r.Options.BlockManager.ServiceAccountName
-		}
-
-		if storage.Spec.BlockManager.GC != nil &&
-			storage.Spec.BlockManager.GC.Enable != nil &&
-			*storage.Spec.BlockManager.GC.Enable {
-			if storage.Spec.BlockManager.GC.Image == "" {
-				storage.Spec.BlockManager.GC.Image = r.Options.BlockManager.GC.Image
-			}
-			if storage.Spec.BlockManager.GC.ImagePullPolicy == "" {
-				storage.Spec.BlockManager.GC.ImagePullPolicy = r.Options.BlockManager.GC.ImagePullPolicy
-			}
-			if storage.Spec.BlockManager.GC.Resources.Limits == nil {
-				storage.Spec.BlockManager.GC.Resources.Limits = r.Options.BlockManager.GC.Resources.Limits
-			}
-			if storage.Spec.BlockManager.GC.Resources.Requests == nil {
-				storage.Spec.BlockManager.GC.Resources.Requests = r.Options.BlockManager.GC.Resources.Requests
-			}
-			if storage.Spec.BlockManager.GC.GCInterval == nil ||
-				storage.Spec.BlockManager.GC.GCInterval.Duration == 0 {
-				storage.Spec.BlockManager.GC.GCInterval = r.Options.BlockManager.GC.GCInterval
-			}
-			if storage.Spec.BlockManager.GC.CleanupTimeout == nil ||
-				storage.Spec.BlockManager.GC.GCInterval.Duration == 0 {
-				storage.Spec.BlockManager.GC.CleanupTimeout = r.Options.BlockManager.GC.CleanupTimeout
-			}
-		}
+		r.Options.Override(&storage.Spec)
 	}
 
 	return storage
