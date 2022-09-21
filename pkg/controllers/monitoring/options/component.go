@@ -816,6 +816,41 @@ func (o *StorageOptions) ApplyTo(options *StorageOptions) {
 	}
 }
 
+func (o *StorageOptions) Override(spec *v1alpha1.StorageSpec) {
+	if spec.BlockManager.BlockSyncInterval == nil || spec.BlockManager.BlockSyncInterval.Duration == 0 {
+		spec.BlockManager.BlockSyncInterval = o.BlockManager.BlockSyncInterval
+	}
+
+	if spec.BlockManager.ServiceAccountName == "" {
+		spec.BlockManager.ServiceAccountName = o.BlockManager.ServiceAccountName
+	}
+
+	if spec.BlockManager.GC != nil &&
+		spec.BlockManager.GC.Enable != nil &&
+		*spec.BlockManager.GC.Enable {
+		if spec.BlockManager.GC.Image == "" {
+			spec.BlockManager.GC.Image = o.BlockManager.GC.Image
+		}
+		if spec.BlockManager.GC.ImagePullPolicy == "" {
+			spec.BlockManager.GC.ImagePullPolicy = o.BlockManager.GC.ImagePullPolicy
+		}
+		if spec.BlockManager.GC.Resources.Limits == nil {
+			spec.BlockManager.GC.Resources.Limits = o.BlockManager.GC.Resources.Limits
+		}
+		if spec.BlockManager.GC.Resources.Requests == nil {
+			spec.BlockManager.GC.Resources.Requests = o.BlockManager.GC.Resources.Requests
+		}
+		if spec.BlockManager.GC.GCInterval == nil ||
+			spec.BlockManager.GC.GCInterval.Duration == 0 {
+			spec.BlockManager.GC.GCInterval = o.BlockManager.GC.GCInterval
+		}
+		if spec.BlockManager.GC.CleanupTimeout == nil ||
+			spec.BlockManager.GC.GCInterval.Duration == 0 {
+			spec.BlockManager.GC.CleanupTimeout = o.BlockManager.GC.CleanupTimeout
+		}
+	}
+}
+
 func (o *StorageOptions) Validate() []error {
 	var errs []error
 	if o.BlockManager != nil {
