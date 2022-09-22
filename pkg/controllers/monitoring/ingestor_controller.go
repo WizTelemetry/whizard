@@ -49,6 +49,7 @@ type IngesterReconciler struct {
 	client.Client
 	Scheme  *runtime.Scheme
 	Context context.Context
+	Options *options.IngesterOptions
 }
 
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=ingesters,verbs=get;list;watch;create;update;patch;delete
@@ -114,11 +115,12 @@ func (r *IngesterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		Context: ctx,
 	}
 
-	if err := ingester.New(baseReconciler, instance).Reconcile(); err != nil {
+	ingesterReconciler, err := ingester.New(baseReconciler, instance, r.Options)
+	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{}, ingesterReconciler.Reconcile()
 }
 
 // SetupWithManager sets up the controller with the Manager.

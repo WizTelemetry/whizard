@@ -42,7 +42,10 @@ func (r *Router) hashringsConfigMap() (runtime.Object, resources.Operation, erro
 	}
 
 	for _, item := range ingesterList.Items {
-		ingester := ingester.New(r.BaseReconciler, &item)
+		ingester, err := ingester.New(r.BaseReconciler, &item, nil)
+		if err != nil {
+			return nil, "", err
+		}
 		if len(item.Spec.Tenants) == 0 {
 			// the ingester in the "deleting" state will not be added to the soft hash ring
 			if v, ok := item.ObjectMeta.Labels[constants.LabelNameIngesterState]; !ok || v != constants.IngesterStateDeleting {

@@ -5,6 +5,7 @@ import (
 
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -12,13 +13,18 @@ import (
 type Ingester struct {
 	resources.BaseReconciler
 	ingester *monitoringv1alpha1.Ingester
+	options  *options.IngesterOptions
 }
 
-func New(reconciler resources.BaseReconciler, ingester *monitoringv1alpha1.Ingester) *Ingester {
+func New(reconciler resources.BaseReconciler, ingester *monitoringv1alpha1.Ingester, options *options.IngesterOptions) (*Ingester, error) {
+	if err := reconciler.SetService(ingester); err != nil {
+		return nil, err
+	}
 	return &Ingester{
 		BaseReconciler: reconciler,
 		ingester:       ingester,
-	}
+		options:        options,
+	}, nil
 }
 
 func (r *Ingester) labels() map[string]string {
