@@ -28,6 +28,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
@@ -55,7 +56,6 @@ type CompactorReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
 // the Service object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
@@ -95,11 +95,7 @@ func (r *CompactorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, r.Client.Update(r.Context, instance)
 	}
 
-	instance, err = r.DefaulterValidator(instance)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
+	r.DefaulterValidator(instance)
 	if len(instance.Spec.Tenants) == 0 {
 		klog.V(3).Infof("ignore compactor %s/%s because of empty tenants", instance.Name, instance.Namespace)
 		return ctrl.Result{}, nil
@@ -112,52 +108,53 @@ func (r *CompactorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		Context: ctx,
 	}
 
-	if err := compactor.New(baseReconciler, instance).Reconcile(); err != nil {
+	compactorReconciler, err := compactor.New(baseReconciler, instance)
+	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{}, compactorReconciler.Reconcile()
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *CompactorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&monitoringv1alpha1.Compactor{}).
+		Watches(&source.Kind{Type: &monitoringv1alpha1.Service{}},
+			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(util.ManagedLabelByService))).
 		Watches(&source.Kind{Type: &monitoringv1alpha1.Storage{}},
-			handler.EnqueueRequestsFromMapFunc(r.reconcileRequestFromStorage)).
+			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(util.ManagedLabelByStorage))).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Service{}).
 		Complete(r)
 }
 
-func (r *CompactorReconciler) reconcileRequestFromStorage(o client.Object) []reconcile.Request {
-	compactorList := &monitoringv1alpha1.CompactorList{}
-	if err := r.Client.List(r.Context, compactorList, client.MatchingLabels(util.ManagedLabelByStorage(o))); err != nil {
-		log.FromContext(r.Context).WithValues("compactorList", "").Error(err, "")
-		return nil
-	}
+func (r *CompactorReconciler) mapFuncBySelectorFunc(fn func(metav1.Object) map[string]string) handler.MapFunc {
+	return func(o client.Object) []reconcile.Request {
+		compactorList := &monitoringv1alpha1.CompactorList{}
+		if err := r.Client.List(r.Context, compactorList, client.MatchingLabels(fn(o))); err != nil {
+			log.FromContext(r.Context).WithValues("compactorList", "").Error(err, "")
+			return nil
+		}
 
-	var reqs []reconcile.Request
-	for _, item := range compactorList.Items {
-		reqs = append(reqs, reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Namespace: item.Namespace,
-				Name:      item.Name,
-			},
-		})
-	}
+		var reqs []reconcile.Request
+		for _, item := range compactorList.Items {
+			reqs = append(reqs, reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Namespace: item.Namespace,
+					Name:      item.Name,
+				},
+			})
+		}
 
-	return reqs
+		return reqs
+	}
 }
 
-type CompactorDefaulterValidator func(compactor *monitoringv1alpha1.Compactor) (*monitoringv1alpha1.Compactor, error)
+type CompactorDefaulterValidator func(compactor *monitoringv1alpha1.Compactor)
 
 func CreateCompactorDefaulterValidator(opt *options.CompactorOptions) CompactorDefaulterValidator {
-
-	return func(compactor *monitoringv1alpha1.Compactor) (*monitoringv1alpha1.Compactor, error) {
-
+	return func(compactor *monitoringv1alpha1.Compactor) {
 		opt.Override(&compactor.Spec)
-
-		return compactor, nil
 	}
 }

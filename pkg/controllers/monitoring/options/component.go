@@ -80,9 +80,6 @@ func (o *CompactorOptions) Override(spec *v1alpha1.CompactorSpec) {
 	if spec.DisableDownsampling == nil {
 		spec.DisableDownsampling = o.DisableDownsampling
 	}
-	if spec.Retention == nil {
-		spec.Retention = o.Retention
-	}
 }
 
 func (o *CompactorOptions) Validate() []error {
