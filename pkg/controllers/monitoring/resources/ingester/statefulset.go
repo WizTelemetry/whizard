@@ -217,7 +217,7 @@ echo [$(date "+%Y-%m-%d %H:%M:%S")] cleanup block end
 
 func (r *Ingester) generateInitContainer(tsdbVolumeMount *corev1.VolumeMount) []corev1.Container {
 	// The tsdbVolumeMount is nil means ingester uses empty dir as the storage of TSDB, no need to cleanup.
-	if (r.options.DisableCleanup != nil && *r.options.DisableCleanup) ||
+	if (r.options.DisableTSDBCleanup != nil && *r.options.DisableTSDBCleanup) ||
 		tsdbVolumeMount == nil {
 		return nil
 	}
@@ -225,7 +225,7 @@ func (r *Ingester) generateInitContainer(tsdbVolumeMount *corev1.VolumeMount) []
 	return []corev1.Container{
 		{
 			Name:  initContainerName,
-			Image: r.options.CleanupImage,
+			Image: r.options.TSDBCleanupImage,
 			Command: []string{
 				"bash",
 				"-c",
