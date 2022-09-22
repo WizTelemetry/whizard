@@ -12,6 +12,7 @@ const (
 	DefaultGatewayImage                  = "kubesphere/whizard-monitoring-gateway:latest"
 	DefaultPrometheusConfigReloaderImage = "quay.io/prometheus-operator/prometheus-config-reloader:v0.55.1"
 	DefaultBlockManagerImage             = "kubesphere/whizard-monitoring-block-manager:latest"
+	DefaultTSDBCleanupImage              = "bash:5.1.16"
 
 	DefaultService = "kubesphere-monitoring-system.central"
 

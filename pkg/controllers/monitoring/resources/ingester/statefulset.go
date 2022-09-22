@@ -3,19 +3,23 @@ package ingester
 import (
 	"fmt"
 	"sort"
+	"strings"
+	"time"
 
-	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/util"
 	"github.com/prometheus/common/model"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+)
+
+const (
+	initContainerName = "cleanup"
 )
 
 var (
@@ -53,6 +57,10 @@ func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
 			},
 		},
 	}
+
+	// To make sure there is enough time to upload the block when ingester is terminated.
+	terminationGracePeriodSeconds := int64(time.Hour)
+	sts.Spec.Template.Spec.TerminationGracePeriodSeconds = &terminationGracePeriodSeconds
 
 	var container = corev1.Container{
 		Name:      "receive",
@@ -145,24 +153,14 @@ func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
 		container.Args = append(container.Args, "--tsdb.max-block-duration="+maxBlockDuration.String())
 	}
 
-	namespacedName := util.ServiceNamespacedName(r.ingester)
-	if namespacedName != nil {
-		var service monitoringv1alpha1.Service
-		if err := r.Client.Get(r.Context, *namespacedName, &service); err != nil {
-			if !apierrors.IsNotFound(err) {
-				return nil, resources.OperationCreateOrUpdate, err
-			}
-		} else {
-			if service.Spec.TenantHeader != "" {
-				container.Args = append(container.Args, "--receive.tenant-header="+service.Spec.TenantHeader)
-			}
-			if service.Spec.TenantLabelName != "" {
-				container.Args = append(container.Args, "--receive.tenant-label-name="+service.Spec.TenantLabelName)
-			}
-			if service.Spec.DefaultTenantId != "" {
-				container.Args = append(container.Args, "--receive.default-tenant-id="+service.Spec.DefaultTenantId)
-			}
-		}
+	if r.Service.Spec.TenantHeader != "" {
+		container.Args = append(container.Args, "--receive.tenant-header="+r.Service.Spec.TenantHeader)
+	}
+	if r.Service.Spec.TenantLabelName != "" {
+		container.Args = append(container.Args, "--receive.tenant-label-name="+r.Service.Spec.TenantLabelName)
+	}
+	if r.Service.Spec.DefaultTenantId != "" {
+		container.Args = append(container.Args, "--receive.default-tenant-id="+r.Service.Spec.DefaultTenantId)
 	}
 
 	for _, flag := range r.ingester.Spec.Flags {
@@ -188,6 +186,67 @@ func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
 	sort.Strings(container.Args[1:])
 
 	sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, container)
+	sts.Spec.Template.Spec.InitContainers = r.generateInitContainer(getTSDBVolumeMount(container))
 
 	return sts, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(r.ingester, sts, r.Scheme)
+}
+
+var cleanupScript = `
+#!/bin/bash
+
+echo [$(date "+%Y-%m-%d %H:%M:%S")] begin to cleanup block
+echo TSDB path: ${0}
+echo tenants: ${1}
+
+files=$(ls -d $0/*)
+tenants=(${1//,/ })
+
+for f in ${files[@]}
+do
+  if test -d $f; then
+    name=$(basename $f)
+    if [[ ! "${tenants[@]}" =~ "$name" ]]; then
+      echo [$(date "+%Y-%m-%d %H:%M:%S")] tenant $name does not exist, delete data directory $f
+      rm -rf $f
+    fi
+  fi
+done
+
+echo [$(date "+%Y-%m-%d %H:%M:%S")] cleanup block end
+`
+
+func (r *Ingester) generateInitContainer(tsdbVolumeMount *corev1.VolumeMount) []corev1.Container {
+	// The tsdbVolumeMount is nil means ingester uses empty dir as the storage of TSDB, no need to cleanup.
+	if (r.options.DisableTSDBCleanup != nil && *r.options.DisableTSDBCleanup) ||
+		tsdbVolumeMount == nil {
+		return nil
+	}
+
+	return []corev1.Container{
+		{
+			Name:  initContainerName,
+			Image: r.options.TSDBCleanupImage,
+			Command: []string{
+				"bash",
+				"-c",
+				cleanupScript,
+			},
+			Args: []string{
+				constants.StorageDir,
+				strings.Join(append(r.ingester.Spec.Tenants, r.Service.Spec.DefaultTenantId), ","),
+			},
+			VolumeMounts: []corev1.VolumeMount{*tsdbVolumeMount},
+		},
+	}
+}
+
+func getTSDBVolumeMount(container corev1.Container) *corev1.VolumeMount {
+
+	for _, item := range container.VolumeMounts {
+		if item.Name == constants.TSDBVolumeName {
+			return &item
+		}
+	}
+
+	return nil
 }

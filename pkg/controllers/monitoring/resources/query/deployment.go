@@ -144,7 +144,10 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 		return nil, resources.OperationCreateOrUpdate, err
 	}
 	for _, item := range ingesterList.Items {
-		ingesterInstance := ingester.New(q.BaseReconciler, &item)
+		ingesterInstance, err := ingester.New(q.BaseReconciler, &item, nil)
+		if err != nil {
+			return nil, "", err
+		}
 		for _, endpoint := range ingesterInstance.GrpcAddrs() {
 			queryContainer.Args = append(queryContainer.Args, "--endpoint="+endpoint)
 		}

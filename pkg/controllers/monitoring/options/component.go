@@ -105,6 +105,12 @@ type IngesterOptions struct {
 
 	// LocalTsdbRetention configs how long to retain raw samples on local storage.
 	LocalTsdbRetention string `json:"localTsdbRetention,omitempty"`
+
+	// Disable the TSDB cleanup of ingester.
+	// The cleanup will delete the blocks that belong to deleted tenants
+	// in the data directory of ingester TSDB.
+	DisableTSDBCleanup *bool  `json:"disableTSDBCleanup,omitempty"`
+	TSDBCleanupImage   string `json:"tsdbCleanupImage,omitempty"`
 }
 
 func NewIngesterOptions() *IngesterOptions {
@@ -113,6 +119,7 @@ func NewIngesterOptions() *IngesterOptions {
 
 		DefaultTenantsPerIngester:      DefaultTenantsPerIngester,
 		DefaultIngesterRetentionPeriod: DefaultIngesterRetentionPeriod,
+		TSDBCleanupImage:               DefaultTSDBCleanupImage,
 	}
 }
 
@@ -149,7 +156,12 @@ func (o *IngesterOptions) ApplyTo(options *IngesterOptions) {
 	if o.LocalTsdbRetention != "" {
 		options.LocalTsdbRetention = o.LocalTsdbRetention
 	}
-
+	if o.DisableTSDBCleanup != nil {
+		options.DisableTSDBCleanup = o.DisableTSDBCleanup
+	}
+	if o.TSDBCleanupImage != "" {
+		options.TSDBCleanupImage = o.TSDBCleanupImage
+	}
 }
 
 // Override the Options overrides the spec field when it is empty
