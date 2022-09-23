@@ -17,8 +17,9 @@ const (
 	series      = "/api/v1/series"
 	labels      = "/api/v1/labels"
 	labelValues = "/api/v1/label/*path"
-	targetsMeta = "/api/v1/targets/metadata"
 	receive     = "/api/v1/receive"
+	rules       = "/api/v1/rules"
+	alerts      = "/api/v1/alerts"
 )
 
 type Options struct {
@@ -53,6 +54,10 @@ func NewServer(logger log.Logger, opt *Options) *Server {
 	s.router.Get(series, s.wrap(series))
 	s.router.Get(labels, s.wrap(labels))
 	s.router.Get(labelValues, s.wrap(labelValues))
+	s.router.Get(rules, s.wrap(rules))
+	// do provide /api/v1/alerts because thanos does not support alerts filtering as of v0.28.0
+	// please filtering alerts by /api/v1/rules
+	// s.router.Get(alerts, s.wrap(alerts))
 
 	s.router.Post(receive, s.wrap(receive))
 
