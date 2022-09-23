@@ -359,7 +359,7 @@ func (r *Ruler) remoteWriteAddress() (string, error) {
 		}
 
 		o := routerList.Items[0]
-		r, err := router.New(r.BaseReconciler, &o)
+		r, err := router.New(r.BaseReconciler, &o, nil)
 		if err != nil {
 			return "", err
 		}
@@ -382,7 +382,7 @@ func (r *Ruler) queryAddress() (string, error) {
 		}
 
 		o := queryList.Items[0]
-		r, err := query.New(r.BaseReconciler, &o)
+		r, err := query.New(r.BaseReconciler, &o, nil)
 		if err != nil {
 			return "", err
 		}

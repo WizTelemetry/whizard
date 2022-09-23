@@ -42,7 +42,8 @@ func (r *Router) hashringsConfigMap() (runtime.Object, resources.Operation, erro
 	}
 
 	for _, item := range ingesterList.Items {
-		ingester, err := ingester.New(r.BaseReconciler, &item, nil)
+		r.Options.Ingester.Override(&item.Spec)
+		ingester, err := ingester.New(r.BaseReconciler, &item, r.Options.Ingester)
 		if err != nil {
 			return nil, "", err
 		}

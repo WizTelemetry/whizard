@@ -44,7 +44,7 @@ type RouterReconciler struct {
 	client.Client
 	Scheme  *runtime.Scheme
 	Context context.Context
-	Options *options.RouterOptions
+	Options *options.Options
 }
 
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=services,verbs=get;list;watch;create;update;patch;delete
@@ -93,6 +93,7 @@ func (r *RouterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			Context: ctx,
 		},
 		instance,
+		r.Options,
 	)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -138,7 +139,7 @@ func (r *RouterReconciler) mapFuncBySelectorFunc(fn func(metav1.Object) map[stri
 }
 
 func (r *RouterReconciler) validator(router *monitoringv1alpha1.Router) *monitoringv1alpha1.Router {
-	r.Options.Override(&router.Spec)
+	r.Options.Router.Override(&router.Spec)
 	return router
 
 }
