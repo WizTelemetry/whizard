@@ -27,6 +27,21 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+// Duration is a valid time unit
+// Supported units: y, w, d, h, m, s, ms Examples: `30s`, `1m`, `1h20m15s`
+// +kubebuilder:validation:Pattern:="^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$"
+type Duration string
+
+// Retention defines the config for retaining samples
+type Retention struct {
+	// RetentionRaw specifies how long to retain raw samples in bucket
+	RetentionRaw Duration `json:"retentionRaw,omitempty"`
+	// Retention5m specifies how long to retain samples of 5m resolution in bucket
+	Retention5m Duration `json:"retention5m,omitempty"`
+	// Retention1h specifies how long to retain samples of 1h resolution in bucket
+	Retention1h Duration `json:"retention1h,omitempty"`
+}
+
 // ServiceSpec defines the desired state of a Service
 type ServiceSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
@@ -38,6 +53,9 @@ type ServiceSpec struct {
 	DefaultTenantId string `json:"defaultTenantId,omitempty"`
 	// Label name through which the tenant will be announced.
 	TenantLabelName string `json:"tenantLabelName,omitempty"`
+
+	// Retention configs how long to retain samples
+	Retention *Retention `json:"retention,omitempty"`
 
 	Storage *ObjectReference `json:"storage,omitempty"`
 }
@@ -297,16 +315,6 @@ type KubernetesVolume struct {
 	PersistentVolumeClaim *corev1.PersistentVolumeClaim `json:"pvc,omitempty"`
 }
 
-// Retention defines the config for retaining samples
-type Retention struct {
-	// RetentionRaw specifies how long to retain raw samples in bucket
-	RetentionRaw Duration `json:"retentionRaw,omitempty"`
-	// Retention5m specifies how long to retain samples of 5m resolution in bucket
-	Retention5m Duration `json:"retention5m,omitempty"`
-	// Retention1h specifies how long to retain samples of 1h resolution in bucket
-	Retention1h Duration `json:"retention1h,omitempty"`
-}
-
 // IndexCacheConfig specifies the index cache config.
 type IndexCacheConfig struct {
 	*InMemoryIndexCacheConfig `json:"inMemory,omitempty" yaml:"inMemory,omitempty"`
@@ -395,8 +403,6 @@ type CompactorSpec struct {
 
 	// DisableDownsampling specifies whether to disable downsampling
 	DisableDownsampling *bool `json:"disableDownsampling,omitempty"`
-	// Retention configs how long to retain samples
-	Retention *Retention `json:"retention,omitempty"`
 
 	// DataVolume specifies how volume shall be used
 	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
@@ -549,11 +555,6 @@ type RulerList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Ruler `json:"items"`
 }
-
-// Duration is a valid time unit
-// Supported units: y, w, d, h, m, s, ms Examples: `30s`, `1m`, `1h20m15s`
-// +kubebuilder:validation:Pattern:="^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$"
-type Duration string
 
 func init() {
 	SchemeBuilder = SchemeBuilder.

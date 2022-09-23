@@ -14,11 +14,14 @@ type Compactor struct {
 	compactor *v1alpha1.Compactor
 }
 
-func New(reconciler resources.BaseReconciler, compactor *v1alpha1.Compactor) *Compactor {
+func New(reconciler resources.BaseReconciler, compactor *v1alpha1.Compactor) (*Compactor, error) {
+	if err := reconciler.SetService(compactor); err != nil {
+		return nil, err
+	}
 	return &Compactor{
 		BaseReconciler: reconciler,
 		compactor:      compactor,
-	}
+	}, nil
 }
 
 func (r *Compactor) labels() map[string]string {

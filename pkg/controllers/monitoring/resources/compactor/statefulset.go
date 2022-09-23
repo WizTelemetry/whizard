@@ -31,6 +31,9 @@ var (
 	// unsupportedArgs is the args that are not allowed to be set by the user.
 	unsupportedArgs = []string{
 		"--http-address",
+		"--retention.resolution-raw",
+		"--retention.resolution-5m",
+		"--retention.resolution-1h",
 	}
 )
 
@@ -194,15 +197,15 @@ func (r *Compactor) megerArgs() ([]string, error) {
 	if r.compactor.Spec.DisableDownsampling != nil {
 		defaultArgs = append(defaultArgs, fmt.Sprintf("--downsampling.disable=%v", r.compactor.Spec.DisableDownsampling))
 	}
-	if retention := r.compactor.Spec.Retention; retention != nil {
+	if retention := r.Service.Spec.Retention; retention != nil {
 		if retention.RetentionRaw != "" {
 			defaultArgs = append(defaultArgs, fmt.Sprintf("--retention.resolution-raw=%s", retention.RetentionRaw))
 		}
 		if retention.Retention5m != "" {
 			defaultArgs = append(defaultArgs, fmt.Sprintf("--retention.resolution-5m=%s", retention.Retention5m))
 		}
-		if retention.Retention5m != "" {
-			defaultArgs = append(defaultArgs, fmt.Sprintf("--retention.resolution-1h=%s", retention.Retention5m))
+		if retention.Retention1h != "" {
+			defaultArgs = append(defaultArgs, fmt.Sprintf("--retention.resolution-1h=%s", retention.Retention1h))
 		}
 	}
 
