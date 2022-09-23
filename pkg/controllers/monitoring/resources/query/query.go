@@ -8,6 +8,7 @@ import (
 
 	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -19,16 +20,18 @@ const (
 
 type Query struct {
 	resources.BaseReconciler
-	query *v1alpha1.Query
+	query   *v1alpha1.Query
+	Options *options.Options
 }
 
-func New(reconciler resources.BaseReconciler, q *v1alpha1.Query) (*Query, error) {
+func New(reconciler resources.BaseReconciler, q *v1alpha1.Query, o *options.Options) (*Query, error) {
 	if err := reconciler.SetService(q); err != nil {
 		return nil, err
 	}
 	return &Query{
 		BaseReconciler: reconciler,
 		query:          q,
+		Options:        o,
 	}, nil
 }
 

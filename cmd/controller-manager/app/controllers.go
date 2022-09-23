@@ -38,7 +38,7 @@ func addControllers(mgr manager.Manager, client k8s.Client, informerFactory info
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
 		Context: ctx,
-		Options: cmOptions.MonitoringOptions.Query,
+		Options: cmOptions.MonitoringOptions,
 	}).SetupWithManager(mgr); err != nil {
 		klog.Errorf("Unable to create Query controller: %v", err)
 		return err
@@ -48,7 +48,7 @@ func addControllers(mgr manager.Manager, client k8s.Client, informerFactory info
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
 		Context: ctx,
-		Options: cmOptions.MonitoringOptions.Router,
+		Options: cmOptions.MonitoringOptions,
 	}).SetupWithManager(mgr); err != nil {
 		klog.Errorf("Unable to create Router controller: %v", err)
 		return err

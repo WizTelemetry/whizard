@@ -144,7 +144,8 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 		return nil, resources.OperationCreateOrUpdate, err
 	}
 	for _, item := range ingesterList.Items {
-		ingesterInstance, err := ingester.New(q.BaseReconciler, &item, nil)
+		q.Options.Ingester.Override(&item.Spec)
+		ingesterInstance, err := ingester.New(q.BaseReconciler, &item, q.Options.Ingester)
 		if err != nil {
 			return nil, "", err
 		}

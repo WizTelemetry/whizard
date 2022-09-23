@@ -44,7 +44,7 @@ type QueryReconciler struct {
 	client.Client
 	Scheme  *runtime.Scheme
 	Context context.Context
-	Options *options.QueryOptions
+	Options *options.Options
 }
 
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=services,verbs=get;list;watch;create;update;patch;delete
@@ -93,6 +93,7 @@ func (r *QueryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			Context: ctx,
 		},
 		instance,
+		r.Options,
 	)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -142,6 +143,6 @@ func (r *QueryReconciler) mapFuncBySelectorFunc(fn func(metav1.Object) map[strin
 }
 
 func (r *QueryReconciler) validator(q *monitoringv1alpha1.Query) *monitoringv1alpha1.Query {
-	r.Options.Override(&q.Spec)
+	r.Options.Query.Override(&q.Spec)
 	return q
 }

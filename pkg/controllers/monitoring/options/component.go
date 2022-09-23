@@ -496,6 +496,9 @@ func (o *RulerOptions) ApplyTo(options *RulerOptions) {
 	if o.AlertDropLabels != nil {
 		options.AlertDropLabels = o.AlertDropLabels
 	}
+	if o.AlertmanagersURL != nil {
+		options.AlertmanagersURL = o.AlertmanagersURL
+	}
 	if o.AlertmanagersConfig != nil {
 		options.AlertmanagersConfig = o.AlertmanagersConfig
 	}
