@@ -47,9 +47,11 @@ type QueryFrontendReconciler struct {
 	Options *options.QueryFrontendOptions
 }
 
-//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=services,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=services/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=services/finalizers,verbs=update
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=queryfrontends,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=queryfrontends/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=queryfrontends/finalizers,verbs=update
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=services,verbs=get;list;watch
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=queries,verbs=get;list;watch
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=tenants,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=services;configmaps;serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=deployments;statefulsets,verbs=get;list;watch;create;update;patch;delete

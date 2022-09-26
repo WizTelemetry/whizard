@@ -47,9 +47,10 @@ type QueryReconciler struct {
 	Options *options.Options
 }
 
-//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=services,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=services/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=services/finalizers,verbs=update
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=queries,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=queries/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=queries/finalizers,verbs=update
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=services,verbs=get;list;watch
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=ingesters,verbs=get;list;watch
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=stores,verbs=get;list;watch
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=rulers,verbs=get;list;watch

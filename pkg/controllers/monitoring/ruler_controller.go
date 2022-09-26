@@ -53,6 +53,7 @@ type RulerReconciler struct {
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=rulers,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=rulers/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=rulers/finalizers,verbs=update
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=services,verbs=get;list;watch
 //+kubebuilder:rbac:groups=monitoring.coreos.com,resources=prometheusrules,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=services;configmaps,verbs=get;list;watch;create;update;patch;delete

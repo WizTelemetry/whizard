@@ -301,7 +301,7 @@ func (o *QueryOptions) Override(spec *v1alpha1.QuerySpec) {
 	if spec.SelectorLabels == nil {
 		spec.SelectorLabels = o.SelectorLabels
 	}
-	if o.ReplicaLabelNames == nil {
+	if spec.ReplicaLabelNames == nil {
 		spec.ReplicaLabelNames = o.ReplicaLabelNames
 	}
 }
@@ -528,6 +528,9 @@ func (o *RulerOptions) Override(spec *v1alpha1.RulerSpec) {
 	}
 	if spec.AlertDropLabels == nil {
 		spec.AlertDropLabels = o.AlertDropLabels
+	}
+	if spec.AlertmanagersURL == nil {
+		spec.AlertmanagersURL = o.AlertmanagersURL
 	}
 	if spec.AlertmanagersConfig == nil {
 		spec.AlertmanagersConfig = o.AlertmanagersConfig

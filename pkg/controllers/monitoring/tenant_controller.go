@@ -51,10 +51,10 @@ type TenantReconciler struct {
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=tenants/finalizers,verbs=update
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=service,verbs=get;list;watch
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=storage,verbs=get;list;watch
-//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=compactors,verbs=get;list;watch
-//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=ingesters,verbs=get;list;watch
-//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=rulers,verbs=get;list;watch
-//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=stores,verbs=get;list;watch
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=compactors,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=ingesters,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=rulers,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=stores,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
