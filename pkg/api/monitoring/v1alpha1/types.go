@@ -312,7 +312,7 @@ type InMemoryResponseCacheConfig struct {
 // KubernetesVolume defines the configured volume for a instance.
 type KubernetesVolume struct {
 	EmptyDir              *corev1.EmptyDirVolumeSource  `json:"emptyDir,omitempty"`
-	PersistentVolumeClaim *corev1.PersistentVolumeClaim `json:"pvc,omitempty"`
+	PersistentVolumeClaim *corev1.PersistentVolumeClaim `json:"persistentVolumeClaim,omitempty"`
 }
 
 // IndexCacheConfig specifies the index cache config.
