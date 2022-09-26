@@ -47,10 +47,15 @@ type GatewayReconciler struct {
 	Options *options.GatewayOptions
 }
 
-//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=services,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=services/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=services/finalizers,verbs=update
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=gateways,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=gateways/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=gateways/finalizers,verbs=update
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=services,verbs=get;list;watch
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=queries,verbs=get;list;watch
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=queryfrontends,verbs=get;list;watch
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=routers,verbs=get;list;watch
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=services;configmaps,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
