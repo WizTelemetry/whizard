@@ -512,7 +512,7 @@ spec:
                         pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                         x-kubernetes-int-or-string: true
                     type: object
-                  pvc:
+                  persistentVolumeClaim:
                     description: PersistentVolumeClaim is a user's request for and claim to a persistent volume
                     properties:
                       apiVersion:
@@ -1884,7 +1884,7 @@ spec:
                         pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                         x-kubernetes-int-or-string: true
                     type: object
-                  pvc:
+                  persistentVolumeClaim:
                     description: PersistentVolumeClaim is a user's request for and claim to a persistent volume
                     properties:
                       apiVersion:
@@ -4524,7 +4524,7 @@ spec:
                         pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                         x-kubernetes-int-or-string: true
                     type: object
-                  pvc:
+                  persistentVolumeClaim:
                     description: PersistentVolumeClaim is a user's request for and claim to a persistent volume
                     properties:
                       apiVersion:
@@ -6307,7 +6307,7 @@ spec:
                         pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                         x-kubernetes-int-or-string: true
                     type: object
-                  pvc:
+                  persistentVolumeClaim:
                     description: PersistentVolumeClaim is a user's request for and claim to a persistent volume
                     properties:
                       apiVersion:
