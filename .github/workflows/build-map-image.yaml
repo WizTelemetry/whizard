@@ -25,7 +25,7 @@ on:
     paths:
       - '.github/workflows/**'
       - 'cmd/monitoring-agent-proxy/**'
-      - 'pkg/**'
+      - 'pkg/monitoring-agent-proxy/**'
       - 'go.mod'
       - 'go.sum'
 
