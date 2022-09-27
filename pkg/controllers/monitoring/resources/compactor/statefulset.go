@@ -68,7 +68,6 @@ func (r *Compactor) statefulSet() (runtime.Object, resources.Operation, error) {
 	if container == nil {
 		container = &corev1.Container{
 			Name:      mainContainerName,
-			Image:     r.compactor.Spec.Image,
 			Resources: r.compactor.Spec.Resources,
 			Ports: []corev1.ContainerPort{
 				{
@@ -81,6 +80,9 @@ func (r *Compactor) statefulSet() (runtime.Object, resources.Operation, error) {
 
 		needToAppend = true
 	}
+
+	container.Image = r.compactor.Spec.Image
+	container.ImagePullPolicy = r.compactor.Spec.ImagePullPolicy
 
 	container.VolumeMounts = []corev1.VolumeMount{}
 	r.AddTSDBVolume(sts, container, r.compactor.Spec.DataVolume)

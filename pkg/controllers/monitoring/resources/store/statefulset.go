@@ -62,8 +62,7 @@ func (r *Store) statefulSet() (runtime.Object, resources.Operation, error) {
 	needToAppend := false
 	if container == nil {
 		container = &corev1.Container{
-			Name:  mainContainerName,
-			Image: r.store.Spec.Image,
+			Name: mainContainerName,
 			Ports: []corev1.ContainerPort{
 				{
 					Protocol:      corev1.ProtocolTCP,
@@ -80,6 +79,9 @@ func (r *Store) statefulSet() (runtime.Object, resources.Operation, error) {
 
 		needToAppend = true
 	}
+
+	container.Image = r.store.Spec.Image
+	container.ImagePullPolicy = r.store.Spec.ImagePullPolicy
 
 	container.VolumeMounts = []corev1.VolumeMount{}
 	r.AddTSDBVolume(sts, container, r.store.Spec.DataVolume)
