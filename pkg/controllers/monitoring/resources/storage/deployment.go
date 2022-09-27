@@ -57,9 +57,7 @@ func (s *Storage) deployment() (runtime.Object, resources.Operation, error) {
 	needToAppend := false
 	if webContainer == nil {
 		webContainer = &corev1.Container{
-			Name:            webContainerName,
-			Image:           s.storage.Spec.BlockManager.Image,
-			ImagePullPolicy: s.storage.Spec.BlockManager.ImagePullPolicy,
+			Name: webContainerName,
 			Ports: []corev1.ContainerPort{
 				{
 					Protocol:      corev1.ProtocolTCP,
@@ -71,6 +69,9 @@ func (s *Storage) deployment() (runtime.Object, resources.Operation, error) {
 
 		needToAppend = true
 	}
+
+	webContainer.Image = s.storage.Spec.BlockManager.Image
+	webContainer.ImagePullPolicy = s.storage.Spec.BlockManager.ImagePullPolicy
 
 	if webContainer.LivenessProbe == nil {
 		webContainer.LivenessProbe = s.DefaultLivenessProbe()
