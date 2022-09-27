@@ -61,6 +61,5 @@ func (r *Compactor) Reconcile() error {
 
 	return r.ReconcileResources([]resources.Resource{
 		r.statefulSet,
-		r.service,
 	})
 }

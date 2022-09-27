@@ -20,6 +20,7 @@ import (
 
 const (
 	mainContainerName = "compactor"
+	compactInterval   = "1h"
 )
 
 var (
@@ -186,6 +187,12 @@ func (r *Compactor) megerArgs() ([]string, error) {
 		fmt.Sprintf("--selector.relabel-config=%s", rc),
 		fmt.Sprintf("--deduplication.replica-label=%s", constants.ReceiveReplicaLabelName),
 		fmt.Sprintf("--deduplication.replica-label=%s", constants.RulerReplicaLabelName),
+		fmt.Sprintf("--block-viewer.global.sync-block-interval=%s", compactInterval),
+		fmt.Sprintf("--wait-interval=%s", compactInterval),
+		// "0s" means the cleaning will only happen at the end of an iteration.
+		"--compact.cleanup-interval=0s",
+		// Disable the compaction progress calculating in the background.
+		"--compact.progress-interval=0s",
 	}
 
 	if r.compactor.Spec.LogLevel != "" {
@@ -194,8 +201,8 @@ func (r *Compactor) megerArgs() ([]string, error) {
 	if r.compactor.Spec.LogFormat != "" {
 		defaultArgs = append(defaultArgs, "--log.format="+r.compactor.Spec.LogFormat)
 	}
-	if r.compactor.Spec.DisableDownsampling != nil {
-		defaultArgs = append(defaultArgs, fmt.Sprintf("--downsampling.disable=%v", r.compactor.Spec.DisableDownsampling))
+	if r.compactor.Spec.DisableDownsampling != nil && *r.compactor.Spec.DisableDownsampling {
+		defaultArgs = append(defaultArgs, "--downsampling.disable")
 	}
 	if retention := r.Service.Spec.Retention; retention != nil {
 		if retention.RetentionRaw != "" {
