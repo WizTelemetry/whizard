@@ -14,7 +14,7 @@
 # limitations under the License.
 # 
 
-name: WorkFlow for Building monitoring-gateway image
+name: WorkFlow for Building monitoring-block-manager image
 
 on:
   push:
@@ -24,8 +24,10 @@ on:
       - 'v*'
     paths:
       - '.github/workflows/**'
-      - 'cmd/monitoring-gateway/**'
-      - 'pkg/monitoring-gateway/**'
+      - 'cmd/monitoring-block-manager/**'
+      - 'pkg/api/monitoring/v1alpha1/**'
+      - 'pkg/block/**'
+      - 'pkg/util/**'
       - 'go.mod'
       - 'go.sum'
 
@@ -36,7 +38,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    name: Build Image for monitoring-gateway
+    name: Build Image for monitoring-block-manager
     steps:
       - name: Install Go
         uses: actions/setup-go@v2
@@ -59,8 +61,8 @@ jobs:
           username: ${{ secrets.REGISTRY_USER }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
-      - name: Build and Push Image for monitoring-gateway
+      - name: Build and Push Image for monitoring-block-manager
         run: |
           tag=$(cat VERSION | tr -d " \t\n\r")
-          make docker-build-monitoring-gateway -e REPO=${{ env.REPO }} -e TAG=$tag
-          docker push ${{ env.REPO }}/whizard-monitoring-gateway:$tag
+          make docker-build-monitoring-block-manager -e REPO=${{ env.REPO }} -e TAG=$tag
+          docker push ${{ env.REPO }}/whizard-monitoring-block-manager:$tag
