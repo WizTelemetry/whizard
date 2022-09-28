@@ -137,17 +137,27 @@ func (s *Storage) deployment() (runtime.Object, resources.Operation, error) {
 
 		gcContainer.Resources = s.storage.Spec.BlockManager.GC.Resources
 
-		gcContainer.Args = []string{"--objstore.config=" + string(storageConfig)}
+		args := []string{"--objstore.config=" + string(storageConfig)}
 
 		if s.storage.Spec.BlockManager.GC.GCInterval != nil &&
 			s.storage.Spec.BlockManager.GC.GCInterval.Duration != 0 {
-			gcContainer.Args = append(gcContainer.Args, "--gc.interval="+s.storage.Spec.BlockManager.GC.GCInterval.String())
+			args = append(args, "--gc.interval="+s.storage.Spec.BlockManager.GC.GCInterval.String())
 		}
 
 		if s.storage.Spec.BlockManager.GC.CleanupTimeout != nil &&
 			s.storage.Spec.BlockManager.GC.CleanupTimeout.Duration != 0 {
-			gcContainer.Args = append(gcContainer.Args, "--gc.cleanup-timeout="+s.storage.Spec.BlockManager.GC.CleanupTimeout.String())
+			args = append(args, "--gc.cleanup-timeout="+s.storage.Spec.BlockManager.GC.CleanupTimeout.String())
 		}
+
+		if s.storage.Spec.BlockManager.GC.DefaultTenantId != "" {
+			args = append(args, "--tenant.default-id="+s.storage.Spec.BlockManager.GC.DefaultTenantId)
+		}
+
+		if s.storage.Spec.BlockManager.GC.TenantLabelName != "" {
+			args = append(args, "--tenant.label-name="+s.storage.Spec.BlockManager.GC.TenantLabelName)
+		}
+
+		gcContainer.Args = args
 
 		if needToAppend {
 			d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, *gcContainer)

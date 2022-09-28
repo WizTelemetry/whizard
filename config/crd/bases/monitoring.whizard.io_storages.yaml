@@ -1112,6 +1112,10 @@ spec:
                     properties:
                       cleanupTimeout:
                         type: string
+                      defaultTenantId:
+                        description: Default tenant ID to use when none is provided
+                          via a header.
+                        type: string
                       enable:
                         type: boolean
                       gcInterval:
@@ -1152,6 +1156,9 @@ spec:
                               More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
                             type: object
                         type: object
+                      tenantLabelName:
+                        description: Label name through which the tenant will be announced.
+                        type: string
                     type: object
                   image:
                     description: Image is the component image with tag/version.
