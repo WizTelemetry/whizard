@@ -23,7 +23,8 @@ on:
     tags:
       - 'v*'
     paths:
-      - '.github/workflows/**'
+      - '.github/workflows/build-monitoring-gateway.yaml'
+      - 'build/monitoring-gateway/**'
       - 'cmd/monitoring-gateway/**'
       - 'pkg/monitoring-gateway/**'
       - 'go.mod'
