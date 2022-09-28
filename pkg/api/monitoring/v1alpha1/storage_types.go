@@ -55,6 +55,11 @@ type BlockGC struct {
 
 	GCInterval     *metav1.Duration `json:"gcInterval,omitempty"`
 	CleanupTimeout *metav1.Duration `json:"cleanupTimeout,omitempty"`
+
+	// Default tenant ID to use when none is provided via a header.
+	DefaultTenantId string `json:"defaultTenantId,omitempty"`
+	// Label name through which the tenant will be announced.
+	TenantLabelName string `json:"tenantLabelName,omitempty"`
 }
 
 // Config stores the configuration for s3 bucket.
