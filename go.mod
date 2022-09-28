@@ -29,7 +29,7 @@ require (
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/code-generator v0.23.5
 	k8s.io/component-base v0.23.6
-	k8s.io/klog/v2 v2.60.1
+	k8s.io/klog/v2 v2.80.1
 	k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9
 	kubesphere.io/api v0.0.0
 	sigs.k8s.io/controller-runtime v0.11.2
