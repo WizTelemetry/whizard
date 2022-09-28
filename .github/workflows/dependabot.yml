@@ -13,11 +13,11 @@ updates:
     schedule:
       interval: "weekly"
   - package-ecosystem: "docker"
-     directory: "/build/monitoring-block-manager"
+    directory: "/build/monitoring-block-manager"
     schedule:
       interval: "weekly"
   - package-ecosystem: "docker"
-     directory: "/build/monitoring-gateway"
+    directory: "/build/monitoring-gateway"
     schedule:
       interval: "weekly"
   - package-ecosystem: "gomod"
