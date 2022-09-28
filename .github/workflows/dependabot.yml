@@ -1,0 +1,26 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "docker"
+    directory: "/build/controller-manager"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "docker"
+    directory: "/build/monitoring-agent-proxy"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "docker"
+     directory: "/build/monitoring-block-manager"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "docker"
+     directory: "/build/monitoring-gateway"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
