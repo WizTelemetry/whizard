@@ -118,16 +118,5 @@ func addControllers(mgr manager.Manager, client k8s.Client, informerFactory info
 		return err
 	}
 
-	if cmOptions.MonitoringOptions.EnableKubeSphereAdapter {
-		if err := (&monitoring.ClusterReconciler{
-			Client:                          mgr.GetClient(),
-			Scheme:                          mgr.GetScheme(),
-			Context:                         ctx,
-			KubesphereAdapterDefaultService: cmOptions.MonitoringOptions.KubeSphereAdapterService,
-		}).SetupWithManager(mgr); err != nil {
-			klog.Errorf("Unable to create Cluster controller: %v", err)
-			return err
-		}
-	}
 	return nil
 }

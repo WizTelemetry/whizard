@@ -24,7 +24,6 @@ import (
 	"github.com/kubesphere/whizard/pkg/controllers/config"
 	"github.com/kubesphere/whizard/pkg/informers"
 	"github.com/prometheus/common/version"
-	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 )
 
 func NewControllerManagerCommand() *cobra.Command {
@@ -161,7 +160,6 @@ func run(s *options.ControllerManagerOptions, ctx context.Context) error {
 		klog.Fatalf("unable to set up overall controller manager: %v", err)
 	}
 	_ = apis.AddToScheme(mgr.GetScheme())
-	_ = clusterv1alpha1.AddToScheme(mgr.GetScheme())
 	_ = apiextensions.AddToScheme(mgr.GetScheme())
 	_ = promv1.AddToScheme(mgr.GetScheme())
 
