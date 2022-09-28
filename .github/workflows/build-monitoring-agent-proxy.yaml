@@ -23,7 +23,8 @@ on:
     tags:
       - 'v*'
     paths:
-      - '.github/workflows/**'
+      - '.github/workflows/build-monitoring-agent-proxy.yaml'
+      - 'build/monitoring-agent-proxy/**'
       - 'cmd/monitoring-agent-proxy/**'
       - 'pkg/monitoring-agent-proxy/**'
       - 'go.mod'
