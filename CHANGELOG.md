@@ -1,4 +1,4 @@
-## 0.5.0-rc.0 / 2022-09-29
+# 0.5.0-rc.0 / 2022-09-29
 
 This is the first release of whizard.
 
