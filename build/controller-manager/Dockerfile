@@ -10,12 +10,14 @@ COPY go.sum go.sum
 # and so that source changes don't invalidate our downloaded layer
 RUN GOPROXY=$GOPROXY go mod download
 
+ARG GOLDFLAGS
+
 # Copy the go source
 COPY cmd/ cmd/
 COPY pkg/ pkg/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o manager cmd/controller-manager/controller-manager.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -ldflags="${GOLDFLAGS}"  -o manager cmd/controller-manager/controller-manager.go
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
