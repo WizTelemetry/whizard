@@ -764,7 +764,7 @@ type BlockGCOptions struct {
 
 func NewStorageOptions() *StorageOptions {
 	enable := true
-	blockSyncInterval := metav1.Duration{time.Minute}
+	blockSyncInterval := metav1.Duration{Duration: time.Minute}
 	return &StorageOptions{
 		BlockManager: &BlockManagerOptions{
 			Enable:            &enable,

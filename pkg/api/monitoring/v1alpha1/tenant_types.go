@@ -54,12 +54,13 @@ type TenantList struct {
 }
 
 /*
-	//+genclient
-	//+kubebuilder:object:root=true
-	//+kubebuilder:subresource:status
-	//+kubebuilder:resource:scope=Cluster
+//+genclient
+//+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
+//+kubebuilder:resource:scope=Cluster
 
-	// Tenant is the Schema for the monitoring TenantGroup API
+// Tenant is the Schema for the monitoring TenantGroup API
+
 	type TenantGroup struct {
 		metav1.TypeMeta   `json:",inline"`
 		metav1.ObjectMeta `json:"metadata,omitempty"`

@@ -3,15 +3,14 @@ package options
 import (
 	"time"
 
+	"github.com/prometheus/common/version"
 	"github.com/spf13/pflag"
 )
 
 const (
 	DefaultWhizardImage                  = "thanosio/thanos:v0.28.0"
 	DefaultEnvoyImage                    = "envoyproxy/envoy:v1.20.2"
-	DefaultGatewayImage                  = "kubesphere/whizard-monitoring-gateway:latest"
 	DefaultPrometheusConfigReloaderImage = "quay.io/prometheus-operator/prometheus-config-reloader:v0.55.1"
-	DefaultBlockManagerImage             = "kubesphere/whizard-monitoring-block-manager:latest"
 	DefaultTSDBCleanupImage              = "bash:5.1.16"
 
 	DefaultService = "kubesphere-monitoring-system.central"
@@ -27,6 +26,11 @@ const (
 	DefaultStoreMaxReplicas        int32  = 20
 
 	DefaultServiceAccount = "whizard-controller-manager"
+)
+
+var (
+	DefaultGatewayImage      = "kubesphere/whizard-monitoring-gateway:" + version.Version
+	DefaultBlockManagerImage = "kubesphere/whizard-monitoring-block-manager:" + version.Version
 )
 
 type Options struct {

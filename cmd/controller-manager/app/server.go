@@ -23,6 +23,7 @@ import (
 	"github.com/kubesphere/whizard/pkg/client/k8s"
 	"github.com/kubesphere/whizard/pkg/controllers/config"
 	"github.com/kubesphere/whizard/pkg/informers"
+	"github.com/prometheus/common/version"
 	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 )
 
@@ -79,7 +80,7 @@ func NewControllerManagerCommand() *cobra.Command {
 		Use:   "version",
 		Short: "Print the version of Whizard controller",
 		Run: func(cmd *cobra.Command, args []string) {
-			// cmd.Println(version.Get())
+			cmd.Println(version.Print("whizard controller"))
 		},
 	}
 

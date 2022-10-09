@@ -1,10 +1,13 @@
 REPO ?= kubesphere
-TAG ?= latest
+TAG ?= $(shell cat VERSION | tr -d " \t\n\r")
+VERSION=$(shell cat VERSION | tr -d " \t\n\r")
 
 CONTROLLER_MANAGER_IMG=${REPO}/whizard-controller-manager:${TAG}
 MONITORING_GATEWAY_IMG=${REPO}/whizard-monitoring-gateway:${TAG}
 MONITORING_AGENT_PROXY_IMG=${REPO}/whizard-monitoring-agent-proxy:${TAG}
 MONITORING_BLOCK_MANAGER_IMG=${REPO}/whizard-monitoring-block-manager:${TAG}
+
+
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
 
@@ -16,6 +19,40 @@ GOBIN=$(shell go env GOPATH)/bin
 else
 GOBIN=$(shell go env GOBIN)
 endif
+
+GOOS?=$(shell go env GOOS)
+GOARCH?=$(shell go env GOARCH)
+
+BUILD_DATE=$(shell date +"%Y%m%d-%T")
+# source: https://docs.github.com/en/free-pro-team@latest/actions/reference/environment-variables#default-environment-variables
+ifndef GITHUB_ACTIONS
+	BUILD_USER?=$(USER)
+	BUILD_BRANCH?=$(shell git branch --show-current)
+	BUILD_REVISION?=$(shell git rev-parse --short HEAD)
+else
+	BUILD_USER=Action-Run-ID-$(GITHUB_RUN_ID)
+	BUILD_BRANCH=$(GITHUB_REF:refs/heads/%=%)
+	BUILD_REVISION=$(GITHUB_SHA)
+endif
+
+
+# The Prometheus common library import path
+PROMETHEUS_COMMON_PKG=github.com/prometheus/common
+
+# The ldflags for the go build process to set the version related data.
+GO_BUILD_LDFLAGS= \
+	-X $(PROMETHEUS_COMMON_PKG)/version.Revision=$(BUILD_REVISION)  \
+	-X $(PROMETHEUS_COMMON_PKG)/version.BuildUser=$(BUILD_USER) \
+	-X $(PROMETHEUS_COMMON_PKG)/version.BuildDate=$(BUILD_DATE) \
+	-X $(PROMETHEUS_COMMON_PKG)/version.Branch=$(BUILD_BRANCH) \
+	-X $(PROMETHEUS_COMMON_PKG)/version.Version=$(VERSION)
+
+
+GO_BUILD_RECIPE=\
+	GOOS=$(GOOS) \
+	GOARCH=$(GOARCH) \
+	CGO_ENABLED=0 \
+	go build -ldflags="$(GO_BUILD_LDFLAGS)"
 
 # Setting SHELL to bash allows bash commands to be executed by recipes.
 # This is a requirement for 'setup-envtest.sh' in the test target.
@@ -29,6 +66,7 @@ all: build
 
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=charts/whizard/crds
 
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
@@ -47,10 +85,11 @@ test: manifests generate fmt vet ## Run tests.
 
 ##@ Build
 
+.PHONY: build
 build: controller-manager monitoring-gateway monitoring-agent-proxy monitoring-block-manager
 
 controller-manager: 
-	go build -o bin/controller-manager cmd/controller-manager/controller-manager.go
+	$(GO_BUILD_RECIPE)  -o bin/controller-manager cmd/controller-manager/controller-manager.go
 
 monitoring-gateway: 
 	go build -o bin/monitoring-gateway cmd/monitoring-gateway/monitoring-gateway.go
@@ -64,7 +103,7 @@ monitoring-block-manager:
 docker-build: docker-build-controller-manager docker-build-monitoring-gateway docker-build-monitoring-agent-proxy
 
 docker-build-controller-manager: 
-	docker build -t $(CONTROLLER_MANAGER_IMG) -f build/controller-manager/Dockerfile .
+	docker build --build-arg GOLDFLAGS="$(GO_BUILD_LDFLAGS)" -t $(CONTROLLER_MANAGER_IMG) -f build/controller-manager/Dockerfile .
 
 docker-build-monitoring-gateway:
 	docker build -t $(MONITORING_GATEWAY_IMG) -f build/monitoring-gateway/Dockerfile .
@@ -125,12 +164,6 @@ MONITORING_TYPE_GOES=$(shell find pkg/api/monitoring -name *_types.go | tr '\n' 
 docs/monitoring/api.md: tools/docgen/docgen.go $(TYPE_GOES)
 	go run github.com/kubesphere/whizard/tools/docgen $(MONITORING_TYPE_GOES) > docs/monitoring/api.md
 
-whizard.key:
-	openssl genrsa -des3 -passout pass:x -out whizard.pass.key 2048
-	openssl rsa -passin pass:x -in whizard.pass.key -out whizard.key
-	rm whizard.pass.key
-
-whizard.crt: whizard.key
-	openssl req -new -key whizard.key -out whizard.csr
-	openssl x509 -req -sha256 -days 365 -in whizard.csr -signkey whizard.key -out whizard.crt
-	rm whizard.csr
+update-helm-appVersion: ## Update appVersion in helm chart.
+	$(shell sed -i '' -e 's/appVersion:.*/appVersion: "'$(VERSION)'"/g'  charts/whizard/Chart.yaml)
+	   

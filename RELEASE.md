@@ -44,6 +44,8 @@ From now on, all work happens on the `release-<major>.<minor>` branch.
 
 Bump the version in the `VERSION` file in the root of the repository.
 
+Then `make update-helm-appVersion` to update the helm appVersion information. 
+
 Images will be automatically built and pushed whenever code changes or a tag is created. If users want to build images manually, use the following command:
 
 ```bash
