@@ -15,7 +15,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus-community/prom-label-proxy v0.5.0
 	github.com/prometheus-operator/prometheus-operator v0.59.2
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.59.2
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.60.0
 	github.com/prometheus/common v0.37.0
 	github.com/prometheus/prometheus v1.99.0
 	github.com/spf13/cobra v1.4.0
