@@ -21,7 +21,7 @@ require (
 	github.com/spf13/cobra v1.4.0
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.13.0
-	github.com/thanos-io/thanos v0.28.0
+	github.com/thanos-io/thanos v0.28.1
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.25.2
 	k8s.io/apiextensions-apiserver v0.25.2
