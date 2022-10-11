@@ -71,15 +71,21 @@ controllerManager:
   rbac:
     create: true
 
+  adapter:
+    enabled: false
+    image:
+      repository: kubesphere/whizard-adapter
+      # Overrides the image tag whose default is the chart appVersion.
+      tag: ""    
+    ## If null or unset, the enabled Service instance is used.
+    defaultServiceReference: null
+      # namespace:
+      # name:
+    kubesphereAdapter:
+      enabled: true
+
   config: 
     create: true
-
-    kubeSphereAdapter:
-      enabled: true
-      ## If null or unset, the enabled Service instance is used.
-      defaultServiceReference: null
-        # namespace:
-        # name:
     
     storage:
       blockManager:

@@ -7123,6 +7123,33 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   creationTimestamp: null
+  name: whizard-adapter-role
+rules:
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - tenants
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - cluster.kubesphere.io
+  resources:
+  - clusters
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
   name: whizard-manager-role
 rules:
 - apiGroups:
@@ -7566,6 +7593,19 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
+  name: whizard-adapter-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: whizard-adapter-role
+subjects:
+- kind: ServiceAccount
+  name: whizard-controller-manager
+  namespace: kubesphere-monitoring-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
   name: whizard-manager-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -7644,6 +7684,23 @@ spec:
         control-plane: controller-manager
     spec:
       containers:
+      - args:
+        - --default-whizard-service=kubesphere-monitoring-system.central
+        - --kubesphere-adapter-enabled=true
+        image: kubesphere/whizard-adapter:latest
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 9091
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        name: adapter
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 9091
+          initialDelaySeconds: 5
+          periodSeconds: 10
       - args:
         - --secure-listen-address=0.0.0.0:8443
         - --upstream=http://127.0.0.1:8080/
