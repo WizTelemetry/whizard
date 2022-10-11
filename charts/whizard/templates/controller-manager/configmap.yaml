@@ -11,13 +11,6 @@ metadata:
 data:   
   whizard.yaml: |
     monitoring: 
-      {{- $adapter := $config.kubeSphereAdapter }}
-      enableKubeSphereAdapter: {{ $adapter.enabled }}
-      {{- if $adapter.defaultServiceReference }}
-      kubeSphereAdapterService: {{ $adapter.defaultServiceReference.namespace }}.{{ $adapter.defaultServiceReference.name }}
-      {{- else if .Values.service.enabled }}
-      kubeSphereAdapterService: {{ include "whizard.namespace" . }}.{{ include "whizard.service.crname" . }}
-      {{- end }}
 
       {{- $storage := $config.storage }}
       storage:

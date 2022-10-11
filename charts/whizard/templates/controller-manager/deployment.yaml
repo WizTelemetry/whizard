@@ -43,7 +43,25 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-
+      {{- if .Values.controllerManager.adapter.enabled }}
+        - name: adapter
+          args:
+          {{- if .Values.controllerManager.adapter.defaultServiceReference }}
+          - --default-whizard-service={{ .Values.controllerManager.adapter.defaultServiceReference.namespace }}.{{ .Values.controllerManager.adapter.defaultServiceReference.name }}
+          {{- else if .Values.service.enabled }}
+          - --default-whizard-service={{ include "whizard.namespace" . }}.{{ include "whizard.service.crname" . }}
+          {{- end }}
+          - --kubesphere-adapter-enabled={{ .Values.controllerManager.adapter.kubesphereAdapter.enabled }}
+          image: "{{ .Values.controllerManager.adapter.image.repository }}:{{ .Values.controllerManager.adapter.image.tag | default .Chart.AppVersion }}"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 9091
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 9091
+      {{- end }}
       {{- with .Values.controllerManager.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
