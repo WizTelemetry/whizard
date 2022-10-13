@@ -54,3 +54,28 @@ metadata:
     monitoring.whizard.io/service: kubesphere-monitoring-system.central
 spec:
   replicationFactor: 2
+
+---
+### global alert ruler
+apiVersion: monitoring.whizard.io/v1alpha1
+kind: Ruler
+metadata:
+  labels:
+    monitoring.whizard.io/service: kubesphere-monitoring-system.central
+  name: central
+  namespace: kubesphere-monitoring-system
+spec:
+  alertmanagersUrl:
+  - dnssrv+http://alertmanager-operated.kubesphere-monitoring-system.svc:9093
+  evaluationInterval: 1m
+  image: kubesphere/thanos:v0.28.5
+  logFormat: logfmt
+  logLevel: info
+  replicas: 1
+  ruleSelectors:
+  - matchExpressions:
+    - key: alerting.kubesphere.io/rule_level
+      operator: In
+      values:
+      - global
+  shards: 1

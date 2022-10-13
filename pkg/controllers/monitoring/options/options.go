@@ -10,6 +10,7 @@ import (
 const (
 	DefaultWhizardImage                  = "thanosio/thanos:v0.28.0"
 	DefaultEnvoyImage                    = "envoyproxy/envoy:v1.20.2"
+	DefaultRulerWriteProxyImage          = "kubesphere/cortex-tenant:v1.7.2"
 	DefaultPrometheusConfigReloaderImage = "quay.io/prometheus-operator/prometheus-config-reloader:v0.55.1"
 	DefaultTSDBCleanupImage              = "bash:5.1.16"
 
