@@ -141,12 +141,12 @@ func (s *Storage) deployment() (runtime.Object, resources.Operation, error) {
 
 		if s.storage.Spec.BlockManager.GC.GCInterval != nil &&
 			s.storage.Spec.BlockManager.GC.GCInterval.Duration != 0 {
-			args = append(args, "--gc.interval="+s.storage.Spec.BlockManager.GC.GCInterval.String())
+			args = append(args, "--gc.interval="+s.storage.Spec.BlockManager.GC.GCInterval.Duration.String())
 		}
 
 		if s.storage.Spec.BlockManager.GC.CleanupTimeout != nil &&
 			s.storage.Spec.BlockManager.GC.CleanupTimeout.Duration != 0 {
-			args = append(args, "--gc.cleanup-timeout="+s.storage.Spec.BlockManager.GC.CleanupTimeout.String())
+			args = append(args, "--gc.cleanup-timeout="+s.storage.Spec.BlockManager.GC.CleanupTimeout.Duration.String())
 		}
 
 		if s.storage.Spec.BlockManager.GC.DefaultTenantId != "" {
