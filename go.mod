@@ -3,7 +3,7 @@ module github.com/kubesphere/whizard
 go 1.19
 
 require (
-	github.com/alecthomas/kong v0.5.0
+	github.com/alecthomas/kong v0.6.1
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-kit/log v0.2.1
