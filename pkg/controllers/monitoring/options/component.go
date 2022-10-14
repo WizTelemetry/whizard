@@ -412,6 +412,7 @@ type RulerOptions struct {
 
 	PrometheusConfigReloader SidecarOptions `json:"prometheusConfigReloader,omitempty" yaml:"prometheusConfigReloader,omitempty"`
 	RulerQueryProxy          SidecarOptions `json:"rulerQueryProxy" yaml:"rulerQueryProxy,omitempty"`
+	RulerWriteProxy          SidecarOptions `json:"rulerWriteProxy" yaml:"rulerWriteProxy,omitempty"`
 
 	// Number of shards to take the hash of fully qualified name of the rule group in order to split rules.
 	// Each shard of rules will be bound to one separate statefulset.
@@ -473,6 +474,19 @@ func NewRulerOptions() *RulerOptions {
 				},
 			},
 		},
+		RulerWriteProxy: SidecarOptions{
+			Image: DefaultRulerWriteProxyImage,
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceCPU:    resource.MustParse("100m"),
+					corev1.ResourceMemory: resource.MustParse("50Mi"),
+				},
+				Limits: corev1.ResourceList{
+					corev1.ResourceCPU:    resource.MustParse("200m"),
+					corev1.ResourceMemory: resource.MustParse("400Mi"),
+				},
+			},
+		},
 	}
 }
 
@@ -480,6 +494,7 @@ func (o *RulerOptions) ApplyTo(options *RulerOptions) {
 	o.CommonOptions.ApplyTo(&options.CommonOptions)
 	o.PrometheusConfigReloader.ApplyTo(&options.PrometheusConfigReloader)
 	o.RulerQueryProxy.ApplyTo(&options.RulerQueryProxy)
+	o.RulerWriteProxy.ApplyTo(&options.RulerWriteProxy)
 
 	if *o.Shards != 0 {
 		options.Shards = o.Shards
@@ -552,6 +567,7 @@ func (o *RulerOptions) AddFlags(fs *pflag.FlagSet, ro *RulerOptions) {
 	o.CommonOptions.AddFlags(fs, &ro.CommonOptions, "ruler")
 	o.PrometheusConfigReloader.AddFlags(fs, &ro.PrometheusConfigReloader, "ruler.prometheus-config-reloader")
 	o.RulerQueryProxy.AddFlags(fs, &ro.RulerQueryProxy, "ruler.query-proxy")
+	o.RulerWriteProxy.AddFlags(fs, &ro.RulerWriteProxy, "ruler.write-proxy")
 }
 
 type StoreOptions struct {

@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
@@ -228,8 +229,6 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 		container.Args = append(container.Args, fmt.Sprintf("--eval-interval=%s", r.ruler.Spec.EvaluationInterval))
 	}
 
-	var queryProxyContainer *corev1.Container
-
 	namespacedName := util.ServiceNamespacedName(r.ruler)
 
 	if namespacedName != nil {
@@ -238,57 +237,70 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 			return nil, resources.OperationCreateOrUpdate, err
 		}
 
-		addr, err := r.remoteWriteAddress()
+		writeAddr, err := r.remoteWriteAddress()
 		if err != nil {
 			return nil, "", err
 		}
-		writeUrl, err := url.Parse(addr + "/api/v1/receive")
+		queryAddr, err := r.queryAddress()
 		if err != nil {
-			return nil, resources.OperationCreateOrUpdate, err
+			return nil, "", err
 		}
 		var rwCfg = &promconfig.RemoteWriteConfig{}
 		*rwCfg = promconfig.DefaultRemoteWriteConfig
-		if rwCfg.Headers == nil {
-			rwCfg.Headers = make(map[string]string)
-		}
-		rwCfg.Headers[service.Spec.TenantHeader] = r.ruler.Spec.Tenant
-		rwCfg.URL = &promcommonconfig.URL{URL: writeUrl}
 		var cfgs struct {
 			RemoteWriteConfigs []*promconfig.RemoteWriteConfig `yaml:"remote_write,omitempty"`
 		}
-		rwCfg.WriteRelabelConfigs = append(rwCfg.WriteRelabelConfigs, &relabel.Config{
-			Regex:  relabel.MustNewRegexp(service.Spec.TenantLabelName),
-			Action: relabel.LabelDrop,
-		})
-		cfgs.RemoteWriteConfigs = append(cfgs.RemoteWriteConfigs, rwCfg)
-		content, err := yamlv3.Marshal(&cfgs)
-		if err != nil {
-			return nil, resources.OperationCreateOrUpdate, err
-		}
-		container.Args = append(container.Args, "--remote-write.config="+string(content))
 
-		addr, err = r.queryAddress()
-		if err != nil {
-			return nil, "", err
-		}
-
-		// query config
+		// proxy config
+		// if the tenant exists, append QueryProxy
+		// otherwise, append WriteProxy
 		if r.ruler.Spec.Tenant == "" {
-			container.Args = append(container.Args, "--query="+addr)
-		} else {
-			queryProxyContainer = &corev1.Container{
-				Name:  "query-proxy",
-				Image: r.Options.RulerQueryProxy.Image,
-				Args: []string{
-					"--http-address=127.0.0.1:9080",
-				},
-				Resources: r.Options.RulerQueryProxy.Resources,
+			container.Args = append(container.Args, "--query="+queryAddr)
+			writeUrl, err := url.Parse("http://127.0.0.1:8081/push")
+			if err != nil {
+				return nil, resources.OperationCreateOrUpdate, err
 			}
-			queryProxyContainer.Args = append(queryProxyContainer.Args, "--tenant.label-name="+service.Spec.TenantLabelName)
-			queryProxyContainer.Args = append(queryProxyContainer.Args, "--query.address="+addr)
+			rwCfg.URL = &promcommonconfig.URL{URL: writeUrl}
 
+			cfgs.RemoteWriteConfigs = append(cfgs.RemoteWriteConfigs, rwCfg)
+			content, err := yamlv3.Marshal(&cfgs)
+			if err != nil {
+				return nil, resources.OperationCreateOrUpdate, err
+			}
+			container.Args = append(container.Args, "--remote-write.config="+string(content))
+
+			writeProxyContainer, err := r.addWriteProxyContainer(&service.Spec, writeAddr)
+			if err != nil {
+				return nil, "", err
+			}
+			sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, *writeProxyContainer)
+		} else {
 			container.Args = append(container.Args,
 				fmt.Sprintf("--query=http://127.0.0.1:9080/%s", r.ruler.Spec.Tenant))
+
+			writeUrl, err := url.Parse(writeAddr + "/api/v1/receive")
+			if err != nil {
+				return nil, resources.OperationCreateOrUpdate, err
+			}
+			if rwCfg.Headers == nil {
+				rwCfg.Headers = make(map[string]string)
+			}
+			rwCfg.Headers[service.Spec.TenantHeader] = r.ruler.Spec.Tenant
+			rwCfg.URL = &promcommonconfig.URL{URL: writeUrl}
+
+			rwCfg.WriteRelabelConfigs = append(rwCfg.WriteRelabelConfigs, &relabel.Config{
+				Regex:  relabel.MustNewRegexp(service.Spec.TenantLabelName),
+				Action: relabel.LabelDrop,
+			})
+			cfgs.RemoteWriteConfigs = append(cfgs.RemoteWriteConfigs, rwCfg)
+			content, err := yamlv3.Marshal(&cfgs)
+			if err != nil {
+				return nil, resources.OperationCreateOrUpdate, err
+			}
+			container.Args = append(container.Args, "--remote-write.config="+string(content))
+
+			queryProxyContainer, _ := r.addQueryProxyContainer(&service.Spec, queryAddr)
+			sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, *queryProxyContainer)
 		}
 	}
 
@@ -339,9 +351,6 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 		promoperator.Shard(-1),
 	)
 
-	if queryProxyContainer != nil {
-		sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, *queryProxyContainer)
-	}
 	sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, container, reloadContainer)
 
 	return sts, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(r.ruler, sts, r.Scheme)
@@ -391,4 +400,89 @@ func (r *Ruler) queryAddress() (string, error) {
 	}
 
 	return "", fmt.Errorf("no query frontend or query exist for service %s/%s", r.Service.Name, r.Service.Namespace)
+}
+
+func (r *Ruler) addQueryProxyContainer(serviceSpec *monitoringv1alpha1.ServiceSpec, queryAddr string) (*corev1.Container, error) {
+
+	var queryProxyContainer *corev1.Container
+
+	queryProxyContainer = &corev1.Container{
+		Name:  "query-proxy",
+		Image: r.Options.RulerQueryProxy.Image,
+		Args: []string{
+			"--http-address=127.0.0.1:9080",
+		},
+		Resources: r.Options.RulerQueryProxy.Resources,
+	}
+	queryProxyContainer.Args = append(queryProxyContainer.Args, "--tenant.label-name="+serviceSpec.TenantLabelName)
+	queryProxyContainer.Args = append(queryProxyContainer.Args, "--query.address="+queryAddr)
+	return queryProxyContainer, nil
+}
+
+// cortex-tenant config
+// https://github.com/blind-oracle/cortex-tenant/blob/main/config.go#L13
+type config struct {
+	Listen      string
+	ListenPprof string `yaml:"listen_pprof"`
+
+	Target string
+
+	LogLevel        string `yaml:"log_level"`
+	Timeout         time.Duration
+	TimeoutShutdown time.Duration `yaml:"timeout_shutdown"`
+	Concurrency     int
+	Metadata        bool
+
+	Auth struct {
+		Egress struct {
+			Username string
+			Password string
+		}
+	}
+
+	Tenant struct {
+		Label       string
+		LabelRemove bool `yaml:"label_remove"`
+		Header      string
+		Default     string
+		AcceptAll   bool `yaml:"accept_all"`
+	}
+}
+
+func (r *Ruler) addWriteProxyContainer(serviceSpec *monitoringv1alpha1.ServiceSpec, writeAddr string) (*corev1.Container, error) {
+	var writeProxyContainer *corev1.Container
+	cfg := &config{
+		Listen:          "127.0.0.1:8081",
+		LogLevel:        "warn",
+		Timeout:         time.Second * 10,
+		TimeoutShutdown: time.Second * 10,
+		Concurrency:     1000,
+		Metadata:        false,
+	}
+
+	writeUrl, err := url.Parse(writeAddr + "/api/v1/receive")
+	if err != nil {
+		return writeProxyContainer, err
+	}
+	cfg.Target = writeUrl.String()
+
+	cfg.Tenant.Label = serviceSpec.TenantLabelName
+	cfg.Tenant.LabelRemove = true
+	cfg.Tenant.Header = serviceSpec.TenantHeader
+	cfg.Tenant.Default = serviceSpec.DefaultTenantId
+
+	cfgContent, err := yamlv3.Marshal(cfg)
+	if err != nil {
+		return writeProxyContainer, err
+	}
+
+	writeProxyContainer = &corev1.Container{
+		Name:  "write-proxy",
+		Image: r.Options.RulerWriteProxy.Image,
+		Args: []string{
+			"--config-content=" + string(cfgContent),
+		},
+		Resources: r.Options.RulerWriteProxy.Resources,
+	}
+	return writeProxyContainer, nil
 }
