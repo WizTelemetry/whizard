@@ -53,16 +53,6 @@ rules:
   - patch
   - update
   - watch
-{{- if .Values.controllerManager.adapter.enabled -}}
-- apiGroups:
-  - cluster.kubesphere.io
-  resources:
-  - clusters
-  verbs:
-  - get
-  - list
-  - watch
-{{- end }}
 - apiGroups:
   - ""
   resources:

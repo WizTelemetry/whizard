@@ -205,6 +205,8 @@ data:
           image: {{ $ruler.prometheusConfigReloader.image.repository }}:{{ $ruler.prometheusConfigReloader.image.tag }}
         rulerQueryProxy: 
           image: {{ $gateway.image.repository }}:{{ $gateway.image.tag | default .Chart.AppVersion }}
+        rulerWriteProxy: 
+          image: {{ $ruler.writeProxy.image.repository }}:{{ $ruler.writeProxy.image.tag }}
 
         {{- with $ruler.additionalFlags }}
         flags:
