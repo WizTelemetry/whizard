@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/alecthomas/kong v0.6.1
-	github.com/fsnotify/fsnotify v1.5.4
+	github.com/fsnotify/fsnotify v1.6.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-kit/log v0.2.1
 	github.com/go-logr/logr v1.2.3
