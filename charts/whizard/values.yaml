@@ -16,7 +16,16 @@ global:
     log: 
       level: info # Possible options: error, warn, info, debug.
       format: logfmt # Possible options: logfmt or json.
-  
+
+monitoring:
+  enabled: false
+  components: 
+    - compactor
+    - query
+    - ingester
+    - store
+    - ruler
+
 # Create a Storage instance
 storage: 
   create: false

@@ -1,0 +1,34 @@
+{{- if .Values.monitoring.enabled -}}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    prometheus: k8s
+    role: alert-rules
+    {{- include "whizard.labels" . | nindent 4 }}
+  name: {{ include "whizard.fullname" . }}
+  namespace: {{ include "whizard.namespace" . }}
+spec:
+  groups:
+{{- if has "compactor" .Values.monitoring.components }}
+{{ .Files.Get "rules/thanos-compact.rule" | indent 4 }}
+{{- end }}
+{{- if has "query" .Values.monitoring.components }}
+{{ .Files.Get "rules/thanos-query.rule" | indent 4 }}
+{{- end }}
+{{- if has "ingester" .Values.monitoring.components }}
+{{ .Files.Get "rules/thanos-receive.rule" | indent 4 }}
+{{- end }}
+{{- if has "sidecar" .Values.monitoring.components }}
+{{ .Files.Get "rules/rules/sidecar.rule" | indent 4 }}
+{{- end }}
+{{- if has "store" .Values.monitoring.components }}
+{{ .Files.Get "rules/store.rule" | indent 4 }}
+{{- end }}
+{{- if has "ruler" .Values.monitoring.components }}
+{{ .Files.Get "rules/rule.rule" | indent 4 }}
+{{- end }}
+{{- if has "bucket-replicate" .Values.monitoring.components }}
+{{ .Files.Get "rules/bucket-replicate.rule" | indent 4 }}
+{{- end }}
+{{- end }}
