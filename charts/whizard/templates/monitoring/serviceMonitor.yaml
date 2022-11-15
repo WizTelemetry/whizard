@@ -1,0 +1,23 @@
+{{- if .Values.monitoring.enabled -}}
+{{- range $index, $component := .Values.monitoring.components }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "whizard.fullname" $ }}-{{ $component }}
+  namespace: {{ include "whizard.namespace" $ }}
+  labels:
+    {{- include "whizard.labels" $ | nindent 4 }}
+spec:
+  endpoints:
+  - honorLabels: true
+    interval: 1m
+    port: http
+    scheme: http
+    scrapeTimeout: 30s
+  jobLabel: app.kubernetes.io/name
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $component }}
+{{- end }}
+{{- end -}}
