@@ -134,7 +134,6 @@ controllerManager:
       replicas: 2
 
       additionalFlags:
-      - --query.promql-engine=thanos
       - --query.max-concurrent=200
 
       envoy:
