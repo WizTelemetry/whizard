@@ -23,6 +23,14 @@ endif
 GOOS?=$(shell go env GOOS)
 GOARCH?=$(shell go env GOARCH)
 
+
+CONTAINER_CLI ?=docker
+# buildx build
+CONTAINER_BUILDER ?= build
+# --platform=linux/amd64,linux/arm64 --push
+CONTAINER_BUILD_EXTRA_ARGS ?= 
+
+
 BUILD_DATE=$(shell date +"%Y%m%d-%T")
 # source: https://docs.github.com/en/free-pro-team@latest/actions/reference/environment-variables#default-environment-variables
 ifndef GITHUB_ACTIONS
@@ -103,16 +111,16 @@ monitoring-block-manager:
 docker-build: docker-build-controller-manager docker-build-monitoring-gateway docker-build-monitoring-agent-proxy
 
 docker-build-controller-manager: 
-	docker build --build-arg GOLDFLAGS="$(GO_BUILD_LDFLAGS)" -t $(CONTROLLER_MANAGER_IMG) -f build/controller-manager/Dockerfile .
+	${CONTAINER_CLI} ${CONTAINER_BUILDER} ${CONTAINER_BUILD_EXTRA_ARGS} --build-arg GOLDFLAGS="$(GO_BUILD_LDFLAGS)" -t $(CONTROLLER_MANAGER_IMG) -f build/controller-manager/Dockerfile .
 
 docker-build-monitoring-gateway:
-	docker build -t $(MONITORING_GATEWAY_IMG) -f build/monitoring-gateway/Dockerfile .
+	${CONTAINER_CLI} ${CONTAINER_BUILDER} ${CONTAINER_BUILD_EXTRA_ARGS}  -t $(MONITORING_GATEWAY_IMG) -f build/monitoring-gateway/Dockerfile .
 
 docker-build-monitoring-agent-proxy:
-	docker build -t $(MONITORING_AGENT_PROXY_IMG) -f build/monitoring-agent-proxy/Dockerfile .
+	${CONTAINER_CLI} ${CONTAINER_BUILDER} ${CONTAINER_BUILD_EXTRA_ARGS}  -t $(MONITORING_AGENT_PROXY_IMG) -f build/monitoring-agent-proxy/Dockerfile .
 
 docker-build-monitoring-block-manager:
-	docker build -t $(MONITORING_BLOCK_MANAGER_IMG) -f build/monitoring-block-manager/Dockerfile .
+	${CONTAINER_CLI} ${CONTAINER_BUILDER} ${CONTAINER_BUILD_EXTRA_ARGS}  -t $(MONITORING_BLOCK_MANAGER_IMG) -f build/monitoring-block-manager/Dockerfile .
 
 ##@ Deployment
 
