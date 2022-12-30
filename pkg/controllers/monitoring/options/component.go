@@ -419,7 +419,7 @@ type RulerOptions struct {
 	Shards *int32 `json:"shards,omitempty"`
 	// Label selectors to select which PrometheusRules to mount for alerting and recording.
 	// The result of multiple selectors are ORed.
-	RuleSelectors []*metav1.LabelSelector `json:"ruleSelector,omitempty"`
+	RuleSelectors []*metav1.LabelSelector `json:"ruleSelectors,omitempty"`
 	// Namespaces to be selected for PrometheusRules discovery. If unspecified, only
 	// the same namespace as the Ruler object is in is used.
 	RuleNamespaceSelector *metav1.LabelSelector `json:"ruleNamespaceSelector,omitempty"`
@@ -763,7 +763,7 @@ type StorageOptions struct {
 
 type BlockManagerOptions struct {
 	Enable             *bool `json:"enable,omitempty"`
-	CommonOptions      `json:",inline"`
+	CommonOptions      `json:",inline" yaml:",inline"  mapstructure:",squash"`
 	ServiceAccountName string           `json:"serviceAccountName,omitempty"`
 	BlockSyncInterval  *metav1.Duration `json:"blockSyncInterval,omitempty"`
 	GC                 *BlockGCOptions  `json:"gc,omitempty"`

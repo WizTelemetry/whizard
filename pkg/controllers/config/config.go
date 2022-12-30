@@ -5,11 +5,13 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 
 	"github.com/kubesphere/whizard/pkg/client/k8s"
@@ -23,6 +25,8 @@ var (
 	// decodeHook is used to configure mapstructure.DecoderConfig options
 	decodeHook = mapstructure.ComposeDecodeHookFunc(
 		StringToResourceQuantityHookFunc(),
+		StringToMetav1TimeHookFunc(),
+		StringToMetav1DurationHookFunc(),
 		mapstructure.StringToTimeDurationHookFunc(),
 		mapstructure.StringToSliceHookFunc(","),
 	)
@@ -161,5 +165,46 @@ func StringToResourceQuantityHookFunc() mapstructure.DecodeHookFunc {
 
 		// Convert it by parsing
 		return resource.ParseQuantity(data.(string))
+	}
+}
+
+func StringToMetav1TimeHookFunc() mapstructure.DecodeHookFunc {
+	return func(
+		f reflect.Type,
+		t reflect.Type,
+		data interface{}) (interface{}, error) {
+		if f.Kind() != reflect.String {
+			return data, nil
+		}
+		if t != reflect.TypeOf(metav1.Now()) {
+			return data, nil
+		}
+
+		// Convert it by parsing
+		pt := metav1.Time{}
+		pt.UnmarshalQueryParameter(data.(string))
+
+		return pt, nil
+	}
+
+}
+
+func StringToMetav1DurationHookFunc() mapstructure.DecodeHookFunc {
+	return func(
+		f reflect.Type,
+		t reflect.Type,
+		data interface{}) (interface{}, error) {
+		if f.Kind() != reflect.String {
+			return data, nil
+		}
+		if t != reflect.TypeOf(metav1.Duration{Duration: time.Minute}) {
+			return data, nil
+		}
+
+		d, err := time.ParseDuration(data.(string))
+		if err != nil {
+			return nil, err
+		}
+		return metav1.Duration{Duration: d}, nil
 	}
 }
