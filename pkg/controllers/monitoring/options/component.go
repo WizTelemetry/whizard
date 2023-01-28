@@ -264,11 +264,11 @@ func NewQueryOptions() *QueryOptions {
 			Resources: corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
 					corev1.ResourceCPU:    resource.MustParse("100m"),
-					corev1.ResourceMemory: resource.MustParse("500Mi"),
+					corev1.ResourceMemory: resource.MustParse("100Mi"),
 				},
 				Limits: corev1.ResourceList{
-					corev1.ResourceCPU:    resource.MustParse("100m"),
-					corev1.ResourceMemory: resource.MustParse("500Mi"),
+					corev1.ResourceCPU:    resource.MustParse("250m"),
+					corev1.ResourceMemory: resource.MustParse("1Gi"),
 				},
 			},
 		},
@@ -457,7 +457,7 @@ func NewRulerOptions() *RulerOptions {
 				},
 				Limits: corev1.ResourceList{
 					corev1.ResourceCPU:    resource.MustParse("100m"),
-					corev1.ResourceMemory: resource.MustParse("50Mi"),
+					corev1.ResourceMemory: resource.MustParse("100Mi"),
 				},
 			},
 		},
@@ -469,8 +469,8 @@ func NewRulerOptions() *RulerOptions {
 					corev1.ResourceMemory: resource.MustParse("50Mi"),
 				},
 				Limits: corev1.ResourceList{
-					corev1.ResourceCPU:    resource.MustParse("100m"),
-					corev1.ResourceMemory: resource.MustParse("50Mi"),
+					corev1.ResourceCPU:    resource.MustParse("2"),
+					corev1.ResourceMemory: resource.MustParse("8Gi"),
 				},
 			},
 		},
@@ -482,8 +482,8 @@ func NewRulerOptions() *RulerOptions {
 					corev1.ResourceMemory: resource.MustParse("50Mi"),
 				},
 				Limits: corev1.ResourceList{
-					corev1.ResourceCPU:    resource.MustParse("200m"),
-					corev1.ResourceMemory: resource.MustParse("400Mi"),
+					corev1.ResourceCPU:    resource.MustParse("2"),
+					corev1.ResourceMemory: resource.MustParse("8Gi"),
 				},
 			},
 		},
@@ -599,8 +599,8 @@ func NewStoreOptions() *StoreOptions {
 					corev1.ResourceMemory: resource.MustParse("500Mi"),
 				},
 				Limits: corev1.ResourceList{
-					corev1.ResourceCPU:    resource.MustParse("100m"),
-					corev1.ResourceMemory: resource.MustParse("500Mi"),
+					corev1.ResourceCPU:    resource.MustParse("1"),
+					corev1.ResourceMemory: resource.MustParse("4Gi"),
 				},
 			},
 		},
