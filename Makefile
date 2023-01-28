@@ -108,7 +108,7 @@ monitoring-agent-proxy:
 monitoring-block-manager:
 	go build -o bin/monitoring-block-manager cmd/monitoring-block-manager/block-manager.go
 
-docker-build: docker-build-controller-manager docker-build-monitoring-gateway docker-build-monitoring-agent-proxy
+docker-build: docker-build-controller-manager docker-build-monitoring-gateway docker-build-monitoring-agent-proxy docker-build-monitoring-block-manager
 
 docker-build-controller-manager: 
 	${CONTAINER_CLI} ${CONTAINER_BUILDER} ${CONTAINER_BUILD_EXTRA_ARGS} --build-arg GOLDFLAGS="$(GO_BUILD_LDFLAGS)" -t $(CONTROLLER_MANAGER_IMG) -f build/controller-manager/Dockerfile .
