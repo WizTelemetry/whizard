@@ -12,7 +12,7 @@ import (
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/pkg/errors"
 	promv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	"github.com/prometheus-operator/prometheus-operator/pkg/prometheus"
+	"github.com/prometheus-operator/prometheus-operator/pkg/operator"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -289,7 +289,8 @@ func GenerateContent(promRule promv1.PrometheusRuleSpec, log logr.Logger) (strin
 
 		return "", errors.Wrap(err, "failed to marshal content")
 	}
-	errs := prometheus.ValidateRule(promRule)
+
+	errs := operator.ValidateRule(promRule)
 	if len(errs) != 0 {
 		const m = "Invalid rule"
 		log.V(9).WithValues("msg", m, "content", content).Info("")
