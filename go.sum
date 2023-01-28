@@ -79,8 +79,6 @@ github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
-github.com/blang/semver/v4 v4.0.0 h1:1PFHFE6yCCTv8C1TeyNNarDzntLi7wMI5i/pzqYIsAM=
-github.com/blang/semver/v4 v4.0.0/go.mod h1:IbckMUScFkM3pff0VJDNKRiT6TG/YpiHIM2yvyW5YoQ=
 github.com/buger/jsonparser v1.1.1/go.mod h1:6RYKKt7H4d4+iWqouImQ9R2FZql3VbhNgx27UK13J/0=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
@@ -408,8 +406,6 @@ github.com/metalmatze/signal v0.0.0-20210307161603-1c9aa721a97a h1:0usWxe5SGXKQo
 github.com/metalmatze/signal v0.0.0-20210307161603-1c9aa721a97a/go.mod h1:3OETvrxfELvGsU2RoGGWercfeZ4bCL3+SOwzIWtJH/Q=
 github.com/miekg/dns v1.1.50 h1:DQUfb9uc6smULcREF09Uc+/Gd46YWqJd5DbpPE9xkcA=
 github.com/mitchellh/go-homedir v1.1.0 h1:lukF9ziXFxDFPkA1vsr5zpc1XuPDn/wFntq5mG+4E0Y=
-github.com/mitchellh/hashstructure v1.1.0 h1:P6P1hdjqAAknpY/M1CGipelZgp+4y9ja9kmUZPXP+H0=
-github.com/mitchellh/hashstructure v1.1.0/go.mod h1:xUDAozZz0Wmdiufv0uyhnHkUTN6/6d8ulp4AwfLKrmA=
 github.com/mitchellh/mapstructure v1.3.3/go.mod h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=
 github.com/mitchellh/mapstructure v1.4.1/go.mod h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=
 github.com/mitchellh/mapstructure v1.5.0 h1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyuac5Z2hdY=
@@ -466,8 +462,6 @@ github.com/prometheus-operator/prometheus-operator v0.62.0 h1:9pjQm5NgZrhJgLIapW
 github.com/prometheus-operator/prometheus-operator v0.62.0/go.mod h1:fyio1iC7r5NSFw/AQaNH8E+7N7embyY2W1ozINQRShw=
 github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.62.0 h1:55138zTXw/yRYizPxZ672I/aDD7Yte3uYRAfUjWUu2M=
 github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.62.0/go.mod h1:j51242bf6LQwvJ1JPKWApzTnifmCwcQq0i1p29ylWiM=
-github.com/prometheus-operator/prometheus-operator/pkg/client v0.62.0 h1:tNWmKX9k28He3KJA11G9ZOMi+r4skXpRTF77QYcFCpw=
-github.com/prometheus-operator/prometheus-operator/pkg/client v0.62.0/go.mod h1:kdFJdjS89OMThpveC32gAtO31JLqyZSwYL7vCUshloY=
 github.com/prometheus/alertmanager v0.25.0 h1:vbXKUR6PYRiZPRIKfmXaG+dmCKG52RtPL4Btl8hQGvg=
 github.com/prometheus/alertmanager v0.25.0/go.mod h1:MEZ3rFVHqKZsw7IcNS/m4AWZeXThmJhumpiWR4eHU/w=
 github.com/prometheus/client_golang v0.9.1/go.mod h1:7SWBe2y4D6OKWSNQJUaRYU/AaXPKyh/dDVn+NZz0KFw=

@@ -3,8 +3,8 @@ package options
 import (
 	"fmt"
 
+	"github.com/imdario/mergo"
 	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/whizard/pkg/util"
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -39,7 +39,7 @@ func (o *CommonOptions) Validate() []error {
 	return errs
 }
 
-func (o *CommonOptions) ApplyTo(options *CommonOptions) {
+func (o *CommonOptions) ApplyTo(options *CommonOptions) *CommonOptions {
 	if o.Image != "" {
 		options.Image = o.Image
 	}
@@ -49,19 +49,11 @@ func (o *CommonOptions) ApplyTo(options *CommonOptions) {
 	}
 
 	if o.Affinity != nil {
-		if options.Affinity == nil {
-			options.Affinity = o.Affinity
-		} else {
-			util.Override(options.Affinity, o.Affinity)
-		}
+		options.Affinity = o.Affinity
 	}
 
 	if o.Tolerations != nil {
-		if options.Tolerations != nil {
-			options.Tolerations = o.Tolerations
-		} else {
-			util.Override(options.Tolerations, o.Tolerations)
-		}
+		options.Tolerations = o.Tolerations
 	}
 
 	if o.NodeSelector != nil {
@@ -72,7 +64,7 @@ func (o *CommonOptions) ApplyTo(options *CommonOptions) {
 		if options.Resources.Limits == nil {
 			options.Resources.Limits = o.Resources.Limits
 		} else {
-			util.Override(options.Resources.Limits, o.Resources.Limits)
+			mergo.Map(options.Resources.Limits, o.Resources.Limits, mergo.WithOverride)
 		}
 	}
 
@@ -80,7 +72,7 @@ func (o *CommonOptions) ApplyTo(options *CommonOptions) {
 		if options.Resources.Requests == nil {
 			options.Resources.Requests = o.Resources.Requests
 		} else {
-			util.Override(options.Resources.Requests, o.Resources.Requests)
+			mergo.Map(options.Resources.Requests, o.Resources.Requests, mergo.WithOverride)
 		}
 	}
 
@@ -99,7 +91,7 @@ func (o *CommonOptions) ApplyTo(options *CommonOptions) {
 	if o.Flags != nil {
 		options.Flags = o.Flags
 	}
-
+	return options
 }
 
 // Override the Options overrides the spec field when it is empty
@@ -169,7 +161,7 @@ func (o *SidecarOptions) AddFlags(fs *pflag.FlagSet, c *SidecarOptions, prefix s
 	fs.StringVar(&c.Image, prefix+".image", c.Image, "Image with tag/version.")
 }
 
-func (o *SidecarOptions) ApplyTo(options *SidecarOptions) {
+func (o *SidecarOptions) ApplyTo(options *SidecarOptions) *SidecarOptions {
 	if o.Image != "" {
 		options.Image = o.Image
 	}
@@ -177,7 +169,7 @@ func (o *SidecarOptions) ApplyTo(options *SidecarOptions) {
 		if options.Resources.Limits == nil {
 			options.Resources.Limits = o.Resources.Limits
 		} else {
-			util.Override(options.Resources.Limits, o.Resources.Limits)
+			mergo.Map(options.Resources.Limits, o.Resources.Limits, mergo.WithOverride)
 		}
 	}
 
@@ -185,9 +177,10 @@ func (o *SidecarOptions) ApplyTo(options *SidecarOptions) {
 		if options.Resources.Requests == nil {
 			options.Resources.Requests = o.Resources.Requests
 		} else {
-			util.Override(options.Resources.Requests, o.Resources.Requests)
+			mergo.Map(options.Resources.Requests, o.Resources.Requests, mergo.WithOverride)
 		}
 	}
+	return options
 }
 
 // Override the Options overrides the spec field when it is empty
