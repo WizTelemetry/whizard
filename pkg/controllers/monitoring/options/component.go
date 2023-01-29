@@ -3,8 +3,8 @@ package options
 import (
 	"time"
 
+	"github.com/imdario/mergo"
 	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/whizard/pkg/util"
 	"github.com/spf13/pflag"
 	"k8s.io/api/autoscaling/v2beta2"
 	corev1 "k8s.io/api/core/v1"
@@ -65,7 +65,7 @@ func (o *CompactorOptions) ApplyTo(options *CompactorOptions) {
 		if options.Retention == nil {
 			options.Retention = o.Retention
 		} else {
-			util.Override(options.Retention, o.Retention)
+			mergo.Merge(options.Retention, o.Retention, mergo.WithOverride)
 		}
 	}
 }
