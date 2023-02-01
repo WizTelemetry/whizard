@@ -11,8 +11,8 @@ global:
 
   whizard:
     image:
-      repository: kubesphere/thanos
-      tag: v0.29.5
+      repository: thanosio/thanos
+      tag: v0.30.2
     log: 
       level: info # Possible options: error, warn, info, debug.
       format: logfmt # Possible options: logfmt or json.

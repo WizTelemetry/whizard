@@ -12,6 +12,8 @@ spec:
     enable: {{ .Values.storage.blockManager.enable }}
     {{- if .Values.storage.blockManager.image }}
     image: "{{ .Values.storage.blockManager.image.repository }}:{{ .Values.storage.blockManager.image.tag }}"
+    {{- else }}
+    image: "{{ .Values.global.whizard.image.repository }}:{{ .Values.global.whizard.image.tag }}"
     {{- end }}
     {{- if .Values.storage.blockManager.serviceAccountName }}
     serviceAccountName: {{ .Values.storage.blockManager.serviceAccountName }}
@@ -22,7 +24,7 @@ spec:
     gc:
       enable: {{ .Values.storage.blockManager.gc.enable | default false }}
       {{- if .Values.storage.blockManager.gc.image }}
-      image: "{{ .Values.storage.blockManager.gc.image.repository }}:{{ .Values.storage.blockManager.gc.image.tag }}"
+      image: "{{ .Values.storage.blockManager.gc.image.repository }}:{{ .Values.storage.blockManager.gc.image.tag | default .Chart.AppVersion }}"
       {{- end }}
       imagePullPolicy: {{ .Values.storage.blockManager.gc.imagePullPolicy | default "IfNotPresent" }}
       {{- if .Values.storage.blockManager.gc.resources }}

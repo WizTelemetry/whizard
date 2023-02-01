@@ -94,7 +94,7 @@ data:
         logFormat: {{ .Values.global.whizard.log.format }}
 
         envoy: 
-          image: {{ $query.envoy.image.repository }}:{{ $query.envoy.image.tag | default .Chart.AppVersion }}
+          image: {{ $query.envoy.image.repository }}:{{ $query.envoy.image.tag }}
 
         {{- with $query.additionalFlags }}
         flags:
