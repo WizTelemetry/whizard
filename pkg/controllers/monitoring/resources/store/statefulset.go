@@ -3,7 +3,9 @@ package store
 import (
 	"fmt"
 	"sort"
+	"strings"
 
+	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/util"
@@ -156,11 +158,15 @@ func (r *Store) megerArgs() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	relabelConfig, err := r.createRelabelConfig()
+	if err != nil {
+		return nil, err
+	}
 	defaultArgs := []string{
 		"store",
 		fmt.Sprintf("--data-dir=%s", constants.StorageDir),
 		"--objstore.config=" + string(storageConfig),
+		"--selector.relabel-config=" + relabelConfig,
 	}
 
 	if r.store.Spec.IndexCacheConfig != nil &&
@@ -199,4 +205,41 @@ func (r *Store) megerArgs() ([]string, error) {
 
 	sort.Strings(defaultArgs[1:])
 	return defaultArgs, nil
+}
+
+func (r *Store) createRelabelConfig() (string, error) {
+	namespacedName := strings.Split(r.store.Labels[constants.ServiceLabelKey], ".")
+	svc := &v1alpha1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      namespacedName[1],
+			Namespace: namespacedName[0],
+		},
+	}
+	if err := r.Client.Get(r.Context, client.ObjectKeyFromObject(svc), svc); err != nil {
+		return "", err
+	}
+
+	label := svc.Spec.TenantLabelName
+	if len(label) == 0 {
+		label = constants.DefaultTenantLabelName
+	}
+	var tenants []string
+	tenantList := &v1alpha1.TenantList{}
+	err := r.Client.List(r.Context, tenantList, client.MatchingLabels(map[string]string{
+		constants.StorageLabelKey: r.store.Labels[constants.StorageLabelKey],
+		constants.ServiceLabelKey: r.store.Labels[constants.ServiceLabelKey],
+	}))
+	if err != nil {
+		return "", err
+	}
+
+	for _, item := range tenantList.Items {
+		if item.DeletionTimestamp != nil || !item.DeletionTimestamp.IsZero() {
+			continue
+		}
+		tenants = append(tenants, item.Spec.Tenant)
+	}
+	sort.Strings(tenants)
+	return util.CreateKeepTenantsRelabelConfig(label, tenants)
+
 }
