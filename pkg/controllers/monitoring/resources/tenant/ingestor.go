@@ -65,6 +65,20 @@ func (t *Tenant) ingester() error {
 		return nil
 	}
 
+	if v, ok := t.tenant.Labels[constants.ExclusiveLabelKey]; ok && v == "true" {
+		ingester := t.createIngesterInstance(t.tenant.Name, t.tenant, true)
+
+		t.tenant.Status.Ingester = &monitoringv1alpha1.ObjectReference{
+			Namespace: ingester.Namespace,
+			Name:      ingester.Name,
+		}
+
+		if err := util.CreateOrUpdate(t.Context, t.Client, ingester); err != nil {
+			return err
+		}
+		return t.Client.Status().Update(t.Context, t.tenant)
+	}
+
 	var ingesterList monitoringv1alpha1.IngesterList
 	ls := make(map[string]string, 2)
 	ls[constants.ServiceLabelKey] = t.tenant.Labels[constants.ServiceLabelKey]
@@ -112,7 +126,7 @@ func (t *Tenant) ingester() error {
 				break
 			}
 		} else {
-			ingester = t.createIngesterInstance(name, t.tenant)
+			ingester = t.createIngesterInstance(name, t.tenant, false)
 			break
 		}
 	}
@@ -160,6 +174,18 @@ func (t *Tenant) needResetIngester() (bool, error) {
 	if v, ok := ingester.Labels[constants.StorageLabelKey]; !ok || v != t.GetStorage(t.tenant.Labels[constants.StorageLabelKey]) {
 		klog.V(3).Infof("Tenant [%s] and ingester [%s]'s Storage mismatch, need to reset ingester", t.tenant.Name, ingester.Name)
 		return true, nil
+	}
+
+	if v, ok := t.tenant.Labels[constants.ExclusiveLabelKey]; ok && v == "true" {
+		if v, ok := ingester.Labels[constants.ExclusiveLabelKey]; !ok || v != "true" || ingester.Name != t.tenant.Name {
+			klog.V(3).Infof("Tenant [%s] requires its exclusive ingester, the current shared ingester [%s] should be replaced by an exclusive one", t.tenant.Name, ingester.Name)
+			return true, nil
+		}
+	} else {
+		if v, ok := ingester.Labels[constants.ExclusiveLabelKey]; ok && v == "true" && ingester.Name == t.tenant.Name {
+			klog.V(3).Infof("Tenant [%s] is not allowed to have its exclusive ingester, the current exclusive ingester [%s] will be replaced by a shared ingester", t.tenant.Name, ingester.Name)
+			return true, nil
+		}
 	}
 
 	return false, nil
@@ -219,13 +245,16 @@ func (t *Tenant) createIngesterInstanceName(suffix ...string) string {
 	return name
 }
 
-func (t *Tenant) createIngesterInstance(name string, tenant *monitoringv1alpha1.Tenant) *monitoringv1alpha1.Ingester {
+func (t *Tenant) createIngesterInstance(name string, tenant *monitoringv1alpha1.Tenant, isExclusive bool) *monitoringv1alpha1.Ingester {
 	klog.V(3).Infof("create new ingester %s for tenant %s", name, tenant.Name)
 	storage := t.GetStorage(tenant.Labels[constants.StorageLabelKey])
 
-	label := make(map[string]string, 2)
+	label := make(map[string]string, 3)
 	label[constants.ServiceLabelKey] = tenant.Labels[constants.ServiceLabelKey]
 	label[constants.StorageLabelKey] = storage
+	if isExclusive {
+		label[constants.ExclusiveLabelKey] = "true"
+	}
 
 	namespacedName := strings.Split(tenant.Labels[constants.ServiceLabelKey], ".")
 

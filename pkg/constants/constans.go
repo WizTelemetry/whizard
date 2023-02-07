@@ -9,6 +9,8 @@ const (
 	StorageLabelKey = "monitoring.whizard.io/storage"
 	TenantLabelKey  = "monitoring.whizard.io/tenant"
 
+	ExclusiveLabelKey = "monitoring.whizard.io/exclusive"
+
 	FinalizerIngester  = "finalizers.monitoring.whizard.io/ingester"
 	FinalizerCompactor = "finalizers.monitoring.whizard.io/compactor"
 	FinalizerDeletePVC = "finalizers.monitoring.whizard.io/deletePVC"
