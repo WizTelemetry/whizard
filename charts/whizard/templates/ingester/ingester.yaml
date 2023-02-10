@@ -15,6 +15,9 @@ metadata:
     {{- else }}
     "monitoring.whizard.io/storage": "local"
     {{- end }}
+    {{- with .Values.ingester.labels }}
+    {{ toYaml . | nindent 4 }}
+    {{- end }}
     {{- include "whizard.labels" . | nindent 4 }}
 spec:
   {{- if .Values.ingester.image }}

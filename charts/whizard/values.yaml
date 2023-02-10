@@ -414,6 +414,10 @@ ruler:
 ingester: 
   enabled: true
 
+  # add `"monitoring.whizard.io/soft-tenant"="true"` label for the soft tenant creation ingester
+  labels:
+    "monitoring.whizard.io/soft-tenant": "true"
+
   ## If null or unset, the value is determined based on enabled Service instance
   serviceReference: null
     # namespace: 

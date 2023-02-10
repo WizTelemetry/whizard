@@ -9,7 +9,8 @@ const (
 	StorageLabelKey = "monitoring.whizard.io/storage"
 	TenantLabelKey  = "monitoring.whizard.io/tenant"
 
-	ExclusiveLabelKey = "monitoring.whizard.io/exclusive"
+	ExclusiveLabelKey  = "monitoring.whizard.io/exclusive"
+	SoftTenantLabelKey = "monitoring.whizard.io/soft-tenant"
 
 	FinalizerIngester  = "finalizers.monitoring.whizard.io/ingester"
 	FinalizerCompactor = "finalizers.monitoring.whizard.io/compactor"
