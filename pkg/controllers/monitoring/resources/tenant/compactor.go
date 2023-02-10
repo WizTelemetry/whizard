@@ -67,6 +67,20 @@ func (t *Tenant) compactor() error {
 		return nil
 	}
 
+	if v, ok := t.tenant.Labels[constants.ExclusiveLabelKey]; ok && v == "true" {
+		compactor := t.createExclusiveCompactorInstance(t.tenant)
+
+		if err := util.CreateOrUpdate(t.Context, t.Client, compactor); err != nil {
+			return err
+		}
+
+		t.tenant.Status.Compactor = &monitoringv1alpha1.ObjectReference{
+			Namespace: compactor.Namespace,
+			Name:      compactor.Name,
+		}
+		return t.Client.Status().Update(t.Context, t.tenant)
+	}
+
 	var compactorList monitoringv1alpha1.CompactorList
 	ls := make(map[string]string, 2)
 	ls[constants.ServiceLabelKey] = t.tenant.Labels[constants.ServiceLabelKey]
@@ -157,6 +171,17 @@ func (t *Tenant) needResetCompactor() (bool, error) {
 		return true, nil
 	}
 
+	if v, ok := t.tenant.Labels[constants.ExclusiveLabelKey]; ok && v == "true" {
+		if v, ok := compactor.Labels[constants.ExclusiveLabelKey]; !ok || v != "true" || compactor.Name != t.tenant.Name {
+			klog.V(3).Infof("Tenant [%s] requires its exclusive compactor, the current shared compactor [%s] should be replaced by an exclusive one", t.tenant.Name, compactor.Name)
+			return true, nil
+		}
+	} else {
+		if v, ok := compactor.Labels[constants.ExclusiveLabelKey]; ok && v == "true" && compactor.Name == t.tenant.Name {
+			klog.V(3).Infof("Tenant [%s] is not allowed to have its exclusive compactor, the current exclusive compactor [%s] will be replaced by a shared compactor", t.tenant.Name, compactor.Name)
+			return true, nil
+		}
+	}
 	return false, nil
 }
 
@@ -174,6 +199,27 @@ func (t *Tenant) createCompactorInstance(tenant *monitoringv1alpha1.Tenant) *mon
 			GenerateName: fmt.Sprintf("%s-%s-", serviceNamespacedName[1], storageNamespacedName[1]),
 			Namespace:    serviceNamespacedName[0],
 			Labels:       label,
+		},
+		Spec: monitoringv1alpha1.CompactorSpec{
+			Tenants: []string{tenant.Spec.Tenant},
+		},
+	}
+}
+
+func (t *Tenant) createExclusiveCompactorInstance(tenant *monitoringv1alpha1.Tenant) *monitoringv1alpha1.Compactor {
+	storage := t.GetStorage(tenant.Labels[constants.StorageLabelKey])
+
+	label := make(map[string]string, 3)
+	label[constants.ServiceLabelKey] = tenant.Labels[constants.ServiceLabelKey]
+	label[constants.StorageLabelKey] = storage
+	label[constants.ExclusiveLabelKey] = "true"
+
+	serviceNamespacedName := strings.Split(tenant.Labels[constants.ServiceLabelKey], ".")
+	return &monitoringv1alpha1.Compactor{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      t.tenant.Name,
+			Namespace: serviceNamespacedName[0],
+			Labels:    label,
 		},
 		Spec: monitoringv1alpha1.CompactorSpec{
 			Tenants: []string{tenant.Spec.Tenant},
