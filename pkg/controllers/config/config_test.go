@@ -131,7 +131,7 @@ func newTestConfig() (*Config, error) {
 			},
 			Ruler: &options.RulerOptions{
 				Shards:             &replicas1,
-				EvaluationInterval: time.Minute,
+				EvaluationInterval: "1m",
 				RuleSelectors: []*metav1.LabelSelector{
 					&metav1.LabelSelector{
 						MatchLabels: map[string]string{"role": "alert-rules"},

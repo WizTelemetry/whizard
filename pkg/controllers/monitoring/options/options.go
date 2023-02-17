@@ -20,7 +20,7 @@ const (
 
 	DefaultRouterReplicationFactor uint64 = 1
 	DefaultRulerShards             int32  = 1
-	DefaultRulerEvaluationInterval        = time.Second * 30
+	DefaultRulerEvaluationInterval string = "30s"
 	DefaultStoreMinReplicas        int32  = 2
 	DefaultStoreMaxReplicas        int32  = 20
 

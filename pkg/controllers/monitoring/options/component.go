@@ -438,7 +438,7 @@ type RulerOptions struct {
 	AlertmanagersConfig *corev1.SecretKeySelector `json:"alertmanagersConfig,omitempty"`
 
 	// Interval between consecutive evaluations.
-	EvaluationInterval time.Duration `json:"evaluationInterval,omitempty"`
+	EvaluationInterval string `json:"evaluationInterval,omitempty"`
 }
 
 func NewRulerOptions() *RulerOptions {
@@ -517,7 +517,7 @@ func (o *RulerOptions) ApplyTo(options *RulerOptions) {
 	if o.AlertmanagersConfig != nil {
 		options.AlertmanagersConfig = o.AlertmanagersConfig
 	}
-	if o.EvaluationInterval != 0 {
+	if o.EvaluationInterval != "" {
 		options.EvaluationInterval = o.EvaluationInterval
 	}
 
@@ -551,12 +551,16 @@ func (o *RulerOptions) Override(spec *v1alpha1.RulerSpec) {
 		spec.AlertmanagersConfig = o.AlertmanagersConfig
 	}
 	if spec.EvaluationInterval == "" {
-		spec.EvaluationInterval = v1alpha1.Duration(o.EvaluationInterval.String())
+		spec.EvaluationInterval = v1alpha1.Duration(o.EvaluationInterval)
 	}
 }
 
 func (o *RulerOptions) Validate() []error {
 	var errs []error
+
+	if _, err := time.ParseDuration(o.EvaluationInterval); err != nil {
+		errs = append(errs, err)
+	}
 
 	errs = append(errs, o.CommonOptions.Validate()...)
 
