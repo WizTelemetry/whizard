@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/util"
@@ -16,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -222,6 +224,28 @@ func (r *Ingester) generateInitContainer(tsdbVolumeMount *corev1.VolumeMount) []
 		return nil
 	}
 
+	// Soft tenant ingesters should not clean up data.
+	if v, ok := r.ingester.Labels[constants.SoftTenantLabelKey]; ok && v == "true" {
+		return nil
+	}
+
+	var tenants []string
+	tenantList := &v1alpha1.TenantList{}
+	err := r.Client.List(r.Context, tenantList, client.MatchingLabels(map[string]string{
+		constants.ServiceLabelKey: r.ingester.Labels[constants.ServiceLabelKey],
+	}))
+	if err != nil {
+		return nil
+	}
+
+	for _, item := range tenantList.Items {
+		if item.DeletionTimestamp != nil || !item.DeletionTimestamp.IsZero() {
+			continue
+		}
+
+		tenants = append(tenants, item.Spec.Tenant)
+	}
+
 	return []corev1.Container{
 		{
 			Name:  initContainerName,
@@ -233,7 +257,7 @@ func (r *Ingester) generateInitContainer(tsdbVolumeMount *corev1.VolumeMount) []
 			},
 			Args: []string{
 				constants.StorageDir,
-				strings.Join(append(r.ingester.Spec.Tenants, r.Service.Spec.DefaultTenantId), ","),
+				strings.Join(append(tenants, r.Service.Spec.DefaultTenantId), ","),
 			},
 			VolumeMounts: []corev1.VolumeMount{*tsdbVolumeMount},
 		},

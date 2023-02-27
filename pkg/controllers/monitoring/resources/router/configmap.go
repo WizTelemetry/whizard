@@ -48,8 +48,8 @@ func (r *Router) hashringsConfigMap() (runtime.Object, resources.Operation, erro
 			return nil, "", err
 		}
 		if len(item.Spec.Tenants) == 0 {
-			// the ingester in the "deleting" state will not be added to the soft hash ring
-			if v, ok := item.ObjectMeta.Labels[constants.LabelNameIngesterState]; !ok || v != constants.IngesterStateDeleting {
+			// specific ingesters can join the softHashring
+			if v, ok := item.Labels[constants.SoftTenantLabelKey]; ok && v == "true" {
 				softHashring.Endpoints = append(softHashring.Endpoints, ingester.GrpcAddrs()...)
 			}
 			continue
