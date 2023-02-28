@@ -43,6 +43,7 @@ import (
 // CompactorReconciler reconciles a compactor object
 type CompactorReconciler struct {
 	DefaulterValidator CompactorDefaulterValidator
+	Options            *options.CompactorOptions
 	client.Client
 	Scheme  *runtime.Scheme
 	Context context.Context
@@ -110,7 +111,7 @@ func (r *CompactorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		Context: ctx,
 	}
 
-	compactorReconciler, err := compactor.New(baseReconciler, instance)
+	compactorReconciler, err := compactor.New(baseReconciler, instance, r.Options)
 	if err != nil {
 		return ctrl.Result{}, err
 	}

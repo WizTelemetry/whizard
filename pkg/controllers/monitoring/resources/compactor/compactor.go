@@ -3,6 +3,7 @@ package compactor
 import (
 	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -12,15 +13,17 @@ import (
 type Compactor struct {
 	resources.BaseReconciler
 	compactor *v1alpha1.Compactor
+	option    *options.CompactorOptions
 }
 
-func New(reconciler resources.BaseReconciler, compactor *v1alpha1.Compactor) (*Compactor, error) {
+func New(reconciler resources.BaseReconciler, compactor *v1alpha1.Compactor, o *options.CompactorOptions) (*Compactor, error) {
 	if err := reconciler.SetService(compactor); err != nil {
 		return nil, err
 	}
 	return &Compactor{
 		BaseReconciler: reconciler,
 		compactor:      compactor,
+		option:         o,
 	}, nil
 }
 

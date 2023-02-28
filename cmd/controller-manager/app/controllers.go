@@ -70,6 +70,7 @@ func addControllers(mgr manager.Manager, client k8s.Client, informerFactory info
 		Client:             mgr.GetClient(),
 		Scheme:             mgr.GetScheme(),
 		Context:            ctx,
+		Options:            cmOptions.MonitoringOptions.Compactor,
 	}).SetupWithManager(mgr); err != nil {
 		klog.Errorf("Unable to create Compactor controller: %v", err)
 		return err
