@@ -6,6 +6,10 @@ This page describes the release process and the currently planned schedule for u
 
 | release series | date  (year-month-day) | release shepherd                            |
 |----------------|--------------------------------------------|---------------------------------------------|
+| v0.6.0-rc.0    | 2023-03-08                                 | Junhao Zhang (GitHub: @frezes)              |
+| v0.5.0         | 2022-11-29                                 | Junhao Zhang (GitHub: @frezes)              |
+| v0.5.0-rc.2    | 2022-10-25                                 | Junhao Zhang (GitHub: @frezes)              |
+| v0.5.0-rc.1    | 2022-10-14                                 | Junhao Zhang (GitHub: @frezes)              |
 | v0.5.0-rc.0    | 2022-09-29                                 | Junhao Zhang (GitHub: @frezes)              |
 
 # How to cut a new release
