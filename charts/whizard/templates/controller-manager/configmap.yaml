@@ -36,6 +36,11 @@ data:
         image: {{ $gateway.image.repository }}:{{ $gateway.image.tag | default .Chart.AppVersion }}
         replicas: {{ $gateway.replicas }}
 
+        {{- with $gateway.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+
         logLevel: {{ .Values.global.whizard.log.level }}
         logFormat: {{ .Values.global.whizard.log.format }}
 
@@ -48,6 +53,10 @@ data:
         {{- end }}
 
         replicas: {{ $router.replicas }}
+        {{- with $router.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}        
 
         logLevel: {{ .Values.global.whizard.log.level }}
         logFormat: {{ .Values.global.whizard.log.format }}
@@ -67,6 +76,10 @@ data:
         {{- end }}
 
         replicas: {{ $queryFrontend.replicas }}
+        {{- with $queryFrontend.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}  
 
         logLevel: {{ .Values.global.whizard.log.level }}
         logFormat: {{ .Values.global.whizard.log.format }}
@@ -89,6 +102,10 @@ data:
         {{- end }}
 
         replicas: {{ $query.replicas }}
+        {{- with $query.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}  
 
         logLevel: {{ .Values.global.whizard.log.level }}
         logFormat: {{ .Values.global.whizard.log.format }}
@@ -110,6 +127,10 @@ data:
         {{- end }}
 
         replicas: {{ $ingester.replicas }}
+        {{- with $ingester.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}  
 
         logLevel: {{ .Values.global.whizard.log.level }}
         logFormat: {{ .Values.global.whizard.log.format }}
@@ -135,6 +156,11 @@ data:
         {{- else }}
         image: {{ $whizardImage }}
         {{- end }}
+
+        {{- with $store.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }} 
 
         logLevel: {{ .Values.global.whizard.log.level }}
         logFormat: {{ .Values.global.whizard.log.format }}
@@ -184,6 +210,10 @@ data:
 
         shards: {{ $ruler.shards }}
         replicas: {{ $ruler.replicas }}
+        {{- with $ruler.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }} 
 
         logLevel: {{ .Values.global.whizard.log.level }}
         logFormat: {{ .Values.global.whizard.log.format }}

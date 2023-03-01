@@ -16,6 +16,8 @@ rules:
   - monitoring.whizard.io
   resources:
   - tenants
+  - service
+  - storage
   verbs:
   - create
   - delete
@@ -25,17 +27,16 @@ rules:
   - update
   - watch
 - apiGroups:
-  - monitoring.whizard.io
+  - ""
   resources:
-  - tenants/finalizers
+  - configmaps
+  - secret
   verbs:
-  - update
-- apiGroups:
-  - monitoring.whizard.io
-  resources:
-  - tenants/status
-  verbs:
+  - create
+  - delete
   - get
+  - list
   - patch
   - update
+  - watch
 {{- end }}

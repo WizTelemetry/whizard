@@ -1,0 +1,19 @@
+{{- if .Values.adapter.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "whizard.adapter.fullname" . }}
+  namespace: {{ include "whizard.namespace" . }}
+  labels:
+    app: {{ include "whizard.adapter.fullname" . }}
+    {{- include "whizard.labels" . | nindent 4 }}
+spec:
+  ports:
+  - name: http
+    port: 9090
+    protocol: TCP
+    targetPort: 9090
+  selector:
+    app: {{ include "whizard.adapter.fullname" . }}
+  type: ClusterIP
+{{- end }}

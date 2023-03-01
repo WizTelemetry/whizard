@@ -26,6 +26,13 @@ spec:
           {{- else if .Values.service.enabled }}
           - --default-whizard-service={{ include "whizard.namespace" . }}.{{ include "whizard.service.crname" . }}
           {{- end }}
+          {{- if .Values.adapter.defaultStorageReference }}
+          - --default-whizard-storage={{ .Values.adapter.defaultStorageReference.namespace }}.{{ .Values.adapter.defaultStorageReference.name }}
+          {{- else }}
+          - --default-whizard-storage={{ include "whizard.namespace" . }}.remote
+          {{- end }}       
+          - --default-whizard-configmap={{ include "whizard.namespace" . }}.{{ include "whizard.fullname" . }}-config
+          - --web-enabled={{ .Values.adapter.web.enabled }}
           - --kubesphere-adapter-enabled={{ .Values.adapter.kubesphereAdapter.enabled }}
           image: "{{ .Values.adapter.image.repository }}:{{ .Values.adapter.image.tag | default .Chart.AppVersion }}"
           livenessProbe:
@@ -36,6 +43,10 @@ spec:
             httpGet:
               path: /readyz
               port: 9091
+          {{- with .Values.adapter.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
       {{- with .Values.adapter.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
