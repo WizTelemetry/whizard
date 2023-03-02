@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"fmt"
+
 	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/util"
@@ -47,6 +49,10 @@ func (s *Storage) deployment() (runtime.Object, resources.Operation, error) {
 	d.Spec.Template.Spec.Tolerations = s.storage.Spec.BlockManager.Tolerations
 	d.Spec.Template.Spec.ServiceAccountName = s.storage.Spec.BlockManager.ServiceAccountName
 
+	volumes, volumeMounts, err := s.VolumesAndVolumeMountsForStorage(fmt.Sprintf("%s.%s", s.storage.Namespace, s.storage.Name))
+
+	d.Spec.Template.Spec.Volumes = volumes
+
 	var webContainer *corev1.Container
 	for i := 0; i < len(d.Spec.Template.Spec.Containers); i++ {
 		if d.Spec.Template.Spec.Containers[i].Name == webContainerName {
@@ -69,6 +75,8 @@ func (s *Storage) deployment() (runtime.Object, resources.Operation, error) {
 
 		needToAppend = true
 	}
+
+	webContainer.VolumeMounts = volumeMounts
 
 	webContainer.Image = s.storage.Spec.BlockManager.Image
 	webContainer.ImagePullPolicy = s.storage.Spec.BlockManager.ImagePullPolicy
@@ -134,6 +142,8 @@ func (s *Storage) deployment() (runtime.Object, resources.Operation, error) {
 			}
 			needToAppend = true
 		}
+
+		gcContainer.VolumeMounts = volumeMounts
 
 		gcContainer.Resources = s.storage.Spec.BlockManager.GC.Resources
 
