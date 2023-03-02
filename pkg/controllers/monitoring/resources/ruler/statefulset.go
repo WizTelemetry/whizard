@@ -326,7 +326,7 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 
 	sort.Strings(container.Args[1:])
 
-	var reloaderConfig = promoperator.ReloaderConfig{
+	var reloaderConfig = promoperator.ContainerConfig{
 		Image:         r.Options.PrometheusConfigReloader.Image,
 		CPURequest:    r.Options.PrometheusConfigReloader.Resources.Requests.Cpu().String(),
 		MemoryRequest: r.Options.PrometheusConfigReloader.Resources.Requests.Memory().String(),
@@ -336,7 +336,7 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 
 	var reloadContainer = promoperator.CreateConfigReloader(
 		"config-reloader",
-		promoperator.ReloaderResources(reloaderConfig),
+		promoperator.ReloaderConfig(reloaderConfig),
 		promoperator.ReloaderURL(url.URL{
 			Scheme: "http",
 			Host:   fmt.Sprintf("localhost:%d", constants.HTTPPort),
