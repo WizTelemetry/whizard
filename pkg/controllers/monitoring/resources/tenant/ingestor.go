@@ -217,8 +217,25 @@ func (t *Tenant) removeTenantFromIngesterbyName(namespace, name string) error {
 				if annotation == nil {
 					annotation = make(map[string]string)
 				}
+
+				var retentionPeriod time.Duration
+				// When ingester uses object storage, the ingester retention period uses the DefaultIngesterRetentionPeriod.
+				// When it uses local storage, its retention period is the same as LocalTsdbRetention
+				if v, ok := ingester.Labels[constants.StorageLabelKey]; ok && v != constants.LocalStorage {
+					retentionPeriod = t.Options.Ingester.DefaultIngesterRetentionPeriod
+				} else {
+					if ingester.Spec.LocalTsdbRetention != "" {
+						retentionPeriod, _ = time.ParseDuration(ingester.Spec.LocalTsdbRetention)
+					} else if t.Options.Ingester.LocalTsdbRetention != "" {
+						retentionPeriod, _ = time.ParseDuration(t.Options.Ingester.LocalTsdbRetention)
+					}
+					if retentionPeriod <= 0 {
+						retentionPeriod = t.Options.Ingester.DefaultIngesterRetentionPeriod
+					}
+				}
+
 				annotation[constants.LabelNameIngesterState] = constants.IngesterStateDeleting
-				annotation[constants.LabelNameIngesterDeletingTime] = strconv.Itoa(int(time.Now().Add(t.Options.Ingester.DefaultIngesterRetentionPeriod).Unix()))
+				annotation[constants.LabelNameIngesterDeletingTime] = strconv.Itoa(int(time.Now().Add(retentionPeriod).Unix()))
 				ingester.Annotations = annotation
 			}
 
