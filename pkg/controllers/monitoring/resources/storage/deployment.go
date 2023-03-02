@@ -50,7 +50,9 @@ func (s *Storage) deployment() (runtime.Object, resources.Operation, error) {
 	d.Spec.Template.Spec.ServiceAccountName = s.storage.Spec.BlockManager.ServiceAccountName
 
 	volumes, volumeMounts, err := s.VolumesAndVolumeMountsForStorage(fmt.Sprintf("%s.%s", s.storage.Namespace, s.storage.Name))
-
+	if err != nil {
+		return nil, "", err
+	}
 	d.Spec.Template.Spec.Volumes = volumes
 
 	var webContainer *corev1.Container
