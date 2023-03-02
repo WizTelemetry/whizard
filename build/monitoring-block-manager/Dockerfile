@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.19.5 as builder
+FROM golang:1.20.1 as builder
 ARG GOPROXY
 
 WORKDIR /workspace
@@ -19,7 +19,7 @@ RUN CGO_ENABLED=0 go build -a -o block-manager cmd/monitoring-block-manager/bloc
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM thanosio/thanos:v0.30.1
+FROM thanosio/thanos:v0.30.2
 WORKDIR /
 COPY --from=builder /workspace/block-manager .
 USER 65532:65532
