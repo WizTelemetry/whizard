@@ -206,7 +206,15 @@ func (r *Compactor) megerArgs() ([]string, error) {
 	if r.compactor.Spec.DisableDownsampling != nil && *r.compactor.Spec.DisableDownsampling {
 		defaultArgs = append(defaultArgs, "--downsampling.disable")
 	}
-	if retention := r.Service.Spec.Retention; retention != nil {
+
+	var retention *v1alpha1.Retention
+	if r.Service.Spec.Retention != nil {
+		retention = r.Service.Spec.Retention
+	} else if r.option.Retention != nil {
+		retention = r.option.Retention
+	}
+
+	if retention != nil {
 		if retention.RetentionRaw != "" {
 			defaultArgs = append(defaultArgs, fmt.Sprintf("--retention.resolution-raw=%s", retention.RetentionRaw))
 		}
