@@ -4,6 +4,7 @@ kind: ClusterRole
 metadata:
   name: {{ include "whizard.adapter.fullname" . }}
 rules:
+{{- if .Values.adapter.kubesphereAdapter.enabled }}
 - apiGroups:
   - cluster.kubesphere.io
   resources:
@@ -12,12 +13,13 @@ rules:
   - get
   - list
   - watch
+{{- end }}
 - apiGroups:
   - monitoring.whizard.io
   resources:
   - tenants
-  - service
-  - storage
+  - services
+  - storages
   verbs:
   - create
   - delete
@@ -30,7 +32,7 @@ rules:
   - ""
   resources:
   - configmaps
-  - secret
+  - secrets
   verbs:
   - create
   - delete

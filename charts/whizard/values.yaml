@@ -188,10 +188,10 @@ controllerManager:
       image: null
       # repository: thanosio/thanos
       # tag: v0.28.0
-      retention: {}
-      # retentionRaw:
-      # retention5m:
-      # retention1h:
+      retention: 
+       retentionRaw: 60d
+       retention5m: 180d
+       retention1h: 360d
       additionalFlags:
       - --block-files-concurrency=20
       - --compact.blocks-fetch-concurrency=5
@@ -289,7 +289,6 @@ gateway:
     # Overrides the image tag whose default is the chart appVersion.
     tag: ""
 
-  replicas: 1
 
   resources: {}
   nodeSelector: {}
@@ -312,7 +311,6 @@ query:
     # repository: thanosio/thanos
     # tag: v0.28.0
   
-  replicas: 1
 
   resources: {}
   nodeSelector: {}
@@ -345,14 +343,12 @@ router:
     # repository: thanosio/thanos
     # tag: v0.28.0
 
-  replicas: 1
 
   resources: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
 
-  replicationFactor: 1
   additionalFlags: []
 
 # Deploy an QueryFrontend instance
@@ -369,7 +365,6 @@ queryFrontend:
     # repository: thanosio/thanos
     # tag: v0.28.0
 
-  replicas: 1
 
   resources: {}
   nodeSelector: {}
@@ -394,13 +389,14 @@ ruler:
     # repository: thanosio/thanos
     # tag: v0.28.0
 
-  replicas: 1
 
   resources: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
 
+  replicas: 2
+  
   shards: 1
 
   tenant: ''
@@ -442,7 +438,6 @@ ingester:
     # repository: thanosio/thanos
     # tag: v0.28.0
 
-  replicas: 2
 
   resources: {}
   nodeSelector: {}
@@ -453,8 +448,6 @@ ingester:
   
   logLevel: info
   logFormat: logfmt
-  ## how long to retain raw samples on local storage.
-  localTsdbRetention: 7d
 
   dataVolume: {}
 
