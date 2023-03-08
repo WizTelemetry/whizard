@@ -104,6 +104,7 @@ controllerManager:
         tag: ""
       
       replicas: 2
+      resources: {}
 
     router: 
       ## If null or unset, the global.whizardImage is used.
@@ -122,6 +123,7 @@ controllerManager:
       # tag: v0.28.0
 
       replicas: 2
+      resources: {}
 
       cacheConfig: {}
 
@@ -132,6 +134,7 @@ controllerManager:
       # tag: v0.28.0
 
       replicas: 2
+      resources: {}
 
       additionalFlags:
       - --query.max-concurrent=200
@@ -148,6 +151,7 @@ controllerManager:
       # tag: v0.28.0
 
       replicas: 2
+      resources: {}
 
       ## how long to retain raw samples on local storage.
       localTsdbRetention: 7d
@@ -166,7 +170,13 @@ controllerManager:
       image: null
       # repository: thanosio/thanos
       # tag: v0.28.0
-
+      resources:
+        limits:
+          cpu: 1
+          memory: 4Gi
+        requests:
+          cpu: 100m
+          memory: 500Mi
       indexCacheConfig: {}
   
       additionalFlags: 
@@ -178,15 +188,16 @@ controllerManager:
       image: null
       # repository: thanosio/thanos
       # tag: v0.28.0
-      retention: {}
-      # retentionRaw:
-      # retention5m:
-      # retention1h:
+      retention: 
+       retentionRaw: 60d
+       retention5m: 180d
+       retention1h: 360d
       additionalFlags:
       - --block-files-concurrency=20
       - --compact.blocks-fetch-concurrency=5
       - --web.disable      #Disable Block Viewer UI.
 
+      resources: {}
       dataVolume: {}
 
     ruler: 
@@ -196,6 +207,7 @@ controllerManager:
       # tag: v0.28.0
 
       replicas: 1
+      resources: {}
 
       shards: 1
 
@@ -241,7 +253,13 @@ adapter:
   defaultServiceReference: null
     # namespace:
     # name:
+  ## If null or unset, the default Storage name is used.
+  defaultStorageReference: null
+    # namespace:
+    # name:
   kubesphereAdapter:
+    enabled: true
+  web:
     enabled: true
 
 # Deploy a Service instance
@@ -271,7 +289,6 @@ gateway:
     # Overrides the image tag whose default is the chart appVersion.
     tag: ""
 
-  replicas: 1
 
   resources: {}
   nodeSelector: {}
@@ -294,7 +311,6 @@ query:
     # repository: thanosio/thanos
     # tag: v0.28.0
   
-  replicas: 1
 
   resources: {}
   nodeSelector: {}
@@ -327,14 +343,12 @@ router:
     # repository: thanosio/thanos
     # tag: v0.28.0
 
-  replicas: 1
 
   resources: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
 
-  replicationFactor: 1
   additionalFlags: []
 
 # Deploy an QueryFrontend instance
@@ -351,7 +365,6 @@ queryFrontend:
     # repository: thanosio/thanos
     # tag: v0.28.0
 
-  replicas: 1
 
   resources: {}
   nodeSelector: {}
@@ -376,13 +389,14 @@ ruler:
     # repository: thanosio/thanos
     # tag: v0.28.0
 
-  replicas: 1
 
   resources: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
 
+  replicas: 2
+  
   shards: 1
 
   tenant: ''
@@ -428,7 +442,6 @@ ingester:
     # repository: thanosio/thanos
     # tag: v0.28.0
 
-  replicas: 2
 
   resources: {}
   nodeSelector: {}
@@ -439,8 +452,6 @@ ingester:
   
   logLevel: info
   logFormat: logfmt
-  ## how long to retain raw samples on local storage.
-  localTsdbRetention: 7d
 
   dataVolume: {}
 
