@@ -18,7 +18,7 @@ require (
 	github.com/prometheus-community/prom-label-proxy v0.6.0
 	github.com/prometheus-operator/prometheus-operator v0.63.0
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.63.0
-	github.com/prometheus/common v0.41.0
+	github.com/prometheus/common v0.42.0
 	github.com/prometheus/prometheus v1.99.0
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5
