@@ -31,6 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -144,5 +145,6 @@ func (r *GatewayReconciler) mapFuncBySelectorFunc(fn func(metav1.Object) map[str
 
 func (r *GatewayReconciler) validator(g *monitoringv1alpha1.Gateway) *monitoringv1alpha1.Gateway {
 	r.Options.Override(&g.Spec)
+	klog.Info(g.Spec)
 	return g
 }

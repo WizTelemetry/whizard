@@ -35,7 +35,7 @@ func TestCommonOptionsApplyTo(t *testing.T) {
 				Replicas: &replicas2,
 			},
 			&CommonOptions{
-				Image:    "hanos/thanos:v0.28.0",
+				Image:    "thanos/thanos:v0.28.0",
 				Replicas: &replicas2,
 			},
 		},
@@ -85,8 +85,8 @@ func TestCommonOptionsApplyTo(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := tt.conf.ApplyTo(&tt.options)
 
-			if !reflect.DeepEqual(got, tt.want) && *got.Replicas != *tt.want.Replicas {
-				t.Errorf("\nget = %+v (Replicas: %d), \nwant %+v (Replicas: %d)", got, *got.Replicas, tt.want, *tt.want.Replicas)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("\nget = %+v, \nwant %+v", got, tt.want)
 			}
 		})
 	}
@@ -95,10 +95,10 @@ func TestCommonOptionsApplyTo(t *testing.T) {
 func TestSidecarOptionsApplyTo(t *testing.T) {
 
 	testCases := []struct {
-		name string
-		src  SidecarOptions
-		dest *SidecarOptions
-		want *SidecarOptions
+		name    string
+		options SidecarOptions
+		conf    SidecarOptions
+		want    *SidecarOptions
 	}{
 		{
 			"good case 1",
@@ -114,7 +114,7 @@ func TestSidecarOptionsApplyTo(t *testing.T) {
 						corev1.ResourceMemory: resource.MustParse("500Mi"),
 					},
 				}},
-			&SidecarOptions{},
+			SidecarOptions{},
 			&SidecarOptions{
 				Image: DefaultEnvoyImage,
 				Resources: corev1.ResourceRequirements{
@@ -144,7 +144,7 @@ func TestSidecarOptionsApplyTo(t *testing.T) {
 					},
 				},
 			},
-			&SidecarOptions{
+			SidecarOptions{
 				Resources: corev1.ResourceRequirements{
 					Limits: corev1.ResourceList{
 						corev1.ResourceCPU:    resource.MustParse("200m"),
@@ -169,9 +169,9 @@ func TestSidecarOptionsApplyTo(t *testing.T) {
 	}
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			got := tt.src.ApplyTo(tt.dest)
+			got := tt.conf.ApplyTo(&tt.options)
 
-			if !reflect.DeepEqual(tt.dest, tt.want) {
+			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("\nget = %+v, \nwant %+v", got, tt.want)
 			}
 		})

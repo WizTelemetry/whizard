@@ -3,7 +3,6 @@ package options
 import (
 	"fmt"
 
-	"github.com/imdario/mergo"
 	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
@@ -64,7 +63,15 @@ func (o *CommonOptions) ApplyTo(options *CommonOptions) *CommonOptions {
 		if options.Resources.Limits == nil {
 			options.Resources.Limits = o.Resources.Limits
 		} else {
-			mergo.Map(options.Resources.Limits, o.Resources.Limits, mergo.WithOverride)
+			// mergo.Map(options.Resources.Limits, o.Resources.Limits, mergo.WithOverride)
+
+			if !o.Resources.Limits.Cpu().IsZero() {
+				options.Resources.Limits[corev1.ResourceCPU] = o.Resources.Limits[corev1.ResourceCPU]
+			}
+			if !o.Resources.Limits.Memory().IsZero() {
+				options.Resources.Limits[corev1.ResourceMemory] = o.Resources.Limits[corev1.ResourceMemory]
+			}
+
 		}
 	}
 
@@ -72,7 +79,15 @@ func (o *CommonOptions) ApplyTo(options *CommonOptions) *CommonOptions {
 		if options.Resources.Requests == nil {
 			options.Resources.Requests = o.Resources.Requests
 		} else {
-			mergo.Map(options.Resources.Requests, o.Resources.Requests, mergo.WithOverride)
+			//mergo.Map(options.Resources.Requests, o.Resources.Requests, mergo.WithOverride)
+
+			if !o.Resources.Requests.Cpu().IsZero() {
+				options.Resources.Requests[corev1.ResourceCPU] = o.Resources.Requests[corev1.ResourceCPU]
+			}
+			if !o.Resources.Requests.Memory().IsZero() {
+				options.Resources.Requests[corev1.ResourceMemory] = o.Resources.Requests[corev1.ResourceMemory]
+			}
+
 		}
 	}
 
@@ -119,16 +134,12 @@ func (o *CommonOptions) Override(spec *v1alpha1.CommonSpec) {
 		spec.NodeSelector = o.NodeSelector
 	}
 
-	if spec.Resources.Limits == nil {
+	if len(spec.Resources.Limits) == 0 {
 		spec.Resources.Limits = o.Resources.Limits
 	}
 
-	if spec.Resources.Requests == nil {
+	if len(spec.Resources.Requests) == 0 {
 		spec.Resources.Requests = o.Resources.Requests
-	}
-
-	if spec.Replicas == nil {
-		spec.Replicas = o.Replicas
 	}
 
 	if spec.LogLevel == "" {
@@ -169,15 +180,28 @@ func (o *SidecarOptions) ApplyTo(options *SidecarOptions) *SidecarOptions {
 		if options.Resources.Limits == nil {
 			options.Resources.Limits = o.Resources.Limits
 		} else {
-			mergo.Map(options.Resources.Limits, o.Resources.Limits, mergo.WithOverride)
+			// mergo.Map(options.Resources.Limits, o.Resources.Limits, mergo.WithOverride)
+			if !o.Resources.Limits.Cpu().IsZero() {
+				options.Resources.Limits[corev1.ResourceCPU] = o.Resources.Limits[corev1.ResourceCPU]
+			}
+			if !o.Resources.Limits.Memory().IsZero() {
+				options.Resources.Limits[corev1.ResourceMemory] = o.Resources.Limits[corev1.ResourceMemory]
+			}
 		}
 	}
 
 	if o.Resources.Requests != nil {
 		if options.Resources.Requests == nil {
-			options.Resources.Requests = o.Resources.Requests
+			//options.Resources.Requests = o.Resources.Requests
+
 		} else {
-			mergo.Map(options.Resources.Requests, o.Resources.Requests, mergo.WithOverride)
+			//mergo.Map(options.Resources.Requests, o.Resources.Requests, mergo.WithOverride)
+			if !o.Resources.Requests.Cpu().IsZero() {
+				options.Resources.Requests[corev1.ResourceCPU] = o.Resources.Requests[corev1.ResourceCPU]
+			}
+			if !o.Resources.Requests.Memory().IsZero() {
+				options.Resources.Requests[corev1.ResourceMemory] = o.Resources.Requests[corev1.ResourceMemory]
+			}
 		}
 	}
 	return options
