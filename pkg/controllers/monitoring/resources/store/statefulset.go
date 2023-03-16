@@ -225,6 +225,25 @@ func (r *Store) createRelabelConfig() (string, error) {
 	}
 	var tenants []string
 	tenantList := &v1alpha1.TenantList{}
+
+	if svc.Spec.Storage != nil {
+		if v, ok := r.store.Labels[constants.StorageLabelKey]; ok && v == fmt.Sprintf("%s.%s", svc.Spec.Storage.Namespace, svc.Spec.Storage.Name) {
+			err := r.Client.List(r.Context, tenantList, client.MatchingLabels(map[string]string{
+				constants.StorageLabelKey: constants.DefaultStorage,
+				constants.ServiceLabelKey: r.store.Labels[constants.ServiceLabelKey],
+			}))
+			if err != nil {
+				return "", err
+			}
+
+			for _, item := range tenantList.Items {
+				if item.DeletionTimestamp != nil || !item.DeletionTimestamp.IsZero() {
+					continue
+				}
+				tenants = append(tenants, item.Spec.Tenant)
+			}
+		}
+	}
 	err := r.Client.List(r.Context, tenantList, client.MatchingLabels(map[string]string{
 		constants.StorageLabelKey: r.store.Labels[constants.StorageLabelKey],
 		constants.ServiceLabelKey: r.store.Labels[constants.ServiceLabelKey],
