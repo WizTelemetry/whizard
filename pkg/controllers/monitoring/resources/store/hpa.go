@@ -21,7 +21,7 @@ func (r *Store) horizontalPodAutoscaler() (runtime.Object, resources.Operation, 
 	hpa.Spec.ScaleTargetRef = v2beta2.CrossVersionObjectReference{
 		Kind:       "StatefulSet",
 		APIVersion: "apps/v1",
-		Name:       r.store.Name,
+		Name:       r.name(),
 	}
 
 	if hpa.Labels == nil {
