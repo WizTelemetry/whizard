@@ -202,7 +202,7 @@ func newTestConfig() (*Config, error) {
 						},
 					},
 				},
-				AutoScaler: &v1alpha1.AutoScaler{
+				Scaler: &v1alpha1.AutoScaler{
 					MinReplicas: &replicas2,
 					MaxReplicas: 20,
 					Behavior: &v2beta2.HorizontalPodAutoscalerBehavior{
