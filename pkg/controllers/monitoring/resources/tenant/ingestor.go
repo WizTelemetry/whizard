@@ -9,6 +9,7 @@ import (
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/util"
+	"github.com/prometheus/common/model"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -225,9 +226,11 @@ func (t *Tenant) removeTenantFromIngesterbyName(namespace, name string) error {
 					retentionPeriod = t.Options.Ingester.DefaultIngesterRetentionPeriod
 				} else {
 					if ingester.Spec.LocalTsdbRetention != "" {
-						retentionPeriod, _ = time.ParseDuration(ingester.Spec.LocalTsdbRetention)
+						period, _ := model.ParseDuration(ingester.Spec.LocalTsdbRetention)
+						retentionPeriod = time.Duration(period)
 					} else if t.Options.Ingester.LocalTsdbRetention != "" {
-						retentionPeriod, _ = time.ParseDuration(t.Options.Ingester.LocalTsdbRetention)
+						period, _ := model.ParseDuration(ingester.Spec.LocalTsdbRetention)
+						retentionPeriod = time.Duration(period)
 					}
 					if retentionPeriod <= 0 {
 						retentionPeriod = t.Options.Ingester.DefaultIngesterRetentionPeriod
