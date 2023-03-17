@@ -580,10 +580,10 @@ type StoreOptions struct {
 	// MinTime specifies start of time range limit to serve
 	MinTime string `json:"minTime,omitempty" yaml:"minTime,omitempty"`
 	// MaxTime specifies end of time range limit to serve
-	MaxTime                    string `json:"maxTime,omitempty" yaml:"maxTime,omitempty"`
-	*v1alpha1.KubernetesVolume `json:"dataVolume,omitempty" yaml:"dataVolume,omitempty"`
-	*v1alpha1.IndexCacheConfig `json:"indexCacheConfig,omitempty" yaml:"indexCacheConfig,omitempty"`
-	*v1alpha1.AutoScaler       `json:"scaler,omitempty" yaml:"scaler,omitempty"`
+	MaxTime          string                     `json:"maxTime,omitempty" yaml:"maxTime,omitempty"`
+	DataVolume       *v1alpha1.KubernetesVolume `json:"dataVolume,omitempty" yaml:"dataVolume,omitempty"`
+	IndexCacheConfig *v1alpha1.IndexCacheConfig `json:"indexCacheConfig,omitempty" yaml:"indexCacheConfig,omitempty"`
+	Scaler           *v1alpha1.AutoScaler       `json:"scaler,omitempty" yaml:"scaler,omitempty"`
 }
 
 func NewStoreOptions() *StoreOptions {
@@ -608,7 +608,7 @@ func NewStoreOptions() *StoreOptions {
 				},
 			},
 		},
-		AutoScaler: &v1alpha1.AutoScaler{
+		Scaler: &v1alpha1.AutoScaler{
 			MinReplicas: &min,
 			MaxReplicas: DefaultStoreMaxReplicas,
 			Behavior: &v2beta2.HorizontalPodAutoscalerBehavior{
@@ -652,16 +652,16 @@ func (o *StoreOptions) ApplyTo(options *StoreOptions) {
 		options.MaxTime = o.MaxTime
 	}
 
-	if o.KubernetesVolume != nil {
-		if options.KubernetesVolume == nil {
-			options.KubernetesVolume = o.KubernetesVolume
+	if o.DataVolume != nil {
+		if options.DataVolume == nil {
+			options.DataVolume = o.DataVolume
 		} else {
-			if o.KubernetesVolume.PersistentVolumeClaim != nil {
-				options.KubernetesVolume.PersistentVolumeClaim = o.KubernetesVolume.PersistentVolumeClaim
+			if o.DataVolume.PersistentVolumeClaim != nil {
+				options.DataVolume.PersistentVolumeClaim = o.DataVolume.PersistentVolumeClaim
 			}
 
-			if o.KubernetesVolume.EmptyDir != nil {
-				options.KubernetesVolume.EmptyDir = o.KubernetesVolume.EmptyDir
+			if o.DataVolume.EmptyDir != nil {
+				options.DataVolume.EmptyDir = o.DataVolume.EmptyDir
 			}
 		}
 	}
@@ -673,30 +673,30 @@ func (o *StoreOptions) ApplyTo(options *StoreOptions) {
 
 		if o.IndexCacheConfig.InMemoryIndexCacheConfig == nil {
 			if options.IndexCacheConfig.InMemoryIndexCacheConfig == nil {
-				options.IndexCacheConfig.InMemoryIndexCacheConfig = o.InMemoryIndexCacheConfig
+				options.IndexCacheConfig.InMemoryIndexCacheConfig = o.IndexCacheConfig.InMemoryIndexCacheConfig
 			}
 
-			if o.MaxSize != "" {
-				options.MaxSize = o.MaxSize
+			if o.IndexCacheConfig.InMemoryIndexCacheConfig.MaxSize != "" {
+				options.IndexCacheConfig.InMemoryIndexCacheConfig.MaxSize = o.IndexCacheConfig.InMemoryIndexCacheConfig.MaxSize
 			}
 		}
 	}
 
-	if o.AutoScaler != nil {
-		if options.AutoScaler == nil {
-			options.AutoScaler = o.AutoScaler
+	if o.Scaler != nil {
+		if options.Scaler == nil {
+			options.Scaler = o.Scaler
 		}
 
-		if o.AutoScaler.MinReplicas != nil && *o.AutoScaler.MinReplicas > 0 {
-			options.MinReplicas = o.MinReplicas
+		if o.Scaler.MinReplicas != nil && *o.Scaler.MinReplicas > 0 {
+			options.Scaler.MinReplicas = o.Scaler.MinReplicas
 		}
 
-		if o.MaxReplicas > 0 {
-			options.MaxReplicas = o.MaxReplicas
+		if o.Scaler.MaxReplicas > 0 {
+			options.Scaler.MaxReplicas = o.Scaler.MaxReplicas
 		}
 
-		if o.Behavior != nil {
-			options.Behavior = o.Behavior
+		if o.Scaler.Behavior != nil {
+			options.Scaler.Behavior = o.Scaler.Behavior
 		}
 	}
 }
@@ -713,7 +713,7 @@ func (o *StoreOptions) Override(spec *v1alpha1.StoreSpec) {
 	}
 
 	if spec.DataVolume == nil {
-		spec.DataVolume = o.KubernetesVolume
+		spec.DataVolume = o.DataVolume
 	}
 	if spec.IndexCacheConfig == nil {
 		spec.IndexCacheConfig = o.IndexCacheConfig
@@ -722,29 +722,29 @@ func (o *StoreOptions) Override(spec *v1alpha1.StoreSpec) {
 			spec.IndexCacheConfig.InMemoryIndexCacheConfig = o.IndexCacheConfig.InMemoryIndexCacheConfig
 		} else {
 			if spec.IndexCacheConfig.MaxSize == "" {
-				spec.IndexCacheConfig.MaxSize = o.MaxSize
+				spec.IndexCacheConfig.MaxSize = o.IndexCacheConfig.MaxSize
 			}
 		}
 	}
 
 	if spec.Scaler == nil {
-		spec.Scaler = o.AutoScaler
+		spec.Scaler = o.Scaler
 	} else {
 		if spec.Scaler.MaxReplicas == 0 {
-			spec.Scaler.MaxReplicas = o.MaxReplicas
+			spec.Scaler.MaxReplicas = o.Scaler.MaxReplicas
 		}
 
 		if spec.Scaler.MinReplicas == nil || *spec.Scaler.MinReplicas == 0 {
-			min := *o.MinReplicas
+			min := *o.Scaler.MinReplicas
 			spec.Scaler.MinReplicas = &min
 		}
 
 		if spec.Scaler.Metrics == nil {
-			spec.Scaler.Metrics = o.Metrics
+			spec.Scaler.Metrics = o.Scaler.Metrics
 		}
 
 		if spec.Scaler.Behavior == nil {
-			spec.Scaler.Behavior = o.Behavior
+			spec.Scaler.Behavior = o.Scaler.Behavior
 		}
 	}
 }
