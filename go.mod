@@ -25,9 +25,9 @@ require (
 	github.com/spf13/viper v1.15.0
 	github.com/thanos-io/thanos v0.30.2
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/api v0.26.2
+	k8s.io/api v0.26.3
 	k8s.io/apiextensions-apiserver v0.26.2
-	k8s.io/apimachinery v0.26.2
+	k8s.io/apimachinery v0.26.3
 	k8s.io/client-go v0.26.2
 	k8s.io/code-generator v0.26.2
 	k8s.io/component-base v0.26.2
