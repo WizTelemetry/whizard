@@ -1,3 +1,16 @@
+# 0.6.0-rc.1 / 2023-03-24
+
+### ENHANCEMENT
+
+* Upgrade Thanos to v0.31.0([#208](https://github.com/WhizardTelemetry/whizard/pull/208))
+* Upgrade dependencies([#208](https://github.com/WhizardTelemetry/whizard/pull/208))
+
+### BUGFIX
+
+* Fix some bugs([#201](https://github.com/WhizardTelemetry/whizard/pull/201))
+
+
+
 # 0.6.0-rc.0 / 2023-03-08
 
 ### Features
