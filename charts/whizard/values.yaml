@@ -12,7 +12,7 @@ global:
   whizard:
     image:
       repository: thanosio/thanos
-      tag: v0.30.2
+      tag: v0.31.0
     log: 
       level: info # Possible options: error, warn, info, debug.
       format: logfmt # Possible options: logfmt or json.
