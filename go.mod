@@ -145,4 +145,8 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 )
 
-replace github.com/prometheus/prometheus => github.com/prometheus/prometheus v0.42.0
+replace (
+	github.com/prometheus/prometheus => github.com/prometheus/prometheus v0.42.0
+	// TODO: Remove when thanos is updated for 1.20
+	go4.org/unsafe/assume-no-moving-gc => go4.org/unsafe/assume-no-moving-gc v0.0.0-20230204201903-c31fa085b70e
+)
