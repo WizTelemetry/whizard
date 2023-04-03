@@ -114,10 +114,36 @@ func (r *RulerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			handler.EnqueueRequestsFromMapFunc(r.mapRuleToRulerFunc)).
 		Watches(&source.Kind{Type: &monitoringv1alpha1.Service{}},
 			handler.EnqueueRequestsFromMapFunc(r.mapToRulerFunc)).
+		Watches(&source.Kind{Type: &monitoringv1alpha1.Query{}},
+			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(util.ManagedLabelBySameService))).
+		Watches(&source.Kind{Type: &monitoringv1alpha1.QueryFrontend{}},
+			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(util.ManagedLabelBySameService))).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
 		Complete(r)
+}
+
+func (r *RulerReconciler) mapFuncBySelectorFunc(fn func(metav1.Object) map[string]string) handler.MapFunc {
+	return func(o client.Object) []reconcile.Request {
+		rulerList := &monitoringv1alpha1.RulerList{}
+		if err := r.Client.List(r.Context, rulerList, client.MatchingLabels(fn(o))); err != nil {
+			log.FromContext(r.Context).WithValues("rulerList", "").Error(err, "")
+			return nil
+		}
+
+		var reqs []reconcile.Request
+		for _, item := range rulerList.Items {
+			reqs = append(reqs, reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Namespace: item.Namespace,
+					Name:      item.Name,
+				},
+			})
+		}
+
+		return reqs
+	}
 }
 
 func (r *RulerReconciler) mapRuleToRulerFunc(o client.Object) []reconcile.Request {

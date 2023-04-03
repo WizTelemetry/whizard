@@ -14,6 +14,7 @@ import (
 	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/query"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/queryfrontend"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/router"
 	"github.com/kubesphere/whizard/pkg/util"
 	promoperator "github.com/prometheus-operator/prometheus-operator/pkg/operator"
@@ -379,7 +380,29 @@ func (r *Ruler) remoteWriteAddress() (string, error) {
 	return "", fmt.Errorf("no router defined for service %s/%s", r.Service.Name, r.Service.Namespace)
 }
 
+// queryAddress returns the address from which the ruler should query.
+// The ruler should query from the QueryFrontend with a higher performance the Query
+// because the feature https://thanos.io/v0.31/proposals-accepted/202205-vertical-query-sharding/
 func (r *Ruler) queryAddress() (string, error) {
+	queryFrontendList := &monitoringv1alpha1.QueryFrontendList{}
+	if err := r.Client.List(r.Context, queryFrontendList, client.MatchingLabels(util.ManagedLabelBySameService(r.ruler))); err != nil {
+		return "", err
+	}
+
+	if len(queryFrontendList.Items) > 0 {
+		if len(queryFrontendList.Items) > 1 {
+			return "", fmt.Errorf("more than one query frontend defined for service %s/%s", r.Service.Name, r.Service.Namespace)
+		}
+
+		q := queryFrontendList.Items[0]
+		r, err := queryfrontend.New(r.BaseReconciler, &q)
+		if err != nil {
+			return "", err
+		}
+
+		return r.HttpAddr(), nil
+	}
+
 	queryList := &monitoringv1alpha1.QueryList{}
 	if err := r.Client.List(r.Context, queryList, client.MatchingLabels(util.ManagedLabelBySameService(r.ruler))); err != nil {
 		return "", err
