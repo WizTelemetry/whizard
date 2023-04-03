@@ -1,3 +1,13 @@
+# 0.6.0-rc.2 / 2023-04-03
+
+### ENHANCEMENT
+
+* Update the ruler to query from the QueryFrontend with a higher performance than the Query([#211](https://github.com/WhizardTelemetry/whizard/pull/211))
+
+### BUGFIX
+
+* Update go4.org/unsafe/assume-no-moving-gc to fix the build failed to run with go1.20([#211](https://github.com/WhizardTelemetry/whizard/pull/211))
+
 # 0.6.0-rc.1 / 2023-03-24
 
 ### ENHANCEMENT
