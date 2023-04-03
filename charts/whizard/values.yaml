@@ -133,7 +133,7 @@ controllerManager:
       # repository: thanosio/thanos
       # tag: v0.28.0
 
-      replicas: 2
+      replicas: 3
       resources: {}
 
       additionalFlags:
