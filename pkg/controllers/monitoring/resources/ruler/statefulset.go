@@ -39,7 +39,7 @@ var (
 		"--query.sd-files",
 		"--rule-file",
 		"--alertmanagers.url",
-		"alert.label-drop",
+		"--alert.label-drop",
 	}
 	// unsupportedArgs is the args that are not allowed to be set by the user.
 	unsupportedArgs = []string{
