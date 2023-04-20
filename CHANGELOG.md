@@ -1,3 +1,28 @@
+# v0.6.0 / 2023-04-14
+
+### Features
+
+* Optimize tenant data cleaning on ingester([#182](https://github.com/WhizardTelemetry/whizard/pull/182))
+* Add tenant selector in store([#171](https://github.com/WhizardTelemetry/whizard/pull/171))
+* Allow tenants to monopolize resources([#170](https://github.com/WhizardTelemetry/whizard/pull/170))
+
+### ENHANCEMENT
+
+* Allows global configuration to update compactor.retention([#186](https://github.com/WhizardTelemetry/whizard/pull/186))
+* Adjust ingester retention period([#185](https://github.com/WhizardTelemetry/whizard/pull/185))
+* Upgrade dependencies([#188](https://github.com/WhizardTelemetry/whizard/pull/188), [#157](https://github.com/WhizardTelemetry/whizard/pull/157), [#208](https://github.com/WhizardTelemetry/whizard/pull/208))
+* Update charts([#187](https://github.com/WhizardTelemetry/whizard/pull/187), [#162](https://github.com/WhizardTelemetry/whizard/pull/162))
+* Support mutil-arch image build([#136](https://github.com/WhizardTelemetry/whizard/pull/136))
+* Upgrade Thanos to v0.31.0([#208](https://github.com/WhizardTelemetry/whizard/pull/208))
+* Update Ruler to query from QueryFrontend with a higher performance than Query([#211](https://github.com/WhizardTelemetry/whizard/pull/211))
+
+### BUGFIX
+
+* Fix tls secret volume mount in storage component([#183](https://github.com/WhizardTelemetry/whizard/pull/183))
+* Fix mapstructure decode bugs and add config unit test([#137](https://github.com/WhizardTelemetry/whizard/pull/137))
+* Fix override method bugs and add options unit test([#160](https://github.com/WhizardTelemetry/whizard/pull/160))
+* Fix resources config parse and override error ([#208](https://github.com/WhizardTelemetry/whizard/pull/208))
+
 # 0.6.0-rc.2 / 2023-04-03
 
 ### ENHANCEMENT
