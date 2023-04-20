@@ -2,7 +2,6 @@ package gateway
 
 import (
 	"github.com/kubesphere/whizard/pkg/constants"
-	"github.com/kubesphere/whizard/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
@@ -32,7 +31,13 @@ func (g *Gateway) labels() map[string]string {
 	labels := g.BaseLabels()
 	labels[constants.LabelNameAppName] = constants.AppNameGateway
 	labels[constants.LabelNameAppManagedBy] = g.gateway.Name
-	util.AppendLabel(labels, g.gateway.Labels)
+
+	// Do not copy all labels of the custom resource to the managed workload.
+	// util.AppendLabel(labels, g.gateway.Labels)
+
+	// TODO handle metadata.labels and labelSelector separately in the managed workload,
+	//		because labelSelector is an immutable field to be carefully treated.
+
 	return labels
 
 }
