@@ -5,7 +5,6 @@ import (
 	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/whizard/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 )
@@ -28,7 +27,13 @@ func (r *Store) labels() map[string]string {
 	labels := r.BaseLabels()
 	labels[constants.LabelNameAppName] = constants.AppNameStore
 	labels[constants.LabelNameAppManagedBy] = r.store.Name
-	util.AppendLabel(labels, r.store.Labels)
+
+	// Do not copy all labels of the custom resource to the managed workload.
+	// util.AppendLabel(labels, r.store.Labels)
+
+	// TODO handle metadata.labels and labelSelector separately in the managed workload,
+	//		because labelSelector is an immutable field to be carefully treated.
+
 	return labels
 }
 
