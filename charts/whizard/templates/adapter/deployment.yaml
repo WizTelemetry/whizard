@@ -28,6 +28,8 @@ spec:
           {{- end }}
           {{- if .Values.adapter.defaultStorageReference }}
           - --default-whizard-storage={{ .Values.adapter.defaultStorageReference.namespace }}.{{ .Values.adapter.defaultStorageReference.name }}
+          {{- else if .Values.storage.create }}
+          - --default-whizard-storage={{ include "whizard.namespace" . }}.{{ include "whizard.storage.crname" . }}
           {{- else }}
           - --default-whizard-storage={{ include "whizard.namespace" . }}.remote
           {{- end }}       

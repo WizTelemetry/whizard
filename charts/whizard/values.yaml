@@ -41,7 +41,7 @@ storage:
         repository: kubesphere/whizard-monitoring-block-manager
         # Overrides the image tag whose default is the chart appVersion.
         tag: ""
-  s3: {}
+  S3: {}
 
 ## Manages Service, Query, QueryFrontend, Router, Ingester, Store, Compactor and Ruler instances and components
 ##
