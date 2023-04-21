@@ -13,7 +13,7 @@ spec:
   {{- if .Values.service.storage }}
   storage:
     {{- toYaml .Values.service.storage | nindent 4 }}
-  {{- else if and .Values.storage.create .Values.storage.s3 }}
+  {{- else if and .Values.storage.create .Values.storage.S3 }}
   storage:
     name: {{ include "whizard.storage.crname" . }}
     namespace: {{ include "whizard.namespace" . }}

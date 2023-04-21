@@ -1,4 +1,4 @@
-{{- if and .Values.storage.create .Values.storage.s3 -}}
+{{- if and .Values.storage.create .Values.storage.S3 -}}
 apiVersion: monitoring.whizard.io/v1alpha1
 kind: Storage
 metadata:
@@ -37,8 +37,8 @@ spec:
       tenantLabelName: {{ .Values.service.tenantLabelName }}
     {{- end }}
   {{- end }}
-  {{- with .Values.storage.s3 }}
-  s3:
+  {{- with .Values.storage.S3 }}
+  S3:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 {{- end }}
