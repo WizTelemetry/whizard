@@ -1,3 +1,9 @@
+# v0.6.1 / 2023-04-21
+### BUGFIX
+
+* Donot copy all labels of custom resources to managed workloads to fix that managed workloads cannot be upgraded([#230](https://github.com/WhizardTelemetry/whizard/pull/230))
+* Fix object storage config in chart([#231](https://github.com/WhizardTelemetry/whizard/pull/231))
+
 # v0.6.0 / 2023-04-14
 
 ### Features
