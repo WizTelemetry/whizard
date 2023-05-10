@@ -54,6 +54,10 @@ func (r *Store) statefulSet() (runtime.Object, resources.Operation, error) {
 	sts.Spec.Template.Spec.Volumes = []corev1.Volume{}
 	sts.Spec.VolumeClaimTemplates = []corev1.PersistentVolumeClaim{}
 
+	if r.store.Spec.ImagePullSecrets != nil && len(r.store.Spec.ImagePullSecrets) > 0 {
+		sts.Spec.Template.Spec.ImagePullSecrets = r.store.Spec.ImagePullSecrets
+	}
+
 	var container *corev1.Container
 	for i := 0; i < len(sts.Spec.Template.Spec.Containers); i++ {
 		if sts.Spec.Template.Spec.Containers[i].Name == mainContainerName {

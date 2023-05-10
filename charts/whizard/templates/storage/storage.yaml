@@ -29,7 +29,7 @@ spec:
       imagePullPolicy: {{ .Values.storage.blockManager.gc.imagePullPolicy | default "IfNotPresent" }}
       {{- if .Values.storage.blockManager.gc.resources }}
       resources:
-      { { - toYaml .Values.notificationmanager.resources | nindent 8 } }
+      {{- toYaml .Values.notificationmanager.resources | nindent 8 }}
       {{- end }}
       gcInterval: {{ .Values.storage.blockManager.gc.gcInterval | default "10m" }}
       cleanupTimeout: {{ .Values.storage.blockManager.gc.cleanupTimeout | default "1h" }}

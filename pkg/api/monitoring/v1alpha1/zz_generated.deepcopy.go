@@ -150,6 +150,11 @@ func (in *CommonSpec) DeepCopyInto(out *CommonSpec) {
 		*out = new(int32)
 		**out = **in
 	}
+	if in.ImagePullSecrets != nil {
+		in, out := &in.ImagePullSecrets, &out.ImagePullSecrets
+		*out = make([]corev1.LocalObjectReference, len(*in))
+		copy(*out, *in)
+	}
 	if in.Flags != nil {
 		in, out := &in.Flags, &out.Flags
 		*out = make([]string, len(*in))

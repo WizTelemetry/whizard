@@ -66,6 +66,10 @@ func (r *Router) deployment() (runtime.Object, resources.Operation, error) {
 	}
 	d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, hashringsVol)
 
+	if r.router.Spec.ImagePullSecrets != nil && len(r.router.Spec.ImagePullSecrets) > 0 {
+		d.Spec.Template.Spec.ImagePullSecrets = r.router.Spec.ImagePullSecrets
+	}
+
 	var container = corev1.Container{
 		Name:      "receive",
 		Image:     r.router.Spec.Image,
