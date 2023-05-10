@@ -16,6 +16,7 @@ global:
     log: 
       level: info # Possible options: error, warn, info, debug.
       format: logfmt # Possible options: logfmt or json.
+  imagePullSecrets: []
 
 monitoring:
   enabled: false

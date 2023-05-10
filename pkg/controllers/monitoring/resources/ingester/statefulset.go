@@ -64,6 +64,10 @@ func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
 	terminationGracePeriodSeconds := int64(time.Hour)
 	sts.Spec.Template.Spec.TerminationGracePeriodSeconds = &terminationGracePeriodSeconds
 
+	if r.ingester.Spec.ImagePullSecrets != nil && len(r.ingester.Spec.ImagePullSecrets) > 0 {
+		sts.Spec.Template.Spec.ImagePullSecrets = r.ingester.Spec.ImagePullSecrets
+	}
+
 	var container = corev1.Container{
 		Name:      "receive",
 		Image:     r.ingester.Spec.Image,

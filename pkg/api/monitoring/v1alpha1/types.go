@@ -108,6 +108,9 @@ type CommonSpec struct {
 	// Cannot be updated.
 	// +optional
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+	// An optional list of references to secrets in the same namespace
+	// to use for pulling images from registries
+	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
 
 	// Log filtering level. Possible options: error, warn, info, debug.
 	LogLevel string `json:"logLevel,omitempty"`

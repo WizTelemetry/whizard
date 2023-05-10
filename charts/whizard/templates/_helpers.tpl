@@ -134,3 +134,13 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- define "whizard.ruler.crname" -}}
 {{- print (include "whizard.fullname" .) }}
 {{- end }}
+
+{{- define "whizard.imagePullSecrets" -}}
+{{- range .Values.global.imagePullSecrets }}
+  {{- if eq (typeOf .) "map[string]interface {}" }}
+- {{ toYaml . | trim }}
+  {{- else }}
+- name: {{ . }}
+  {{- end }}
+{{- end }}
+{{- end -}}

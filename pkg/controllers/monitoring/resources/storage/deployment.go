@@ -49,6 +49,10 @@ func (s *Storage) deployment() (runtime.Object, resources.Operation, error) {
 	d.Spec.Template.Spec.Tolerations = s.storage.Spec.BlockManager.Tolerations
 	d.Spec.Template.Spec.ServiceAccountName = s.storage.Spec.BlockManager.ServiceAccountName
 
+	if s.storage.Spec.BlockManager.ImagePullSecrets != nil && len(s.storage.Spec.BlockManager.ImagePullSecrets) > 0 {
+		d.Spec.Template.Spec.ImagePullSecrets = s.storage.Spec.BlockManager.ImagePullSecrets
+	}
+
 	volumes, volumeMounts, err := s.VolumesAndVolumeMountsForStorage(fmt.Sprintf("%s.%s", s.storage.Namespace, s.storage.Name))
 	if err != nil {
 		return nil, "", err

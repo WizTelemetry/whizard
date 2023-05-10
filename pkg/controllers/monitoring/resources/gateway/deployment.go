@@ -42,6 +42,10 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 		},
 	}
 
+	if g.gateway.Spec.ImagePullSecrets != nil && len(g.gateway.Spec.ImagePullSecrets) > 0 {
+		d.Spec.Template.Spec.ImagePullSecrets = g.gateway.Spec.ImagePullSecrets
+	}
+
 	var container = corev1.Container{
 		Name:      "gateway",
 		Image:     g.gateway.Spec.Image,
