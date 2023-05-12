@@ -143,6 +143,10 @@ func (q *QueryFrontend) deployment() (runtime.Object, resources.Operation, error
 	d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, container)
 	d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, cacheConfigVol)
 
+	if q.queryFrontend.Spec.ImagePullSecrets != nil && len(q.queryFrontend.Spec.ImagePullSecrets) > 0 {
+		d.Spec.Template.Spec.ImagePullSecrets = q.queryFrontend.Spec.ImagePullSecrets
+	}
+
 	return d, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(q.queryFrontend, d, q.Scheme)
 }
 

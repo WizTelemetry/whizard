@@ -99,6 +99,10 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 	}
 	d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, storesConfigVol)
 
+	if q.query.Spec.ImagePullSecrets != nil && len(q.query.Spec.ImagePullSecrets) > 0 {
+		d.Spec.Template.Spec.ImagePullSecrets = q.query.Spec.ImagePullSecrets
+	}
+
 	var queryContainer = corev1.Container{
 		Name:      "query",
 		Image:     q.query.Spec.Image,

@@ -354,6 +354,10 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 
 	sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, container, reloadContainer)
 
+	if r.ruler.Spec.ImagePullSecrets != nil && len(r.ruler.Spec.ImagePullSecrets) > 0 {
+		sts.Spec.Template.Spec.ImagePullSecrets = r.ruler.Spec.ImagePullSecrets
+	}
+
 	return sts, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(r.ruler, sts, r.Scheme)
 }
 

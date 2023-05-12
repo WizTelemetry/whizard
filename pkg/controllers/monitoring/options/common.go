@@ -9,16 +9,17 @@ import (
 )
 
 type CommonOptions struct {
-	Image           string                      `json:"image,omitempty" yaml:"image,omitempty"`
-	ImagePullPolicy corev1.PullPolicy           `json:"imagePullPolicy,omitempty" yaml:"imagePullPolicy,omitempty"`
-	Affinity        *corev1.Affinity            `json:"affinity,omitempty" yaml:"affinity,omitempty"`
-	NodeSelector    map[string]string           `json:"nodeSelector,omitempty" yaml:"nodeSelector,omitempty"`
-	Tolerations     []corev1.Toleration         `json:"tolerations,omitempty" yaml:"tolerations,omitempty"`
-	Resources       corev1.ResourceRequirements `json:"resources,omitempty" yaml:"resources,omitempty"`
-	Replicas        *int32                      `json:"replicas,omitempty" yaml:"replicas,omitempty"`
-	LogLevel        string                      `json:"logLevel,omitempty" yaml:"logLevel,omitempty"`
-	LogFormat       string                      `json:"logFormat,omitempty" yaml:"logFormat,omitempty"`
-	Flags           []string                    `json:"flags,omitempty" yaml:"flags,omitempty"`
+	Image            string                        `json:"image,omitempty" yaml:"image,omitempty"`
+	ImagePullPolicy  corev1.PullPolicy             `json:"imagePullPolicy,omitempty" yaml:"imagePullPolicy,omitempty"`
+	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty" yaml:"imagePullSecrets,omitempty"`
+	Affinity         *corev1.Affinity              `json:"affinity,omitempty" yaml:"affinity,omitempty"`
+	NodeSelector     map[string]string             `json:"nodeSelector,omitempty" yaml:"nodeSelector,omitempty"`
+	Tolerations      []corev1.Toleration           `json:"tolerations,omitempty" yaml:"tolerations,omitempty"`
+	Resources        corev1.ResourceRequirements   `json:"resources,omitempty" yaml:"resources,omitempty"`
+	Replicas         *int32                        `json:"replicas,omitempty" yaml:"replicas,omitempty"`
+	LogLevel         string                        `json:"logLevel,omitempty" yaml:"logLevel,omitempty"`
+	LogFormat        string                        `json:"logFormat,omitempty" yaml:"logFormat,omitempty"`
+	Flags            []string                      `json:"flags,omitempty" yaml:"flags,omitempty"`
 }
 
 func NewCommonOptions() CommonOptions {
@@ -45,6 +46,10 @@ func (o *CommonOptions) ApplyTo(options *CommonOptions) *CommonOptions {
 
 	if o.ImagePullPolicy != "" {
 		options.ImagePullPolicy = o.ImagePullPolicy
+	}
+
+	if o.ImagePullSecrets != nil && len(o.ImagePullSecrets) > 0 {
+		options.ImagePullSecrets = o.ImagePullSecrets
 	}
 
 	if o.Affinity != nil {
@@ -118,6 +123,11 @@ func (o *CommonOptions) Override(spec *v1alpha1.CommonSpec) {
 	if spec.ImagePullPolicy == "" {
 		spec.ImagePullPolicy = o.ImagePullPolicy
 	}
+
+	if spec.ImagePullSecrets == nil || len(spec.ImagePullSecrets) == 0 {
+		spec.ImagePullSecrets = o.ImagePullSecrets
+	}
+
 	if spec.Replicas == nil || *spec.Replicas < 0 {
 		spec.Replicas = o.Replicas
 	}

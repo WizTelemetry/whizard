@@ -27,6 +27,10 @@ data:
           {{- else }}
           serviceAccountName: {{ include "whizard.manager.serviceAccountName" . }}
           {{- end }}
+          {{- if .Values.global.imagePullSecrets }}
+          imagePullSecrets:
+          {{- include "whizard.imagePullSecrets" . | trim | nindent  12}}
+          {{- end }}
           gc:
             image: "{{ $storage.blockManager.gc.image.repository }}:{{ $storage.blockManager.gc.image.tag | default .Chart.AppVersion }}"
         {{- end }}
@@ -35,6 +39,10 @@ data:
       gateway: 
         image: {{ $gateway.image.repository }}:{{ $gateway.image.tag | default .Chart.AppVersion }}
         replicas: {{ $gateway.replicas }}
+        {{- if .Values.global.imagePullSecrets }}
+        imagePullSecrets:
+        {{- include "whizard.imagePullSecrets" . | trim | nindent  10 }}
+        {{- end }}
 
         {{- with $gateway.resources }}
         resources:
@@ -50,6 +58,10 @@ data:
         image: {{ $router.image.repository }}:{{ $router.image.tag }}
         {{- else }}
         image: {{ $whizardImage }}
+        {{- end }}
+        {{- if .Values.global.imagePullSecrets }}
+        imagePullSecrets:
+        {{- include "whizard.imagePullSecrets" . | trim | nindent  10}}
         {{- end }}
 
         replicas: {{ $router.replicas }}
@@ -73,6 +85,10 @@ data:
         image: {{ $queryFrontend.image.repository }}:{{ $queryFrontend.image.tag }}
         {{- else }}
         image: {{ $whizardImage }}
+        {{- end }}
+        {{- if .Values.global.imagePullSecrets }}
+        imagePullSecrets:
+        {{- include "whizard.imagePullSecrets" . | trim | nindent  10}}
         {{- end }}
 
         replicas: {{ $queryFrontend.replicas }}
@@ -100,6 +116,10 @@ data:
         {{- else }}
         image: {{ $whizardImage }}
         {{- end }}
+        {{- if .Values.global.imagePullSecrets }}
+        imagePullSecrets:
+        {{- include "whizard.imagePullSecrets" . | trim | nindent  10}}
+        {{- end }}
 
         replicas: {{ $query.replicas }}
         {{- with $query.resources }}
@@ -124,6 +144,10 @@ data:
         image: {{ $ingester.image.repository }}:{{ $ingester.image.tag }}
         {{- else }}
         image: {{ $whizardImage }}
+        {{- end }}
+        {{- if .Values.global.imagePullSecrets }}
+        imagePullSecrets:
+        {{- include "whizard.imagePullSecrets" . | trim | nindent  10}}
         {{- end }}
 
         replicas: {{ $ingester.replicas }}
@@ -156,6 +180,10 @@ data:
         {{- else }}
         image: {{ $whizardImage }}
         {{- end }}
+        {{- if .Values.global.imagePullSecrets }}
+        imagePullSecrets:
+        {{- include "whizard.imagePullSecrets" . | trim | nindent  10}}
+        {{- end }}
 
         {{- with $store.resources }}
         resources:
@@ -180,6 +208,10 @@ data:
         image: {{ $compactor.image.repository }}:{{ $compactor.image.tag }}
         {{- else }}
         image: {{ $whizardImage }}
+        {{- end }}
+        {{- if .Values.global.imagePullSecrets }}
+        imagePullSecrets:
+        {{- include "whizard.imagePullSecrets" . | trim | nindent  10}}
         {{- end }}
 
         logLevel: {{ .Values.global.whizard.log.level }}
@@ -206,6 +238,10 @@ data:
         image: {{ $ruler.image.repository }}:{{ $ruler.image.tag }}
         {{- else }}
         image: {{ $whizardImage }}
+        {{- end }}
+        {{- if .Values.global.imagePullSecrets }}
+        imagePullSecrets:
+        {{- include "whizard.imagePullSecrets" . | trim | nindent  10}}
         {{- end }}
 
         shards: {{ $ruler.shards }}
