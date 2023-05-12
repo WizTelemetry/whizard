@@ -1,3 +1,8 @@
+# v0.6.2 / 2023-05-12
+### Features
+
+* Support to configure imagePullSecrets for private registry([#241](https://github.com/WhizardTelemetry/whizard/pull/241))
+
 # v0.6.1 / 2023-04-21
 ### BUGFIX
 
