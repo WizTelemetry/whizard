@@ -340,11 +340,11 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 		promoperator.ReloaderConfig(reloaderConfig),
 		promoperator.ReloaderURL(url.URL{
 			Scheme: "http",
-			Host:   fmt.Sprintf("localhost:%d", constants.HTTPPort),
+			Host:   fmt.Sprintf("127.0.0.1:%d", constants.HTTPPort),
 			Path:   path.Clean("/-/reload"),
 		}),
 		promoperator.ListenLocal(true),
-		promoperator.LocalHost("localhost"),
+		promoperator.LocalHost("127.0.0.1"),
 		promoperator.LogFormat(r.ruler.Spec.LogFormat),
 		promoperator.LogLevel(r.ruler.Spec.LogLevel),
 		promoperator.WatchedDirectories(watchedDirectories),
