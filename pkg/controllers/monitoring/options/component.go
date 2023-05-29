@@ -6,7 +6,6 @@ import (
 	"github.com/imdario/mergo"
 	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/spf13/pflag"
-	"k8s.io/api/autoscaling/v2beta2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -588,10 +587,6 @@ type StoreOptions struct {
 
 func NewStoreOptions() *StoreOptions {
 	var replicas int32 = DefaultStoreMinReplicas
-	var min int32 = DefaultStoreMinReplicas
-	var stabilizationWindowSeconds int32 = 300
-	var cpuAverageUtilization int32 = 80
-	var memAverageUtilization int32 = 80
 
 	return &StoreOptions{
 		CommonOptions: CommonOptions{
@@ -605,37 +600,6 @@ func NewStoreOptions() *StoreOptions {
 				Limits: corev1.ResourceList{
 					corev1.ResourceCPU:    resource.MustParse("1"),
 					corev1.ResourceMemory: resource.MustParse("4Gi"),
-				},
-			},
-		},
-		Scaler: &v1alpha1.AutoScaler{
-			MinReplicas: &min,
-			MaxReplicas: DefaultStoreMaxReplicas,
-			Behavior: &v2beta2.HorizontalPodAutoscalerBehavior{
-				ScaleUp: &v2beta2.HPAScalingRules{
-					StabilizationWindowSeconds: &stabilizationWindowSeconds,
-				},
-			},
-			Metrics: []v2beta2.MetricSpec{
-				{
-					Type: v2beta2.ResourceMetricSourceType,
-					Resource: &v2beta2.ResourceMetricSource{
-						Name: corev1.ResourceCPU,
-						Target: v2beta2.MetricTarget{
-							Type:               v2beta2.UtilizationMetricType,
-							AverageUtilization: &cpuAverageUtilization,
-						},
-					},
-				},
-				{
-					Type: v2beta2.ResourceMetricSourceType,
-					Resource: &v2beta2.ResourceMetricSource{
-						Name: corev1.ResourceMemory,
-						Target: v2beta2.MetricTarget{
-							Type:               v2beta2.UtilizationMetricType,
-							AverageUtilization: &memAverageUtilization,
-						},
-					},
 				},
 			},
 		},
