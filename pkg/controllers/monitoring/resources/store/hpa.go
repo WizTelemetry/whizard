@@ -12,6 +12,18 @@ import (
 func (r *Store) horizontalPodAutoscaler() (runtime.Object, resources.Operation, error) {
 	var hpa = &v2beta2.HorizontalPodAutoscaler{ObjectMeta: r.meta(r.name())}
 
+	if r.store.Spec.Scaler == nil {
+		if err := r.Client.Get(r.Context, client.ObjectKeyFromObject(hpa), hpa); err != nil {
+			if !util.IsNotFound(err) {
+				return nil, "", err
+			} else {
+				return nil, "", nil
+			}
+		}
+		// remove the existing hpa
+		return hpa, resources.OperationDelete, nil
+	}
+
 	if err := r.Client.Get(r.Context, client.ObjectKeyFromObject(hpa), hpa); err != nil {
 		if !util.IsNotFound(err) {
 			return nil, "", err
