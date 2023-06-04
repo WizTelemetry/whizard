@@ -17,6 +17,7 @@ import (
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/queryfrontend"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/router"
 	"github.com/kubesphere/whizard/pkg/util"
+	"github.com/prometheus-operator/prometheus-operator/pkg/k8sutil"
 	promoperator "github.com/prometheus-operator/prometheus-operator/pkg/operator"
 	promcommonconfig "github.com/prometheus/common/config"
 	promconfig "github.com/prometheus/prometheus/config"
@@ -142,10 +143,14 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 
 	var watchedDirectories []string
 	var configReloaderVolumeMounts []corev1.VolumeMount
-
+	rn := k8sutil.NewResourceNamerWithPrefix("configmap")
 	for cmName := range r.shardsRuleConfigMapNames[shardSn] {
+		name, err := rn.DNS1123Label(cmName)
+		if err != nil {
+			return nil, "", err
+		}
 		vol := corev1.Volume{
-			Name: "configmap-" + cmName,
+			Name: name,
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{
