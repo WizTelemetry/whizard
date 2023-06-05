@@ -1,8 +1,24 @@
+# v0.6.3-rc.0 / 2023-06-05
+
+### BUGFIX
+
+* Fixed ruler name being too long([#250](https://github.com/WhizardTelemetry/whizard/pull/250))
+* Optionally deploy Store HPA([#246](https://github.com/WhizardTelemetry/whizard/pull/246))
+* Degrade Thanos Query to v0.30.2([#252](https://github.com/WhizardTelemetry/whizard/pull/252))
+
+### ENHANCEMENT
+
+* Add cherry pick action in CI([#247](https://github.com/WhizardTelemetry/whizard/pull/247))
+* Add `--tsdb.out-of-order.time-window=10m` flag to ingester([#252](https://github.com/WhizardTelemetry/whizard/pull/252))
+
+<<<<<<< HEAD
 # v0.6.2 / 2023-05-12
 ### Features
 
 * Support to configure imagePullSecrets for private registry([#241](https://github.com/WhizardTelemetry/whizard/pull/241))
 
+=======
+>>>>>>> d255869... draft v0.6.3-rc.0 release
 # v0.6.1 / 2023-04-21
 ### BUGFIX
 

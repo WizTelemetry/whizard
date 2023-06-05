@@ -6,6 +6,7 @@ import (
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/util"
+	"github.com/prometheus-operator/prometheus-operator/pkg/k8sutil"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -102,8 +103,16 @@ func (t *Tenant) createOrUpdateRulerinstance() *monitoringv1alpha1.Ruler {
 		}},
 	})
 
+	rulerName := t.tenant.Name
+
+	if len(rulerName) > 30 {
+		rn := k8sutil.NewResourceNamerWithPrefix("")
+		name := rulerName[:30]
+		rulerName, _ = rn.UniqueDNS1123Label(name)
+	}
+
 	return &monitoringv1alpha1.Ruler{ObjectMeta: metav1.ObjectMeta{
-		Name:      t.tenant.Name,
+		Name:      rulerName,
 		Namespace: serviceNamespacedName[0],
 		Labels:    label,
 		OwnerReferences: []metav1.OwnerReference{
