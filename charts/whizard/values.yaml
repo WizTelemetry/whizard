@@ -130,9 +130,9 @@ controllerManager:
 
     query:
       ## If null or unset, the global.whizardImage is used.
-      image: null
-      # repository: thanosio/thanos
-      # tag: v0.28.0
+      image: 
+        repository: thanosio/thanos
+        tag: v0.30.2
 
       replicas: 3
       resources: {}
@@ -184,6 +184,7 @@ controllerManager:
       - --max-time=-36h     #The last 36h data is queried on ingester instead of store.
       - --web.disable      #Disable Block Viewer UI.
       - --no-cache-index-header #Support disabling cache index header file. When toggled, Stores can run without needing persistent disks.
+      - --tsdb.out-of-order.time-window=10m #Receive: Added parameter `--tsdb.out-of-order.time-window` to set time window for experimental out-of-order samples ingestion. Disabled by default (set to 0s). Please note if you enable this option and you use compactor, make sure you set the `--enable-vertical-compaction` flag, otherwise you might risk compactor halt.
 
     compactor: 
       ## If null or unset, the global.whizardImage is used.
@@ -198,6 +199,7 @@ controllerManager:
       - --block-files-concurrency=20
       - --compact.blocks-fetch-concurrency=5
       - --web.disable      #Disable Block Viewer UI.
+      - --enable-vertical-compaction 
 
       resources: {}
       dataVolume: {}
