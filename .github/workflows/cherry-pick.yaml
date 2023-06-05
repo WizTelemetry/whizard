@@ -4,6 +4,10 @@ on:
     branches:
       - master
     types: ["closed"]
+  pull_request_target:
+    branches:
+      - master
+    types: ["closed"]
 
 jobs:
   cherry_pick_release_0_5:
