@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	configDir     = "/etc/whizard"
-	hashringsFile = "hashrings.json"
+	configDir       = "/etc/whizard"
+	hashringsFile   = "hashrings.json"
+	envoyConfigFile = "envoy.yaml"
 )
 
 type Router struct {
@@ -59,6 +60,11 @@ func (r *Router) HttpAddr() string {
 
 func (r *Router) RemoteWriteAddr() string {
 	return fmt.Sprintf("http://%s.%s.svc:%d",
+		r.name(constants.ServiceNameSuffix), r.Service.Namespace, constants.RemoteWritePort)
+}
+
+func (r *Router) RemoteWriteHTTPSAddr() string {
+	return fmt.Sprintf("https://%s.%s.svc:%d",
 		r.name(constants.ServiceNameSuffix), r.Service.Namespace, constants.RemoteWritePort)
 }
 

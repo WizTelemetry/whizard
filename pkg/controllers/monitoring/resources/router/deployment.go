@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"sort"
+	"strconv"
 
 	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
@@ -110,6 +111,33 @@ func (r *Router) deployment() (runtime.Object, resources.Operation, error) {
 			},
 		},
 	}
+
+	if r.router.Spec.HTTPServerTLSConfig != nil {
+		data := make(map[string]string, 4)
+		data["LocalServiceEnabled"] = "true"
+		data["ServiceMappingPort"] = strconv.Itoa(constants.RemoteWritePort)
+		data["ServiceListenPort"] = constants.ReceiveHTTPRemoteWritePort
+		data["ServiceTLSCertFile"] = constants.EnvoyCertsMountPath + r.router.Spec.HTTPServerTLSConfig.CertSecret.Key
+		data["ServiceTLSKeyFile"] = constants.EnvoyCertsMountPath + r.router.Spec.HTTPServerTLSConfig.KeySecret.Key
+
+		container.Args = append(container.Args, "--remote-write.address=127.0.0.1:"+constants.ReceiveHTTPRemoteWritePort)
+		// container.LivenessProbe.HTTPGet.Scheme = "HTTPS"
+		// container.ReadinessProbe.HTTPGet.Scheme = "HTTPS"
+
+		if err := r.envoyConfigMap(data); err != nil {
+			return nil, "", err
+		}
+		var volumeMounts = []corev1.VolumeMount{}
+		var volumes = []corev1.Volume{}
+
+		tlsAsset := []string{r.router.Spec.HTTPServerTLSConfig.KeySecret.Name, r.router.Spec.HTTPServerTLSConfig.CertSecret.Name}
+		volumes, volumeMounts, _ = resources.BuildCommonVolumes(tlsAsset, r.name("envoy-config"), nil, nil)
+
+		envoyContainer := resources.BuildEnvoySidecarContainer(r.router.Spec.Envoy, volumeMounts)
+		d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, envoyContainer)
+		d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, volumes...)
+	}
+
 	if r.router.Spec.LogLevel != "" {
 		container.Args = append(container.Args, "--log.level="+r.router.Spec.LogLevel)
 	}

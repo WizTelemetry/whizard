@@ -56,6 +56,13 @@ const (
 	StorageDir     = "/whizard"
 	TSDBVolumeName = "tsdb"
 
+	WhizardConfigMountPath  = "/etc/whizard/config/"
+	WhizardCertsMountPath   = "/etc/whizard/certs/"
+	EnvoyConfigMountPath    = "/etc/envoy/config/"
+	EnvoyCertsMountPath     = "/etc/envoy/certs/"
+	EnvoyConfigMapMountPath = "/etc/envoy/configmap/"
+	EnvoySecretMountPath    = "/etc/envoy/secret/"
+
 	LabelNameStorageHash = "monitoring.whizard.io/storage-hash"
 	LabelNameTenantHash  = "monitoring.whizard.io/tenant-hash"
 
@@ -75,4 +82,25 @@ const (
 	StorageProviderCOS        string = "COS"
 	StorageProviderALIYUNOSS  string = "ALIYUNOSS"
 	StorageProviderBOS        string = "BOS"
+)
+
+// Port layout of single-node components.
+// Used in envoy-sidecar proxy.
+// https://thanos.io/tip/thanos/getting-started.md/#testing-thanos-on-single-host
+
+const (
+	CustomProxyPort            = "10900"
+	SidecarGRPCPort            = "10901"
+	SidecarHTTPPort            = "10902"
+	QueryGRPCPort              = "10903"
+	QueryHTTPPort              = "10904"
+	StoreGRPCPort              = "10905"
+	StoreHTTPPort              = "10906"
+	ReceiveGRPCPort            = "10907"
+	ReceiveHTTPRemoteWritePort = "10908"
+	ReceiveHTTPPort            = "10909"
+	RuleGRPCPort               = "10910"
+	RuleHTTPPort               = "10911"
+	CompactHTTPPort            = "10912"
+	QueryFrontendHTTPPort      = "10913"
 )
