@@ -22,6 +22,7 @@ import (
 	promcommonconfig "github.com/prometheus/common/config"
 	promconfig "github.com/prometheus/prometheus/config"
 	"github.com/prometheus/prometheus/model/relabel"
+	"github.com/thanos-io/thanos/pkg/httpconfig"
 	yamlv3 "gopkg.in/yaml.v3"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -261,7 +262,26 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 		// if the tenant exists, append QueryProxy
 		// otherwise, append WriteProxy
 		if r.ruler.Spec.Tenant == "" {
-			container.Args = append(container.Args, "--query="+queryAddr)
+			if url, err := url.Parse(queryAddr); err == nil && url.Scheme == "https" {
+				queryConfig := []httpconfig.Config{
+					{
+						HTTPClientConfig: httpconfig.ClientConfig{
+							TLSConfig: httpconfig.TLSConfig{
+								InsecureSkipVerify: true,
+							},
+						},
+						EndpointsConfig: httpconfig.EndpointsConfig{
+							Scheme:          url.Scheme,
+							StaticAddresses: []string{url.Host},
+						},
+					},
+				}
+				buff, _ := yamlv3.Marshal(queryConfig)
+				container.Args = append(container.Args, "--query.config="+string(buff))
+			} else {
+				container.Args = append(container.Args, "--query="+queryAddr)
+			}
+
 			writeUrl, err := url.Parse("http://127.0.0.1:8081/push")
 			if err != nil {
 				return nil, resources.OperationCreateOrUpdate, err
@@ -275,6 +295,30 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 			}
 			container.Args = append(container.Args, "--remote-write.config="+string(content))
 
+			if url, err := url.Parse(writeAddr); err == nil && url.Scheme == "https" {
+				writeAddr = "http://127.0.0.1:" + constants.CustomProxyPort
+
+				data := make(map[string]string, 4)
+
+				data["ProxyServiceEnabled"] = "true"
+				data["ProxyLocalListenPort"] = constants.CustomProxyPort
+				data["ProxyServiceAddress"] = url.Hostname()
+				data["ProxyServicePort"] = url.Port()
+
+				if err := r.envoyConfigMap(data); err != nil {
+					return nil, "", err
+				}
+				var volumeMounts = []corev1.VolumeMount{}
+				var volumes = []corev1.Volume{}
+
+				volumes, volumeMounts, _ = resources.BuildCommonVolumes(nil, r.name("envoy-config"), nil, nil)
+
+				envoyContainer := resources.BuildEnvoySidecarContainer(r.ruler.Spec.Envoy, volumeMounts)
+				sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, envoyContainer)
+				sts.Spec.Template.Spec.Volumes = append(sts.Spec.Template.Spec.Volumes, volumes...)
+
+			}
+
 			writeProxyContainer, err := r.addWriteProxyContainer(&service.Spec, writeAddr)
 			if err != nil {
 				return nil, "", err
@@ -284,7 +328,10 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 			container.Args = append(container.Args,
 				fmt.Sprintf("--query=http://127.0.0.1:9080/%s", r.ruler.Spec.Tenant))
 
-			writeUrl, err := url.Parse(writeAddr + "/api/v1/receive")
+			//	rewrite proxy container
+			// writeUrl, err := url.Parse(writeAddr + "/api/v1/receive")
+			writeUrl, err := url.Parse(fmt.Sprintf("http://127.0.0.1:9080/%s/api/v1/receive", r.ruler.Spec.Tenant))
+
 			if err != nil {
 				return nil, resources.OperationCreateOrUpdate, err
 			}
@@ -305,7 +352,7 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 			}
 			container.Args = append(container.Args, "--remote-write.config="+string(content))
 
-			queryProxyContainer, _ := r.addQueryProxyContainer(&service.Spec, queryAddr)
+			queryProxyContainer, _ := r.addQueryProxyContainer(&service.Spec, queryAddr, writeAddr)
 			sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, *queryProxyContainer)
 		}
 	}
@@ -382,6 +429,9 @@ func (r *Ruler) remoteWriteAddress() (string, error) {
 		if err != nil {
 			return "", err
 		}
+		if o.Spec.HTTPServerTLSConfig != nil {
+			return r.RemoteWriteHTTPSAddr(), nil
+		}
 
 		return r.RemoteWriteAddr(), nil
 	}
@@ -408,6 +458,9 @@ func (r *Ruler) queryAddress() (string, error) {
 		if err != nil {
 			return "", err
 		}
+		if q.Spec.HTTPServerTLSConfig != nil {
+			return r.HttpsAddr(), nil
+		}
 
 		return r.HttpAddr(), nil
 	}
@@ -427,18 +480,22 @@ func (r *Ruler) queryAddress() (string, error) {
 		if err != nil {
 			return "", err
 		}
-
+		if o.Spec.HTTPServerTLSConfig != nil {
+			return r.HttpsAddr(), nil
+		}
 		return r.HttpAddr(), nil
 	}
 
 	return "", fmt.Errorf("no query frontend or query exist for service %s/%s", r.Service.Name, r.Service.Namespace)
 }
 
-func (r *Ruler) addQueryProxyContainer(serviceSpec *monitoringv1alpha1.ServiceSpec, queryAddr string) (*corev1.Container, error) {
+type gatewayConfig struct {
+	TLSConfig *promcommonconfig.TLSConfig `yaml:"tls_config,omitempty" json:"tls_config,omitempty"`
+}
 
-	var queryProxyContainer *corev1.Container
+func (r *Ruler) addQueryProxyContainer(serviceSpec *monitoringv1alpha1.ServiceSpec, queryAddr, remoteWriteAddr string) (*corev1.Container, error) {
 
-	queryProxyContainer = &corev1.Container{
+	queryProxyContainer := &corev1.Container{
 		Name:  "query-proxy",
 		Image: r.Options.RulerQueryProxy.Image,
 		Args: []string{
@@ -447,7 +504,28 @@ func (r *Ruler) addQueryProxyContainer(serviceSpec *monitoringv1alpha1.ServiceSp
 		Resources: r.Options.RulerQueryProxy.Resources,
 	}
 	queryProxyContainer.Args = append(queryProxyContainer.Args, "--tenant.label-name="+serviceSpec.TenantLabelName)
+
+	if url, err := url.Parse(queryAddr); err == nil && url.Scheme == "https" {
+		cfg := gatewayConfig{
+			TLSConfig: &promcommonconfig.TLSConfig{
+				InsecureSkipVerify: true,
+			},
+		}
+		buff, _ := yamlv3.Marshal(cfg)
+		queryProxyContainer.Args = append(queryProxyContainer.Args, fmt.Sprintf("--query.config=%s", buff))
+	}
+
 	queryProxyContainer.Args = append(queryProxyContainer.Args, "--query.address="+queryAddr)
+	if url, err := url.Parse(remoteWriteAddr); err == nil && url.Scheme == "https" {
+		cfg := gatewayConfig{
+			TLSConfig: &promcommonconfig.TLSConfig{
+				InsecureSkipVerify: true,
+			},
+		}
+		buff, _ := yamlv3.Marshal(cfg)
+		queryProxyContainer.Args = append(queryProxyContainer.Args, fmt.Sprintf("--remote-write.config=%s", buff))
+	}
+	queryProxyContainer.Args = append(queryProxyContainer.Args, "--remote-write.address="+remoteWriteAddr)
 	return queryProxyContainer, nil
 }
 

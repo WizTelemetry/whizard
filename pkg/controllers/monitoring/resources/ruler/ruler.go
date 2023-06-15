@@ -14,9 +14,10 @@ import (
 )
 
 const (
-	configDir  = "/etc/whizard"
-	rulesDir   = configDir + "/rules"
-	storageDir = "/whizard"
+	configDir       = "/etc/whizard"
+	rulesDir        = configDir + "/rules"
+	storageDir      = "/whizard"
+	envoyConfigFile = "envoy.yaml"
 )
 
 var (

@@ -68,7 +68,7 @@ func main() {
 	if cli.RemoteWrite.Address != "" {
 		rwUrl, err := url.Parse(cli.RemoteWrite.Address)
 		ctx.FatalIfErrorf(err)
-		cfg, err := parseConfig(cli.RemoteWrite.Config, cli.RemoteWrite.ConfigFile)
+		cfg, err := parseConfig(cli.RemoteWrite.ConfigFile, cli.RemoteWrite.Config)
 		if err != nil {
 			ctx.FatalIfErrorf(err)
 		}
@@ -85,7 +85,7 @@ func main() {
 	if cli.Query.Address != "" {
 		qUrl, err := url.Parse(cli.Query.Address)
 		ctx.FatalIfErrorf(err)
-		cfg, err := parseConfig(cli.Query.Config, cli.Query.ConfigFile)
+		cfg, err := parseConfig(cli.Query.ConfigFile, cli.Query.Config)
 		if err != nil {
 			ctx.FatalIfErrorf(err)
 		}

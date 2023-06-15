@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"fmt"
+	"net/url"
 	"path/filepath"
 
 	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
@@ -10,6 +11,8 @@ import (
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/queryfrontend"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/router"
 	"github.com/kubesphere/whizard/pkg/util"
+	config_util "github.com/prometheus/common/config"
+	"gopkg.in/yaml.v3"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -135,11 +138,29 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 	if err != nil {
 		return nil, "", err
 	}
+	if url, err := url.Parse(addr); err == nil && url.Scheme == "https" {
+		cfg := config{
+			TLSConfig: &config_util.TLSConfig{
+				InsecureSkipVerify: true,
+			},
+		}
+		buff, _ := yaml.Marshal(cfg)
+		container.Args = append(container.Args, fmt.Sprintf("--query.config=%s", buff))
+	}
 	container.Args = append(container.Args, fmt.Sprintf("--query.address=%s", addr))
 
 	addr, err = g.remoteWriteAddress()
 	if err != nil {
 		return nil, "", err
+	}
+	if url, err := url.Parse(addr); err == nil && url.Scheme == "https" {
+		cfg := config{
+			TLSConfig: &config_util.TLSConfig{
+				InsecureSkipVerify: true,
+			},
+		}
+		buff, _ := yaml.Marshal(cfg)
+		container.Args = append(container.Args, fmt.Sprintf("--remote-write.config=%s", buff))
 	}
 	container.Args = append(container.Args, fmt.Sprintf("--remote-write.address=%s", addr))
 
@@ -164,6 +185,9 @@ func (g *Gateway) queryAddress() (string, error) {
 		if err != nil {
 			return "", err
 		}
+		if q.Spec.HTTPServerTLSConfig != nil {
+			return r.HttpsAddr(), nil
+		}
 
 		return r.HttpAddr(), nil
 	}
@@ -182,6 +206,9 @@ func (g *Gateway) queryAddress() (string, error) {
 		r, err := query.New(g.BaseReconciler, &q, nil)
 		if err != nil {
 			return "", err
+		}
+		if q.Spec.HTTPServerTLSConfig != nil {
+			return r.HttpsAddr(), nil
 		}
 
 		return r.HttpAddr(), nil
@@ -206,9 +233,16 @@ func (g *Gateway) remoteWriteAddress() (string, error) {
 		if err != nil {
 			return "", err
 		}
+		if o.Spec.HTTPServerTLSConfig != nil {
+			return r.RemoteWriteHTTPSAddr(), nil
+		}
 
 		return r.RemoteWriteAddr(), nil
 	}
 
 	return "", fmt.Errorf("no router defined for service %s/%s", g.Service.Name, g.Service.Namespace)
+}
+
+type config struct {
+	TLSConfig *config_util.TLSConfig `yaml:"tls_config,omitempty" json:"tls_config,omitempty"`
 }

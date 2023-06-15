@@ -12,6 +12,7 @@ import (
 const (
 	configDir       = "/etc/whizard"
 	cacheConfigFile = "cache-config.yaml"
+	envoyConfigFile = "envoy.yaml"
 )
 
 type QueryFrontend struct {
@@ -51,6 +52,11 @@ func (q *QueryFrontend) meta(name string) metav1.ObjectMeta {
 
 func (q *QueryFrontend) HttpAddr() string {
 	return fmt.Sprintf("http://%s.%s.svc:%d",
+		q.name(constants.ServiceNameSuffix), q.Service.Namespace, constants.HTTPPort)
+}
+
+func (q *QueryFrontend) HttpsAddr() string {
+	return fmt.Sprintf("https://%s.%s.svc:%d",
 		q.name(constants.ServiceNameSuffix), q.Service.Namespace, constants.HTTPPort)
 }
 

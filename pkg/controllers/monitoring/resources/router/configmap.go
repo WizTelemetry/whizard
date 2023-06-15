@@ -2,6 +2,7 @@ package router
 
 import (
 	"encoding/json"
+	"strings"
 
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
@@ -12,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 func (r *Router) hashringsConfigMap() (runtime.Object, resources.Operation, error) {
@@ -71,4 +73,31 @@ func (r *Router) hashringsConfigMap() (runtime.Object, resources.Operation, erro
 	}
 
 	return cm, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(r.router, cm, r.Scheme)
+}
+
+func (r *Router) envoyConfigMap(data map[string]string) error {
+	var cm = &corev1.ConfigMap{ObjectMeta: r.meta(r.name("envoy-config"))}
+
+	var buff strings.Builder
+	tmpl := util.EnvoyStaticConfigTemplate
+	if err := tmpl.Execute(&buff, data); err != nil {
+		return err
+	}
+
+	cm.Data = map[string]string{
+		envoyConfigFile: buff.String(),
+	}
+
+	if err := ctrl.SetControllerReference(r.router, cm, r.Scheme); err != nil {
+		return err
+	}
+	_, err := controllerutil.CreateOrPatch(r.Context, r.Client, cm, configmapDataMutate(cm, cm.Data))
+	return err
+}
+
+func configmapDataMutate(cm *corev1.ConfigMap, data map[string]string) controllerutil.MutateFn {
+	return func() error {
+		cm.Data = data
+		return nil
+	}
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/go-logr/logr"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/util"
 	"github.com/pkg/errors"
 	promv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/prometheus-operator/prometheus-operator/pkg/operator"
@@ -17,7 +18,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 var maxConfigMapDataSize = int(float64(corev1.MaxSecretSize) * 0.5)
@@ -300,4 +303,31 @@ func GenerateContent(promRule promv1.PrometheusRuleSpec, log logr.Logger) (strin
 		return "", errors.New(m)
 	}
 	return string(content), nil
+}
+
+func (r *Ruler) envoyConfigMap(data map[string]string) error {
+	var cm = &corev1.ConfigMap{ObjectMeta: r.meta(r.name("envoy-config"))}
+
+	var buff strings.Builder
+	tmpl := util.EnvoyStaticConfigTemplate
+	if err := tmpl.Execute(&buff, data); err != nil {
+		return err
+	}
+
+	cm.Data = map[string]string{
+		envoyConfigFile: buff.String(),
+	}
+
+	if err := ctrl.SetControllerReference(r.ruler, cm, r.Scheme); err != nil {
+		return err
+	}
+	_, err := controllerutil.CreateOrPatch(r.Context, r.Client, cm, configmapDataMutate(cm, cm.Data))
+	return err
+}
+
+func configmapDataMutate(cm *corev1.ConfigMap, data map[string]string) controllerutil.MutateFn {
+	return func() error {
+		cm.Data = data
+		return nil
+	}
 }
