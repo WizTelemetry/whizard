@@ -245,10 +245,17 @@ func (h *Handler) Run() error {
 	return srv.ListenAndServe()
 }
 
-func NewSingleHostReverseProxy(target *url.URL) *httputil.ReverseProxy {
+func NewSingleHostReverseProxy(target *url.URL, tlsConfig *tls.Config) *httputil.ReverseProxy {
 	proxy := httputil.NewSingleHostReverseProxy(target)
 	oldDirector := proxy.Director
+	if target.Scheme == "https" {
+		proxy.Transport = &http.Transport{
+			TLSClientConfig: tlsConfig,
+		}
+	}
 	proxy.Director = func(req *http.Request) {
+		req.URL.Scheme = target.Scheme
+		req.Host = target.Host
 		// remove the prefix /:tenant_id from path
 		if index := indexByteNth(req.URL.Path, '/', 2); index > 0 {
 			req.URL.Path = req.URL.Path[index:]
