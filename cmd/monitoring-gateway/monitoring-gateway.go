@@ -27,14 +27,14 @@ var cli struct {
 	ServerTlsClientCa string `default:"" help:"TLS CA to verify clients against. If no client CA is specified, there is no client verification on server side. (tls.NoClientCert)"`
 
 	RemoteWrite struct {
-		Address                 string `default:"" help:"Address to send remote write requests."`
-		DownstreamConfigFile    string `default:"" help:"Downstream receive service configuration file." `
-		DownstreamConfigContent string `default:"" help:"Downstream receive service configuration content." `
+		Address    string `default:"" help:"Address to send remote write requests."`
+		ConfigFile string `default:"" help:"Downstream receive service configuration file." `
+		Config     string `default:"" help:"Downstream receive service configuration content." `
 	} `embed:"" prefix:"remote-write."`
 	Query struct {
-		Address                 string `default:"" help:"Address to send query requests."`
-		DownstreamConfigFile    string `default:"" help:"Downstream query/query-frontend service configuration file."`
-		DownstreamConfigContent string `default:"" help:"Downstream query/query-frontend service configuration content." `
+		Address    string `default:"" help:"Address to send query requests."`
+		ConfigFile string `default:"" help:"Downstream query/query-frontend service configuration file."`
+		Config     string `default:"" help:"Downstream query/query-frontend service configuration content." `
 	} `embed:"" prefix:"query."`
 	Tenant struct {
 		Header    string `default:"WHIZARD-TENANT" help:"Http header to determine tenant for requests"`
@@ -68,7 +68,7 @@ func main() {
 	if cli.RemoteWrite.Address != "" {
 		rwUrl, err := url.Parse(cli.RemoteWrite.Address)
 		ctx.FatalIfErrorf(err)
-		cfg, err := parseConfig(cli.RemoteWrite.DownstreamConfigFile, cli.RemoteWrite.DownstreamConfigContent)
+		cfg, err := parseConfig(cli.RemoteWrite.Config, cli.RemoteWrite.ConfigFile)
 		if err != nil {
 			ctx.FatalIfErrorf(err)
 		}
@@ -85,7 +85,7 @@ func main() {
 	if cli.Query.Address != "" {
 		qUrl, err := url.Parse(cli.Query.Address)
 		ctx.FatalIfErrorf(err)
-		cfg, err := parseConfig(cli.Query.DownstreamConfigFile, cli.Query.DownstreamConfigContent)
+		cfg, err := parseConfig(cli.Query.Config, cli.Query.ConfigFile)
 		if err != nil {
 			ctx.FatalIfErrorf(err)
 		}
