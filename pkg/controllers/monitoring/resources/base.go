@@ -13,9 +13,11 @@ import (
 	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/util"
 	"github.com/pkg/errors"
+	"github.com/prometheus-operator/prometheus-operator/pkg/k8sutil"
 	"gopkg.in/yaml.v3"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -442,4 +444,117 @@ func appendVolumesAndVolumeMounts(volumes []corev1.Volume, volumeMounts []corev1
 	}
 
 	return volumes, volumeMounts
+}
+
+func BuildEnvoySidecarContainer(spec v1alpha1.SidecarSpec, volumeMounts []corev1.VolumeMount) corev1.Container {
+	envoyContainer := corev1.Container{
+		Name:         "envoy-sidecar",
+		Args:         []string{"-c", constants.EnvoyConfigMountPath + "envoy.yaml"},
+		Image:        spec.Image,
+		Resources:    spec.Resources,
+		VolumeMounts: volumeMounts,
+	}
+
+	return envoyContainer
+}
+
+// BuildCommonVolumes returns a set of volumes to be mounted on statefulset spec that are common components
+func BuildCommonVolumes(tlsAssetSecrets []string, config string, configmaps []string, secrets []string) ([]corev1.Volume, []corev1.VolumeMount, error) {
+
+	assetsVolume := corev1.Volume{
+		Name: "tls-assets",
+		VolumeSource: v1.VolumeSource{
+			Projected: &corev1.ProjectedVolumeSource{
+				Sources: []corev1.VolumeProjection{},
+			},
+		},
+	}
+	for _, assetShard := range tlsAssetSecrets {
+		assetsVolume.Projected.Sources = append(assetsVolume.Projected.Sources,
+			v1.VolumeProjection{
+				Secret: &v1.SecretProjection{
+					LocalObjectReference: v1.LocalObjectReference{Name: assetShard},
+				},
+			})
+	}
+
+	volumes := []v1.Volume{
+		{
+			Name: "envoy-config",
+			VolumeSource: v1.VolumeSource{
+				ConfigMap: &v1.ConfigMapVolumeSource{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: config,
+					},
+				},
+			},
+		},
+	}
+
+	volumeMounts := []v1.VolumeMount{
+		{
+			Name:      "envoy-config",
+			ReadOnly:  true,
+			MountPath: constants.EnvoyConfigMountPath,
+		},
+	}
+
+	if len(tlsAssetSecrets) > 0 {
+		volumes = append(volumes, assetsVolume)
+		volumeMounts = append(volumeMounts, v1.VolumeMount{
+
+			Name:      "tls-assets",
+			ReadOnly:  true,
+			MountPath: constants.EnvoyCertsMountPath,
+		})
+	}
+
+	// Mount related secrets
+	rn := k8sutil.NewResourceNamerWithPrefix("secret")
+	for _, s := range secrets {
+		name, err := rn.DNS1123Label(s)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		volumes = append(volumes, v1.Volume{
+			Name: name,
+			VolumeSource: v1.VolumeSource{
+				Secret: &v1.SecretVolumeSource{
+					SecretName: s,
+				},
+			},
+		})
+		volumeMounts = append(volumeMounts, v1.VolumeMount{
+			Name:      name,
+			ReadOnly:  true,
+			MountPath: constants.EnvoySecretMountPath + s,
+		})
+	}
+
+	rn = k8sutil.NewResourceNamerWithPrefix("configmap")
+	for _, c := range configmaps {
+		name, err := rn.DNS1123Label(c)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		volumes = append(volumes, v1.Volume{
+			Name: name,
+			VolumeSource: v1.VolumeSource{
+				ConfigMap: &v1.ConfigMapVolumeSource{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: c,
+					},
+				},
+			},
+		})
+		volumeMounts = append(volumeMounts, v1.VolumeMount{
+			Name:      name,
+			ReadOnly:  true,
+			MountPath: constants.EnvoyConfigMapMountPath + c,
+		})
+	}
+
+	return volumes, volumeMounts, nil
 }

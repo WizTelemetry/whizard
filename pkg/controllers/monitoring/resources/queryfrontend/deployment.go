@@ -2,8 +2,10 @@ package queryfrontend
 
 import (
 	"fmt"
+	"net/url"
 	"path/filepath"
 	"sort"
+	"strconv"
 
 	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
@@ -103,10 +105,57 @@ func (q *QueryFrontend) deployment() (runtime.Object, resources.Operation, error
 		},
 	}
 
+	data := make(map[string]string, 8)
+
 	addr, err := q.queryAddress()
 	if err != nil {
 		return nil, "", err
 	}
+
+	if url, err := url.Parse(addr); err == nil && url.Scheme == "https" {
+
+		addr = "http://127.0.0.1:" + constants.CustomProxyPort
+
+		data["ProxyServiceEnabled"] = "true"
+		data["ProxyLocalListenPort"] = constants.CustomProxyPort
+		data["ProxyServiceAddress"] = url.Hostname()
+		data["ProxyServicePort"] = url.Port()
+
+	}
+
+	if q.queryFrontend.Spec.HTTPServerTLSConfig != nil {
+		data["LocalServiceEnabled"] = "true"
+		data["ServiceMappingPort"] = strconv.Itoa(constants.HTTPPort)
+		data["ServiceListenPort"] = constants.QueryFrontendHTTPPort
+		data["ServiceTLSCertFile"] = constants.EnvoyCertsMountPath + q.queryFrontend.Spec.HTTPServerTLSConfig.CertSecret.Key
+		data["ServiceTLSKeyFile"] = constants.EnvoyCertsMountPath + q.queryFrontend.Spec.HTTPServerTLSConfig.KeySecret.Key
+
+		container.Args = append(container.Args, "--http-address=127.0.0.1:"+constants.QueryFrontendHTTPPort)
+		container.LivenessProbe.HTTPGet.Scheme = "HTTPS"
+		container.ReadinessProbe.HTTPGet.Scheme = "HTTPS"
+	}
+
+	if len(data) > 0 {
+		if err := q.envoyConfigMap(data); err != nil {
+			return nil, "", err
+		}
+		var volumeMounts = []corev1.VolumeMount{}
+		var volumes = []corev1.Volume{}
+
+		// Mount tls volume
+		if q.queryFrontend.Spec.HTTPServerTLSConfig != nil {
+
+			tlsAsset := []string{q.queryFrontend.Spec.HTTPServerTLSConfig.KeySecret.Name, q.queryFrontend.Spec.HTTPServerTLSConfig.CertSecret.Name}
+			volumes, volumeMounts, _ = resources.BuildCommonVolumes(tlsAsset, q.name("envoy-config"), nil, nil)
+		} else {
+			volumes, volumeMounts, _ = resources.BuildCommonVolumes(nil, q.name("envoy-config"), nil, nil)
+		}
+
+		envoyContainer := resources.BuildEnvoySidecarContainer(q.queryFrontend.Spec.Envoy, volumeMounts)
+		d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, envoyContainer)
+		d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, volumes...)
+	}
+
 	container.Args = append(container.Args, "--query-frontend.downstream-url="+addr)
 	container.Args = append(container.Args, "--labels.response-cache-config-file="+filepath.Join(configDir, cacheConfigFile))
 	container.Args = append(container.Args, "--query-range.response-cache-config-file="+filepath.Join(configDir, cacheConfigFile))
@@ -165,6 +214,10 @@ func (q *QueryFrontend) queryAddress() (string, error) {
 		r, err := query.New(q.BaseReconciler, &o, nil)
 		if err != nil {
 			return "", err
+		}
+
+		if o.Spec.HTTPServerTLSConfig != nil {
+			return r.HttpsAddr(), nil
 		}
 
 		return r.HttpAddr(), nil

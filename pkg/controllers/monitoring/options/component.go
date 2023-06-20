@@ -262,11 +262,11 @@ func NewQueryOptions() *QueryOptions {
 			Image: DefaultEnvoyImage,
 			Resources: corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
-					corev1.ResourceCPU:    resource.MustParse("100m"),
-					corev1.ResourceMemory: resource.MustParse("100Mi"),
+					corev1.ResourceCPU:    resource.MustParse("50m"),
+					corev1.ResourceMemory: resource.MustParse("50Mi"),
 				},
 				Limits: corev1.ResourceList{
-					corev1.ResourceCPU:    resource.MustParse("250m"),
+					corev1.ResourceCPU:    resource.MustParse("2"),
 					corev1.ResourceMemory: resource.MustParse("1Gi"),
 				},
 			},
@@ -321,17 +321,33 @@ func (o *QueryOptions) AddFlags(fs *pflag.FlagSet, qo *QueryOptions) {
 type QueryFrontendOptions struct {
 	CommonOptions `json:",inline" yaml:",inline"  mapstructure:",squash"`
 
+	Envoy *SidecarOptions `json:"envoy,omitempty" yaml:"envoy,omitempty"`
+
 	CacheConfig *v1alpha1.ResponseCacheProviderConfig `json:"cacheConfig,omitempty" yaml:"cacheConfig,omitempty"`
 }
 
 func NewQueryFrontendOptions() *QueryFrontendOptions {
 	return &QueryFrontendOptions{
 		CommonOptions: NewCommonOptions(),
+		Envoy: &SidecarOptions{
+			Image: DefaultEnvoyImage,
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceCPU:    resource.MustParse("50m"),
+					corev1.ResourceMemory: resource.MustParse("50Mi"),
+				},
+				Limits: corev1.ResourceList{
+					corev1.ResourceCPU:    resource.MustParse("2"),
+					corev1.ResourceMemory: resource.MustParse("1Gi"),
+				},
+			},
+		},
 	}
 }
 
 func (o *QueryFrontendOptions) ApplyTo(options *QueryFrontendOptions) {
 	o.CommonOptions.ApplyTo(&options.CommonOptions)
+	o.Envoy.ApplyTo(options.Envoy)
 	if o.CacheConfig != nil {
 		options.CacheConfig = o.CacheConfig
 	}
@@ -340,6 +356,7 @@ func (o *QueryFrontendOptions) ApplyTo(options *QueryFrontendOptions) {
 // Override the Options overrides the spec field when it is empty
 func (o *QueryFrontendOptions) Override(spec *v1alpha1.QueryFrontendSpec) {
 	o.CommonOptions.Override(&spec.CommonSpec)
+	o.Envoy.Override(&spec.Envoy)
 	if spec.CacheConfig == nil {
 		spec.CacheConfig = o.CacheConfig
 	}
@@ -359,7 +376,7 @@ func (o *QueryFrontendOptions) AddFlags(fs *pflag.FlagSet, qfo *QueryFrontendOpt
 
 type RouterOptions struct {
 	CommonOptions `json:",inline" yaml:",inline"  mapstructure:",squash"`
-
+	Envoy         *SidecarOptions `json:"envoy,omitempty" yaml:"envoy,omitempty"`
 	// How many times to replicate incoming write requests
 	ReplicationFactor *uint64 `json:"replicationFactor,omitempty"`
 }
@@ -369,12 +386,26 @@ func NewRouterOptions() *RouterOptions {
 	return &RouterOptions{
 		CommonOptions: NewCommonOptions(),
 
+		Envoy: &SidecarOptions{
+			Image: DefaultEnvoyImage,
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceCPU:    resource.MustParse("50m"),
+					corev1.ResourceMemory: resource.MustParse("50Mi"),
+				},
+				Limits: corev1.ResourceList{
+					corev1.ResourceCPU:    resource.MustParse("2"),
+					corev1.ResourceMemory: resource.MustParse("1Gi"),
+				},
+			},
+		},
 		ReplicationFactor: &factor,
 	}
 }
 
 func (o *RouterOptions) ApplyTo(options *RouterOptions) {
 	o.CommonOptions.ApplyTo(&options.CommonOptions)
+	o.Envoy.ApplyTo(options.Envoy)
 
 	if o.ReplicationFactor != nil {
 		options.ReplicationFactor = o.ReplicationFactor
@@ -384,6 +415,7 @@ func (o *RouterOptions) ApplyTo(options *RouterOptions) {
 // Override the Options overrides the spec field when it is empty
 func (o *RouterOptions) Override(spec *v1alpha1.RouterSpec) {
 	o.CommonOptions.Override(&spec.CommonSpec)
+	o.Envoy.Override(&spec.Envoy)
 
 	if spec.ReplicationFactor == nil {
 		spec.ReplicationFactor = o.ReplicationFactor
@@ -409,9 +441,10 @@ func (o *RouterOptions) AddFlags(fs *pflag.FlagSet, ro *RouterOptions) {
 type RulerOptions struct {
 	CommonOptions `json:",inline" yaml:",inline"  mapstructure:",squash"`
 
-	PrometheusConfigReloader SidecarOptions `json:"prometheusConfigReloader,omitempty" yaml:"prometheusConfigReloader,omitempty"`
-	RulerQueryProxy          SidecarOptions `json:"rulerQueryProxy" yaml:"rulerQueryProxy,omitempty"`
-	RulerWriteProxy          SidecarOptions `json:"rulerWriteProxy" yaml:"rulerWriteProxy,omitempty"`
+	PrometheusConfigReloader SidecarOptions  `json:"prometheusConfigReloader,omitempty" yaml:"prometheusConfigReloader,omitempty"`
+	RulerQueryProxy          SidecarOptions  `json:"rulerQueryProxy" yaml:"rulerQueryProxy,omitempty"`
+	RulerWriteProxy          SidecarOptions  `json:"rulerWriteProxy" yaml:"rulerWriteProxy,omitempty"`
+	Envoy                    *SidecarOptions `json:"envoy,omitempty" yaml:"envoy,omitempty"`
 
 	// Number of shards to take the hash of fully qualified name of the rule group in order to split rules.
 	// Each shard of rules will be bound to one separate statefulset.
@@ -486,11 +519,25 @@ func NewRulerOptions() *RulerOptions {
 				},
 			},
 		},
+		Envoy: &SidecarOptions{
+			Image: DefaultEnvoyImage,
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceCPU:    resource.MustParse("50m"),
+					corev1.ResourceMemory: resource.MustParse("50Mi"),
+				},
+				Limits: corev1.ResourceList{
+					corev1.ResourceCPU:    resource.MustParse("2"),
+					corev1.ResourceMemory: resource.MustParse("1Gi"),
+				},
+			},
+		},
 	}
 }
 
 func (o *RulerOptions) ApplyTo(options *RulerOptions) {
 	o.CommonOptions.ApplyTo(&options.CommonOptions)
+	o.Envoy.ApplyTo(options.Envoy)
 	o.PrometheusConfigReloader.ApplyTo(&options.PrometheusConfigReloader)
 	o.RulerQueryProxy.ApplyTo(&options.RulerQueryProxy)
 	o.RulerWriteProxy.ApplyTo(&options.RulerWriteProxy)
@@ -525,6 +572,7 @@ func (o *RulerOptions) ApplyTo(options *RulerOptions) {
 // Override the Options overrides the spec field when it is empty
 func (o *RulerOptions) Override(spec *v1alpha1.RulerSpec) {
 	o.CommonOptions.Override(&spec.CommonSpec)
+	o.Envoy.Override(&spec.Envoy)
 	o.PrometheusConfigReloader.Override(&spec.PrometheusConfigReloader)
 	o.RulerQueryProxy.Override(&spec.RulerQueryProxy)
 
