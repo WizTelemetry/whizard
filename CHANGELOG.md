@@ -1,3 +1,14 @@
+# v0.7.0-rc.0 / 2023-06-21
+
+### FEATURES
+
+* Components support https configuration([#264]https://github.com/WhizardTelemetry/whizard/pull/264)
+* Gateway supports tls configuration for downstream services([#263]https://github.com/WhizardTelemetry/whizard/pull/263)
+
+### BUGFIX
+
+* Fix ruler name conflicts ([#265](https://github.com/WhizardTelemetry/whizard/pull/265))
+
 # v0.6.3-rc.0 / 2023-06-05
 
 ### BUGFIX
