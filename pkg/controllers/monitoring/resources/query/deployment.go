@@ -129,6 +129,32 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 		}},
 	}
 
+	if q.query.Spec.HTTPServerTLSConfig != nil {
+		data := make(map[string]string, 4)
+		data["LocalServiceEnabled"] = "true"
+		data["ServiceMappingPort"] = strconv.Itoa(constants.HTTPPort)
+		data["ServiceListenPort"] = constants.QueryHTTPPort
+		data["ServiceTLSCertFile"] = constants.EnvoyCertsMountPath + q.query.Spec.HTTPServerTLSConfig.CertSecret.Key
+		data["ServiceTLSKeyFile"] = constants.EnvoyCertsMountPath + q.query.Spec.HTTPServerTLSConfig.KeySecret.Key
+
+		queryContainer.Args = append(queryContainer.Args, "--http-address=127.0.0.1:"+constants.QueryHTTPPort)
+		queryContainer.LivenessProbe.HTTPGet.Scheme = "HTTPS"
+		queryContainer.ReadinessProbe.HTTPGet.Scheme = "HTTPS"
+
+		if err := q.envoyConfigMap(data); err != nil {
+			return nil, "", err
+		}
+		var volumeMounts = []corev1.VolumeMount{}
+		var volumes = []corev1.Volume{}
+
+		tlsAsset := []string{q.query.Spec.HTTPServerTLSConfig.KeySecret.Name, q.query.Spec.HTTPServerTLSConfig.CertSecret.Name}
+		volumes, volumeMounts, _ = resources.BuildCommonVolumes(tlsAsset, q.name("envoy-config"), nil, nil)
+
+		envoyContainer := resources.BuildEnvoySidecarContainer(q.query.Spec.Envoy, volumeMounts)
+		d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, envoyContainer)
+		d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, volumes...)
+	}
+
 	if q.query.Spec.LogLevel != "" {
 		queryContainer.Args = append(queryContainer.Args, "--log.level="+q.query.Spec.LogLevel)
 	}
@@ -222,6 +248,8 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 		Args: []string{
 			"-c",
 			filepath.Join(envoyConfigDir, envoyConfigFile),
+			"--base-id",
+			"1",
 			// "-l",
 			// "debug",
 		},

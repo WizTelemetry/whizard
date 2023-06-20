@@ -70,6 +70,9 @@ data:
           {{- toYaml . | nindent 10 }}
         {{- end }}        
 
+        envoy: 
+          image: {{ $config.query.envoy.image.repository }}:{{ $config.query.envoy.image.tag }}
+        
         logLevel: {{ .Values.global.whizard.log.level }}
         logFormat: {{ .Values.global.whizard.log.format }}
         replicationFactor: {{ $router.replicationFactor }}
@@ -96,6 +99,9 @@ data:
         resources:
           {{- toYaml . | nindent 10 }}
         {{- end }}  
+
+        envoy: 
+          image: {{ $config.query.envoy.image.repository }}:{{ $config.query.envoy.image.tag }}
 
         logLevel: {{ .Values.global.whizard.log.level }}
         logFormat: {{ .Values.global.whizard.log.format }}
@@ -273,6 +279,9 @@ data:
           image: {{ $gateway.image.repository }}:{{ $gateway.image.tag | default .Chart.AppVersion }}
         rulerWriteProxy: 
           image: {{ $ruler.writeProxy.image.repository }}:{{ $ruler.writeProxy.image.tag }}
+
+        envoy: 
+          image: {{ $config.query.envoy.image.repository }}:{{ $config.query.envoy.image.tag }}
 
         {{- with $ruler.additionalFlags }}
         flags:

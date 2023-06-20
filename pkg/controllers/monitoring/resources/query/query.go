@@ -109,6 +109,11 @@ func (q *Query) HttpAddr() string {
 		q.name(constants.ServiceNameSuffix), q.Service.Namespace, constants.HTTPPort)
 }
 
+func (q *Query) HttpsAddr() string {
+	return fmt.Sprintf("https://%s.%s.svc:%d",
+		q.name(constants.ServiceNameSuffix), q.Service.Namespace, constants.HTTPPort)
+}
+
 func (q *Query) Reconcile() error {
 	return q.ReconcileResources([]resources.Resource{
 		q.proxyConfigMap,

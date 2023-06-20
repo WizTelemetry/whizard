@@ -2,11 +2,15 @@ package main
 
 import (
 	"crypto/tls"
+	"io/ioutil"
 	"net/url"
 
 	"github.com/alecthomas/kong"
+	"github.com/pkg/errors"
+	"github.com/prometheus/common/config"
 	"github.com/thanos-io/thanos/pkg/logging"
 	thanos_tls "github.com/thanos-io/thanos/pkg/tls"
+	"gopkg.in/yaml.v2"
 
 	monitoringgateway "github.com/kubesphere/whizard/pkg/monitoring-gateway"
 )
@@ -23,15 +27,23 @@ var cli struct {
 	ServerTlsClientCa string `default:"" help:"TLS CA to verify clients against. If no client CA is specified, there is no client verification on server side. (tls.NoClientCert)"`
 
 	RemoteWrite struct {
-		Address string `default:"" help:"Address to send remote write requests."`
+		Address    string `default:"" help:"Address to send remote write requests."`
+		ConfigFile string `default:"" help:"Downstream receive service configuration file." `
+		Config     string `default:"" help:"Downstream receive service configuration content." `
 	} `embed:"" prefix:"remote-write."`
 	Query struct {
-		Address string `default:"" help:"Address to send query requests."`
+		Address    string `default:"" help:"Address to send query requests."`
+		ConfigFile string `default:"" help:"Downstream query/query-frontend service configuration file."`
+		Config     string `default:"" help:"Downstream query/query-frontend service configuration content." `
 	} `embed:"" prefix:"query."`
 	Tenant struct {
 		Header    string `default:"WHIZARD-TENANT" help:"Http header to determine tenant for requests"`
 		LabelName string `default:"tenant_id" help:"Label name through which the tenant will be announced"`
 	} `embed:"" prefix:"tenant."`
+}
+
+type Config struct {
+	TLSConfig *config.TLSConfig `yaml:"tls_config,omitempty" json:"tls_config,omitempty"`
 }
 
 func main() {
@@ -56,16 +68,62 @@ func main() {
 	if cli.RemoteWrite.Address != "" {
 		rwUrl, err := url.Parse(cli.RemoteWrite.Address)
 		ctx.FatalIfErrorf(err)
-		options.RemoteWriteProxy = monitoringgateway.NewSingleHostReverseProxy(rwUrl)
+		cfg, err := parseConfig(cli.RemoteWrite.ConfigFile, cli.RemoteWrite.Config)
+		if err != nil {
+			ctx.FatalIfErrorf(err)
+		}
+		if cfg != nil && cfg.TLSConfig != nil {
+			tlsConfig, err := config.NewTLSConfig(cfg.TLSConfig)
+			if err != nil {
+				ctx.FatalIfErrorf(err)
+			}
+			options.RemoteWriteProxy = monitoringgateway.NewSingleHostReverseProxy(rwUrl, tlsConfig)
+		} else {
+			options.RemoteWriteProxy = monitoringgateway.NewSingleHostReverseProxy(rwUrl, nil)
+		}
 	}
 	if cli.Query.Address != "" {
 		qUrl, err := url.Parse(cli.Query.Address)
 		ctx.FatalIfErrorf(err)
-		options.QueryProxy = monitoringgateway.NewSingleHostReverseProxy(qUrl)
+		cfg, err := parseConfig(cli.Query.ConfigFile, cli.Query.Config)
+		if err != nil {
+			ctx.FatalIfErrorf(err)
+		}
+		if cfg != nil && cfg.TLSConfig != nil {
+			tlsConfig, err := config.NewTLSConfig(cfg.TLSConfig)
+			if err != nil {
+				ctx.FatalIfErrorf(err)
+			}
+			options.QueryProxy = monitoringgateway.NewSingleHostReverseProxy(qUrl, tlsConfig)
+		} else {
+			options.QueryProxy = monitoringgateway.NewSingleHostReverseProxy(qUrl, nil)
+		}
+
 	}
 
 	handler := monitoringgateway.NewHandler(logger, &options)
 
 	err = handler.Run()
 	ctx.FatalIfErrorf(err)
+}
+
+func parseConfig(file string, content string) (*Config, error) {
+	var buff []byte
+	if len(file) > 0 {
+		c, err := ioutil.ReadFile(file)
+		if err != nil {
+			return nil, err
+		}
+		buff = c
+	} else {
+		buff = []byte(content)
+	}
+	if len(buff) == 0 {
+		return nil, nil
+	}
+	cfg := &Config{}
+	if err := yaml.UnmarshalStrict(buff, cfg); err != nil {
+		return nil, errors.Wrap(err, "")
+	}
+	return cfg, nil
 }

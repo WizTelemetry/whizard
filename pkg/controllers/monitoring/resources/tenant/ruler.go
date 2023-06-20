@@ -1,6 +1,7 @@
 package tenant
 
 import (
+	"fmt"
 	"strings"
 
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
@@ -107,8 +108,13 @@ func (t *Tenant) createOrUpdateRulerinstance() *monitoringv1alpha1.Ruler {
 
 	if len(rulerName) > 30 {
 		rn := k8sutil.NewResourceNamerWithPrefix("")
+		out, _ := rn.UniqueDNS1123Label(rulerName) // out is a string with 8-chars hash-based suffix and ignore the return err which is always nil
+		hashSuffix := out[len(out)-8:]
+
 		name := rulerName[:30]
-		rulerName, _ = rn.UniqueDNS1123Label(name)
+		name = strings.Trim(name, "-")
+
+		rulerName = fmt.Sprintf("%s-%s", name, hashSuffix)
 	}
 
 	return &monitoringv1alpha1.Ruler{ObjectMeta: metav1.ObjectMeta{

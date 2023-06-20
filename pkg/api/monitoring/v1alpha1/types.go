@@ -161,8 +161,43 @@ type GatewayList struct {
 	Items           []Gateway `json:"items"`
 }
 
+type HTTPServerTLSConfig struct {
+	// Secret containing the TLS key for the server.
+	KeySecret corev1.SecretKeySelector `json:"keySecret"`
+	// Contains the TLS certificate for the server.
+	CertSecret corev1.SecretKeySelector `json:"certSecret"`
+	// Contains the CA certificate for client certificate authentication to the server.
+	ClientCASecret corev1.SecretKeySelector `json:"clientCASecret,omitempty"`
+
+	/*
+		// Server policy for client authentication. Maps to ClientAuth Policies.
+		// For more detail on clientAuth options:
+		// https://golang.org/pkg/crypto/tls/#ClientAuthType
+		ClientAuthType string `json:"clientAuthType,omitempty"`
+		// Minimum TLS version that is acceptable. Defaults to TLS12.
+		MinVersion string `json:"minVersion,omitempty"`
+		// Maximum TLS version that is acceptable. Defaults to TLS13.
+		MaxVersion string `json:"maxVersion,omitempty"`
+		// List of supported cipher suites for TLS versions up to TLS 1.2. If empty,
+		// Go default cipher suites are used. Available cipher suites are documented
+		// in the go documentation: https://golang.org/pkg/crypto/tls/#pkg-constants
+		CipherSuites []string `json:"cipherSuites,omitempty"`
+		// Controls whether the server selects the
+		// client's most preferred cipher suite, or the server's most preferred
+		// cipher suite. If true then the server's preference, as expressed in
+		// the order of elements in cipherSuites, is used.
+		PreferServerCipherSuites *bool `json:"preferServerCipherSuites,omitempty"`
+		// Elliptic curves that will be used in an ECDHE handshake, in preference
+		// order. Available curves are documented in the go documentation:
+		// https://golang.org/pkg/crypto/tls/#CurveID
+		CurvePreferences []string `json:"curvePreferences,omitempty"`
+	*/
+}
+
 type QuerySpec struct {
 	CommonSpec `json:",inline"`
+
+	HTTPServerTLSConfig *HTTPServerTLSConfig `json:"httpServerTLSConfig,omitempty"`
 
 	// Additional StoreApi servers from which Query component queries from
 	Stores []QueryStores `json:"stores,omitempty"`
@@ -220,6 +255,9 @@ type QueryList struct {
 type RouterSpec struct {
 	CommonSpec `json:",inline"`
 
+	HTTPServerTLSConfig *HTTPServerTLSConfig `json:"httpServerTLSConfig,omitempty"`
+
+	Envoy SidecarSpec `json:"envoy,omitempty"`
 	// How many times to replicate incoming write requests
 	ReplicationFactor *uint64 `json:"replicationFactor,omitempty"`
 }
@@ -255,6 +293,9 @@ type RouterList struct {
 type QueryFrontendSpec struct {
 	CommonSpec `json:",inline"`
 
+	HTTPServerTLSConfig *HTTPServerTLSConfig `json:"httpServerTLSConfig,omitempty"`
+
+	Envoy SidecarSpec `json:"envoy,omitempty"`
 	// CacheProviderConfig ...
 	CacheConfig *ResponseCacheProviderConfig `json:"cacheConfig,omitempty"`
 }
@@ -494,6 +535,8 @@ type RulerSpec struct {
 	CommonSpec `json:",inline"`
 
 	RulerQueryProxy SidecarSpec `json:"rulerQueryProxy,omitempty"`
+
+	Envoy SidecarSpec `json:"envoy,omitempty"`
 
 	PrometheusConfigReloader SidecarSpec `json:"prometheusConfigReloader,omitempty"`
 
