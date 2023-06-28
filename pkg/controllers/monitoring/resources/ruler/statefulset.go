@@ -261,25 +261,37 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 		// proxy config
 		// if the tenant exists, append QueryProxy
 		// otherwise, append WriteProxy
-		if r.ruler.Spec.Tenant == "" {
-			if url, err := url.Parse(queryAddr); err == nil && url.Scheme == "https" {
-				queryConfig := []httpconfig.Config{
-					{
-						HTTPClientConfig: httpconfig.ClientConfig{
-							TLSConfig: httpconfig.TLSConfig{
-								InsecureSkipVerify: true,
+		if r.ruler.Spec.Tenant == "" { // as global ruler if no tenant specified
+			var hasQueryFlag bool
+			for _, flag := range r.ruler.Spec.Flags {
+				if strings.HasPrefix(flag, "--query=") {
+					hasQueryFlag = true
+					break
+				}
+			}
+			// If --query flag in spec.Flags is not specified, the global ruler will query from the queryAddr
+			// which points to the QueryFrontend/Query under the same whizard service.
+			// If and only if the ruler needs to query external data out of whizard service, the --query flag can be specified.
+			if !hasQueryFlag {
+				if url, err := url.Parse(queryAddr); err == nil && url.Scheme == "https" {
+					queryConfig := []httpconfig.Config{
+						{
+							HTTPClientConfig: httpconfig.ClientConfig{
+								TLSConfig: httpconfig.TLSConfig{
+									InsecureSkipVerify: true,
+								},
+							},
+							EndpointsConfig: httpconfig.EndpointsConfig{
+								Scheme:          url.Scheme,
+								StaticAddresses: []string{url.Host},
 							},
 						},
-						EndpointsConfig: httpconfig.EndpointsConfig{
-							Scheme:          url.Scheme,
-							StaticAddresses: []string{url.Host},
-						},
-					},
+					}
+					buff, _ := yamlv3.Marshal(queryConfig)
+					container.Args = append(container.Args, "--query.config="+string(buff))
+				} else {
+					container.Args = append(container.Args, "--query="+queryAddr)
 				}
-				buff, _ := yamlv3.Marshal(queryConfig)
-				container.Args = append(container.Args, "--query.config="+string(buff))
-			} else {
-				container.Args = append(container.Args, "--query="+queryAddr)
 			}
 
 			writeUrl, err := url.Parse("http://127.0.0.1:8081/push")
