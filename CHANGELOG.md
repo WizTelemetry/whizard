@@ -1,3 +1,15 @@
+# v0.7.0 / 2023-06-30
+
+### FEATURES
+
+* Allow to override --query flag for global ruler to query external data sources([#277](https://github.com/WhizardTelemetry/whizard/pull/277))
+
+### BUGFIX
+
+* ruler watches router([#276](https://github.com/WhizardTelemetry/whizard/pull/276))
+* remove alpn_protocols in envoy config([#275](https://github.com/WhizardTelemetry/whizard/pull/275))
+
+
 # v0.7.0-rc.0 / 2023-06-21
 
 ### FEATURES
