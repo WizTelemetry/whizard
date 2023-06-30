@@ -110,7 +110,6 @@ static_resources:
         common_tls_context:
           validation_context:
             trust_chain_verification: ACCEPT_UNTRUSTED
-          alpn_protocols: 'h2,http/1.1'
         sni: {{ .ProxyServiceAddress }}
 {{ end }} 
 `)))
