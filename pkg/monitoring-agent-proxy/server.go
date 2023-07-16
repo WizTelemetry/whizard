@@ -28,6 +28,8 @@ type Options struct {
 	Tenant                      string
 	GatewayProxyEndpoint        *url.URL
 	GatewayProxyClientTLSConfig *tls.Config
+	MaxIdleConnsPerHost         int
+	MaxConnsPerHost             int
 }
 
 type Server struct {
@@ -68,11 +70,16 @@ func (s *Server) wrap(path string) http.HandlerFunc {
 
 	proxy := httputil.NewSingleHostReverseProxy(s.options.GatewayProxyEndpoint)
 	oldDirector := proxy.Director
+
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.MaxIdleConnsPerHost = s.options.MaxIdleConnsPerHost
+	transport.MaxConnsPerHost = s.options.MaxConnsPerHost
+
 	if s.options.GatewayProxyEndpoint.Scheme == "https" {
-		proxy.Transport = &http.Transport{
-			TLSClientConfig: s.options.GatewayProxyClientTLSConfig,
-		}
+		transport.TLSClientConfig = s.options.GatewayProxyClientTLSConfig
 	}
+
+	proxy.Transport = transport
 
 	proxy.Director = func(req *http.Request) {
 		req.URL.Scheme = s.options.GatewayProxyEndpoint.Scheme
