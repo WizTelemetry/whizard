@@ -40,6 +40,46 @@ spec:
                 description: Default tenant ID to use when none is provided via a
                   header.
                 type: string
+              remoteQuery:
+                description: RemoteQuery is the remote query configuration and the
+                  remote target should have prometheus-compatible Query APIs. If not
+                  configured, the Gateway will proxy all read requests through the
+                  QueryFrontend to the Query, If configured, the Gateway will proxy
+                  metrics read requests through the QueryFrontend to the remote target,
+                  but proxy rules read requests directly to the Query.
+                properties:
+                  name:
+                    type: string
+                  url:
+                    type: string
+                required:
+                - url
+                type: object
+              remoteWrites:
+                description: RemoteWrites is the list of remote write configurations.
+                  If it is configured, its targets will receive write requests from
+                  the Gateway and the Ruler.
+                items:
+                  description: RemoteWriteSpec defines the remote write configuration.
+                  properties:
+                    headers:
+                      additionalProperties:
+                        type: string
+                      description: Custom HTTP headers to be sent along with each
+                        remote write request.
+                      type: object
+                    name:
+                      type: string
+                    remoteTimeout:
+                      description: Timeout for requests to the remote write endpoint.
+                      pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
+                      type: string
+                    url:
+                      type: string
+                  required:
+                  - url
+                  type: object
+                type: array
               retention:
                 description: Retention configs how long to retain samples
                 properties:

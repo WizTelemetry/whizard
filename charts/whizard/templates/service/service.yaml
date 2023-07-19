@@ -18,4 +18,12 @@ spec:
     name: {{ include "whizard.storage.crname" . }}
     namespace: {{ include "whizard.namespace" . }}
   {{- end }}
+  {{- if .Values.service.remoteWrites }}
+  remoteWrites:
+    {{- toYaml .Values.service.remoteWrites | nindent 4 }}
+  {{- end }}
+  {{- if .Values.service.remoteQuery }}
+  remoteQuery:
+    {{- toYaml .Values.service.remoteQuery | nindent 4 }}
+  {{- end }}
 {{- end }}

@@ -3,15 +3,19 @@ package gateway
 import (
 	"fmt"
 	"net/url"
+	"path"
 	"path/filepath"
+	"time"
 
 	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/query"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/queryfrontend"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/router"
+	monitoringgateway "github.com/kubesphere/whizard/pkg/monitoring-gateway"
 	"github.com/kubesphere/whizard/pkg/util"
 	config_util "github.com/prometheus/common/config"
+	"github.com/prometheus/common/model"
 	"gopkg.in/yaml.v3"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -134,42 +138,119 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 		container.Args = append(container.Args, "--tenant.label-name="+g.Service.Spec.TenantLabelName)
 	}
 
-	addr, err := g.queryAddress()
+	queryFrontendAddr, err := g.queryfrontendAddress()
 	if err != nil {
 		return nil, "", err
 	}
-	if url, err := url.Parse(addr); err == nil && url.Scheme == "https" {
-		cfg := config{
-			TLSConfig: &config_util.TLSConfig{
-				InsecureSkipVerify: true,
-			},
-		}
-		buff, _ := yaml.Marshal(cfg)
-		container.Args = append(container.Args, fmt.Sprintf("--query.config=%s", buff))
+	queryAddr, err := g.queryAddress()
+	if err != nil {
+		return nil, "", err
 	}
-	container.Args = append(container.Args, fmt.Sprintf("--query.address=%s", addr))
+	if g.Service != nil && g.Service.Spec.RemoteQuery != nil {
+		// If exists remote query config in service,
+		// Gateway will query metrics from QueryFrontend (which is put in front of remote-query),
+		// but query rules from Query (which aggregates rules from all rulers).
+		if queryFrontendAddr == "" {
+			return nil, "", fmt.Errorf("no query frontend exist for service %s/%s", g.Service.Name, g.Service.Namespace)
+		}
+		queryFrontendUrl, err := url.Parse(queryFrontendAddr)
+		if err != nil {
+			return nil, "", fmt.Errorf("invalid query frontend address: %s", queryFrontendAddr)
+		}
+		container.Args = append(container.Args, fmt.Sprintf("--query.address=%s", queryFrontendAddr))
+		if queryFrontendUrl.Scheme == "https" {
+			cfg := config{TLSConfig: &config_util.TLSConfig{InsecureSkipVerify: true}}
+			buff, _ := yaml.Marshal(cfg)
+			container.Args = append(container.Args, fmt.Sprintf("--query.config=%s", buff))
+		}
+		if queryAddr == "" {
+			return nil, "", fmt.Errorf("no query exist for service %s/%s", g.Service.Name, g.Service.Namespace)
+		}
+		queryUrl, err := url.Parse(queryAddr)
+		if err != nil {
+			return nil, "", fmt.Errorf("invalid query address: %s", queryAddr)
+		}
+		container.Args = append(container.Args, fmt.Sprintf("--query-rules.address=%s", queryAddr))
+		if queryUrl.Scheme == "https" {
+			cfg := config{TLSConfig: &config_util.TLSConfig{InsecureSkipVerify: true}}
+			buff, _ := yaml.Marshal(cfg)
+			container.Args = append(container.Args, fmt.Sprintf("--query-rules.config=%s", buff))
+		}
+	} else {
+		// If not exists remote query config, gateway will preferentially query all from QueryFrontend
+		var addr = queryFrontendAddr
+		if addr == "" {
+			addr = queryAddr
+		}
+		if addr == "" {
+			return nil, "", fmt.Errorf("no query frontend and query exist for service %s/%s", g.Service.Name, g.Service.Namespace)
+		}
+		queryUrl, err := url.Parse(addr)
+		if err != nil {
+			return nil, "", fmt.Errorf("invalid query address: %s", addr)
+		}
+		container.Args = append(container.Args, fmt.Sprintf("--query.address=%s", addr))
+		if queryUrl.Scheme == "https" {
+			cfg := config{TLSConfig: &config_util.TLSConfig{InsecureSkipVerify: true}}
+			buff, _ := yaml.Marshal(cfg)
+			container.Args = append(container.Args, fmt.Sprintf("--query.config=%s", buff))
+		}
+	}
 
-	addr, err = g.remoteWriteAddress()
+	var rwsCfg []*monitoringgateway.RemoteWriteConfig
+	// write to router
+	routerAddr, err := g.remoteWriteAddress()
 	if err != nil {
 		return nil, "", err
 	}
-	if url, err := url.Parse(addr); err == nil && url.Scheme == "https" {
-		cfg := config{
-			TLSConfig: &config_util.TLSConfig{
-				InsecureSkipVerify: true,
-			},
-		}
-		buff, _ := yaml.Marshal(cfg)
-		container.Args = append(container.Args, fmt.Sprintf("--remote-write.config=%s", buff))
+	url, err := url.Parse(routerAddr)
+	if err != nil {
+		return nil, "", fmt.Errorf("invalid router address: %s", queryAddr)
 	}
-	container.Args = append(container.Args, fmt.Sprintf("--remote-write.address=%s", addr))
+	url.Path = path.Join(url.Path, "/api/v1/receive")
+	rwRouter := &monitoringgateway.RemoteWriteConfig{URL: &config_util.URL{URL: url}}
+	if url.Scheme == "https" {
+		rwRouter.TLSConfig = config_util.TLSConfig{InsecureSkipVerify: true}
+	}
+	rwsCfg = append(rwsCfg, rwRouter)
+	// write to configured remote-writes targets
+	if g.Service != nil {
+		for _, rw := range g.Service.Spec.RemoteWrites {
+			url, err := url.Parse(rw.URL)
+			if err != nil {
+				return nil, "", fmt.Errorf("invalid remote write url: %s", rw.URL)
+			}
+			rwCfg := &monitoringgateway.RemoteWriteConfig{
+				Name:    rw.Name,
+				URL:     &config_util.URL{URL: url},
+				Headers: rw.Headers,
+			}
+			if rw.RemoteTimeout != "" {
+				timeout, err := time.ParseDuration(string(rw.RemoteTimeout))
+				if err != nil {
+					return nil, "", fmt.Errorf("invalid remoteTimeout: %s", rw.RemoteTimeout)
+				}
+				rwCfg.RemoteTimeout = model.Duration(timeout)
+			}
+			if url.Scheme == "https" {
+				rwCfg.TLSConfig = config_util.TLSConfig{InsecureSkipVerify: true}
+			}
+			rwsCfg = append(rwsCfg, rwCfg)
+		}
+	}
+	// add remote-writes.config flag to gateway
+	buff, err := yaml.Marshal(rwsCfg)
+	if err != nil {
+		return nil, "", err
+	}
+	container.Args = append(container.Args, fmt.Sprintf("--remote-writes.config=%s", buff))
 
 	d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, container)
 
 	return d, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(g.gateway, d, g.Scheme)
 }
 
-func (g *Gateway) queryAddress() (string, error) {
+func (g *Gateway) queryfrontendAddress() (string, error) {
 	queryFrontendList := &v1alpha1.QueryFrontendList{}
 	if err := g.Client.List(g.Context, queryFrontendList, client.MatchingLabels(util.ManagedLabelBySameService(g.gateway))); err != nil {
 		return "", err
@@ -191,6 +272,11 @@ func (g *Gateway) queryAddress() (string, error) {
 
 		return r.HttpAddr(), nil
 	}
+
+	return "", nil
+}
+
+func (g *Gateway) queryAddress() (string, error) {
 
 	queryList := &v1alpha1.QueryList{}
 	if err := g.Client.List(g.Context, queryList, client.MatchingLabels(util.ManagedLabelBySameService(g.gateway))); err != nil {
@@ -214,7 +300,7 @@ func (g *Gateway) queryAddress() (string, error) {
 		return r.HttpAddr(), nil
 	}
 
-	return "", fmt.Errorf("no query frontend or query exist for service %s/%s", g.Service.Name, g.Service.Namespace)
+	return "", nil
 }
 
 func (g *Gateway) remoteWriteAddress() (string, error) {

@@ -107,9 +107,18 @@ func (q *QueryFrontend) deployment() (runtime.Object, resources.Operation, error
 
 	data := make(map[string]string, 8)
 
-	addr, err := q.queryAddress()
-	if err != nil {
-		return nil, "", err
+	// If exists remote-query in the related Service,
+	// QueryFrontend will preferentially query from configured remote-query target,
+	// or query from Query address
+	var addr string
+	if q.Service != nil && q.Service.Spec.RemoteQuery != nil {
+		addr = q.Service.Spec.RemoteQuery.URL
+	} else {
+		var err error
+		addr, err = q.queryAddress()
+		if err != nil {
+			return nil, "", err
+		}
 	}
 
 	if url, err := url.Parse(addr); err == nil && url.Scheme == "https" {
@@ -121,6 +130,8 @@ func (q *QueryFrontend) deployment() (runtime.Object, resources.Operation, error
 		data["ProxyServiceAddress"] = url.Hostname()
 		data["ProxyServicePort"] = url.Port()
 
+	} else if err != nil {
+		return nil, "", err
 	}
 
 	if q.queryFrontend.Spec.HTTPServerTLSConfig != nil {

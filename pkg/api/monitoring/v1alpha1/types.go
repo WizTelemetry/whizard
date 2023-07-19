@@ -58,6 +58,32 @@ type ServiceSpec struct {
 	Retention *Retention `json:"retention,omitempty"`
 
 	Storage *ObjectReference `json:"storage,omitempty"`
+
+	// RemoteWrites is the list of remote write configurations.
+	// If it is configured, its targets will receive write requests from the Gateway and the Ruler.
+	RemoteWrites []RemoteWriteSpec `json:"remoteWrites,omitempty"`
+	// RemoteQuery is the remote query configuration and the remote target should have prometheus-compatible Query APIs.
+	// If not configured, the Gateway will proxy all read requests through the QueryFrontend to the Query,
+	// If configured, the Gateway will proxy metrics read requests through the QueryFrontend to the remote target,
+	// but proxy rules read requests directly to the Query.
+	RemoteQuery *RemoteQuerySpec `json:"remoteQuery,omitempty"`
+}
+
+// RemoteQuerySpec defines the configuration to query from remote service
+// which should have prometheus-compatible Query APIs.
+type RemoteQuerySpec struct {
+	Name string `json:"name,omitempty"`
+	URL  string `json:"url"`
+}
+
+// RemoteWriteSpec defines the remote write configuration.
+type RemoteWriteSpec struct {
+	Name string `json:"name,omitempty"`
+	URL  string `json:"url"`
+	// Custom HTTP headers to be sent along with each remote write request.
+	Headers map[string]string `json:"headers,omitempty"`
+	// Timeout for requests to the remote write endpoint.
+	RemoteTimeout Duration `json:"remoteTimeout,omitempty"`
 }
 
 // ServiceStatus defines the observed state of Service
