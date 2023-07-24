@@ -30,7 +30,9 @@ var cli struct {
 		InsecureSkipVerify bool   `default:"true" help:"Disable certificate validation."`
 	} `embed:"" prefix:"gateway."`
 
-	Tenant string `default:"" help:"unique. clusterID"`
+	Tenant              string
+	MaxIdleConnsPerHost int `default:"100" name:"maxIdleConnsPerHost" help:"Max idle connections per Host"`
+	MaxConnsPerHost     int `default:"0" name:"maxConnsPerHost" help:"Max connections per Host"`
 }
 
 func main() {
@@ -45,6 +47,8 @@ func main() {
 		Tenant:               cli.Tenant,
 		ListenAddress:        cli.HttpAddress,
 		GatewayProxyEndpoint: rawUrl,
+		MaxIdleConnsPerHost:  cli.MaxIdleConnsPerHost,
+		MaxConnsPerHost:      cli.MaxConnsPerHost,
 	}
 	options.GatewayProxyClientTLSConfig, err = thanos_tls.NewClientConfig(logger, cli.MonitorGateway.ClientTlsCert, cli.MonitorGateway.ClientTlsKey, cli.MonitorGateway.ServerTlsClientCa, cli.MonitorGateway.ServerName, cli.MonitorGateway.InsecureSkipVerify)
 	ctx.FatalIfErrorf(err)
