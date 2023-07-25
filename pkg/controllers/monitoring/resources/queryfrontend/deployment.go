@@ -107,9 +107,9 @@ func (q *QueryFrontend) deployment() (runtime.Object, resources.Operation, error
 
 	data := make(map[string]string, 8)
 
-	// If exists remote-query in the related Service,
+	// If there is remote-query configured in the related Service,
 	// QueryFrontend will preferentially query from configured remote-query target,
-	// or query from Query address
+	// else it'll query from the Query directly.
 	var addr string
 	if q.Service != nil && q.Service.Spec.RemoteQuery != nil {
 		addr = q.Service.Spec.RemoteQuery.URL

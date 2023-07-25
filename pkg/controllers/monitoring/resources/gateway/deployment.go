@@ -147,9 +147,9 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 		return nil, "", err
 	}
 	if g.Service != nil && g.Service.Spec.RemoteQuery != nil {
-		// If exists remote query config in service,
+		// If there is remote query config in service,
 		// Gateway will query metrics from QueryFrontend (which is put in front of remote-query),
-		// but query rules from Query (which aggregates rules from all rulers).
+		// while query rules from Query (which aggregates rules from all rulers).
 		if queryFrontendAddr == "" {
 			return nil, "", fmt.Errorf("no query frontend exist for service %s/%s", g.Service.Name, g.Service.Namespace)
 		}
@@ -170,14 +170,14 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 		if err != nil {
 			return nil, "", fmt.Errorf("invalid query address: %s", queryAddr)
 		}
-		container.Args = append(container.Args, fmt.Sprintf("--query-rules.address=%s", queryAddr))
+		container.Args = append(container.Args, fmt.Sprintf("--rules-query.address=%s", queryAddr))
 		if queryUrl.Scheme == "https" {
 			cfg := config{TLSConfig: &config_util.TLSConfig{InsecureSkipVerify: true}}
 			buff, _ := yaml.Marshal(cfg)
-			container.Args = append(container.Args, fmt.Sprintf("--query-rules.config=%s", buff))
+			container.Args = append(container.Args, fmt.Sprintf("--rules-query.config=%s", buff))
 		}
 	} else {
-		// If not exists remote query config, gateway will preferentially query all from QueryFrontend
+		// If there is no remote query config, the Gateway will preferentially query all from QueryFrontend
 		var addr = queryFrontendAddr
 		if addr == "" {
 			addr = queryAddr

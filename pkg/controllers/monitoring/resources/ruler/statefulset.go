@@ -259,8 +259,8 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 			RemoteWriteConfigs []*promconfig.RemoteWriteConfig `yaml:"remote_write,omitempty"`
 		}
 
-		// If exists remote-writes in the related service instance,
-		// the rulers should also write processed metrics to them.
+		// If there is remote-writes configured in the related service instance,
+		// the rulers should also write calculated metrics to them.
 		//
 		// TODO currently global rulers write directly to remote targets without tenant header.
 		// 		If the tenant header is required, do it later.

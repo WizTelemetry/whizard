@@ -43,11 +43,11 @@ var cli struct {
 		ConfigFile string `default:"" help:"Downstream query/query-frontend service configuration file."`
 		Config     string `default:"" help:"Downstream query/query-frontend service configuration content." `
 	} `embed:"" prefix:"query."`
-	QueryRules struct {
+	RulesQuery struct {
 		Address    string `default:"" help:"Address to send rules query requests."`
 		ConfigFile string `default:"" help:"Downstream query/query-frontend service configuration file."`
 		Config     string `default:"" help:"Downstream query/query-frontend service configuration content."`
-	} `embed:"" prefix:"query-rules."`
+	} `embed:"" prefix:"rules-query."`
 	Tenant struct {
 		Header    string `default:"WHIZARD-TENANT" help:"Http header to determine tenant for requests"`
 		LabelName string `default:"tenant_id" help:"Label name through which the tenant will be announced"`
@@ -122,10 +122,10 @@ func main() {
 
 	}
 
-	if cli.QueryRules.Address != "" {
-		qUrl, err := url.Parse(cli.QueryRules.Address)
+	if cli.RulesQuery.Address != "" {
+		qUrl, err := url.Parse(cli.RulesQuery.Address)
 		ctx.FatalIfErrorf(err)
-		cfg, err := parseConfig(cli.QueryRules.ConfigFile, cli.QueryRules.Config)
+		cfg, err := parseConfig(cli.RulesQuery.ConfigFile, cli.RulesQuery.Config)
 		if err != nil {
 			ctx.FatalIfErrorf(err)
 		}
@@ -134,9 +134,9 @@ func main() {
 			if err != nil {
 				ctx.FatalIfErrorf(err)
 			}
-			options.QueryRulesProxy = monitoringgateway.NewSingleHostReverseProxy(qUrl, tlsConfig)
+			options.RulesQueryProxy = monitoringgateway.NewSingleHostReverseProxy(qUrl, tlsConfig)
 		} else {
-			options.QueryRulesProxy = monitoringgateway.NewSingleHostReverseProxy(qUrl, nil)
+			options.RulesQueryProxy = monitoringgateway.NewSingleHostReverseProxy(qUrl, nil)
 		}
 
 	}

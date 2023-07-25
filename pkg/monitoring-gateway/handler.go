@@ -39,7 +39,7 @@ type Options struct {
 
 	RemoteWriteHandler http.Handler
 	QueryProxy         *httputil.ReverseProxy
-	QueryRulesProxy    *httputil.ReverseProxy
+	RulesQueryProxy    *httputil.ReverseProxy
 
 	CertAuthenticator *CertAuthenticator
 }
@@ -51,7 +51,7 @@ type Handler struct {
 
 	remoteWriteHander http.Handler
 	queryProxy        *httputil.ReverseProxy
-	queryRulesProxy   *httputil.ReverseProxy
+	rulesQueryProxy   *httputil.ReverseProxy
 }
 
 func NewHandler(logger log.Logger, o *Options) *Handler {
@@ -65,7 +65,7 @@ func NewHandler(logger log.Logger, o *Options) *Handler {
 		router:            route.New(),
 		remoteWriteHander: o.RemoteWriteHandler,
 		queryProxy:        o.QueryProxy,
-		queryRulesProxy:   o.QueryRulesProxy,
+		rulesQueryProxy:   o.RulesQueryProxy,
 	}
 
 	h.router.Get(epQuery, h.wrap(h.query))
@@ -213,8 +213,8 @@ func (h *Handler) matcher(matchersParam string) http.HandlerFunc {
 		}
 
 		if (strings.HasSuffix(req.URL.Path, "/rules") || strings.HasSuffix(req.URL.Path, "/alerts")) &&
-			h.queryRulesProxy != nil {
-			h.queryRulesProxy.ServeHTTP(w, req)
+			h.rulesQueryProxy != nil {
+			h.rulesQueryProxy.ServeHTTP(w, req)
 			return
 		}
 		h.queryProxy.ServeHTTP(w, req)
