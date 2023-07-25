@@ -20,6 +20,7 @@ import (
 	"github.com/prometheus-operator/prometheus-operator/pkg/k8sutil"
 	promoperator "github.com/prometheus-operator/prometheus-operator/pkg/operator"
 	promcommonconfig "github.com/prometheus/common/config"
+	"github.com/prometheus/common/model"
 	promconfig "github.com/prometheus/prometheus/config"
 	"github.com/prometheus/prometheus/model/relabel"
 	"github.com/thanos-io/thanos/pkg/httpconfig"
@@ -258,6 +259,36 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 			RemoteWriteConfigs []*promconfig.RemoteWriteConfig `yaml:"remote_write,omitempty"`
 		}
 
+		// If there is remote-writes configured in the related service instance,
+		// the rulers should also write calculated metrics to them.
+		//
+		// TODO currently global rulers write directly to remote targets without tenant header.
+		// 		If the tenant header is required, do it later.
+		for _, rw := range service.Spec.RemoteWrites {
+			var rwCfg = &promconfig.RemoteWriteConfig{}
+			*rwCfg = promconfig.DefaultRemoteWriteConfig
+			rwCfg.Name = rw.Name
+			writeUrl, err := url.Parse(rw.URL)
+			if err != nil {
+				return nil, "", fmt.Errorf("invalid remote write url: %s", rw.URL)
+			}
+			rwCfg.URL = &promcommonconfig.URL{URL: writeUrl}
+			if writeUrl.Scheme == "https" {
+				// TODO support certificate validation
+				rwCfg.HTTPClientConfig.TLSConfig.InsecureSkipVerify = true
+			}
+			rwCfg.Headers = rw.Headers
+			if rw.RemoteTimeout != "" {
+				timeout, err := time.ParseDuration(string(rw.RemoteTimeout))
+				if err != nil {
+					return nil, "", fmt.Errorf("invalid remote timeout: %s", rw.RemoteTimeout)
+				}
+				rwCfg.RemoteTimeout = model.Duration(timeout)
+			}
+
+			cfgs.RemoteWriteConfigs = append(cfgs.RemoteWriteConfigs, rwCfg)
+		}
+
 		// proxy config
 		// if the tenant exists, append QueryProxy
 		// otherwise, append WriteProxy
@@ -347,17 +378,22 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 			if err != nil {
 				return nil, resources.OperationCreateOrUpdate, err
 			}
-			if rwCfg.Headers == nil {
-				rwCfg.Headers = make(map[string]string)
-			}
-			rwCfg.Headers[service.Spec.TenantHeader] = r.ruler.Spec.Tenant
 			rwCfg.URL = &promcommonconfig.URL{URL: writeUrl}
-
-			rwCfg.WriteRelabelConfigs = append(rwCfg.WriteRelabelConfigs, &relabel.Config{
-				Regex:  relabel.MustNewRegexp(service.Spec.TenantLabelName),
-				Action: relabel.LabelDrop,
-			})
 			cfgs.RemoteWriteConfigs = append(cfgs.RemoteWriteConfigs, rwCfg)
+
+			for i := range cfgs.RemoteWriteConfigs {
+				rwCfg := cfgs.RemoteWriteConfigs[i]
+				if rwCfg.Headers == nil {
+					rwCfg.Headers = make(map[string]string)
+				}
+				rwCfg.Headers[service.Spec.TenantHeader] = r.ruler.Spec.Tenant
+				rwCfg.WriteRelabelConfigs = append(rwCfg.WriteRelabelConfigs,
+					&relabel.Config{
+						Regex:  relabel.MustNewRegexp(service.Spec.TenantLabelName),
+						Action: relabel.LabelDrop,
+					})
+				cfgs.RemoteWriteConfigs[i] = rwCfg
+			}
 			content, err := yamlv3.Marshal(&cfgs)
 			if err != nil {
 				return nil, resources.OperationCreateOrUpdate, err
@@ -516,6 +552,7 @@ func (r *Ruler) addQueryProxyContainer(serviceSpec *monitoringv1alpha1.ServiceSp
 		Resources: r.Options.RulerQueryProxy.Resources,
 	}
 	queryProxyContainer.Args = append(queryProxyContainer.Args, "--tenant.label-name="+serviceSpec.TenantLabelName)
+	queryProxyContainer.Args = append(queryProxyContainer.Args, "--tenant.header="+serviceSpec.TenantHeader)
 
 	if url, err := url.Parse(queryAddr); err == nil && url.Scheme == "https" {
 		cfg := gatewayConfig{

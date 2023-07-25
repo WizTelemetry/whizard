@@ -279,6 +279,15 @@ service:
   # namespace: 
   # name: 
 
+  ## Set remote writes
+  remoteWrites:
+  # - name: remote
+  #   url: remote_storage_address
+
+  ## Set remote query
+  remoteQuery:
+    # url: remote_query_address
+
 # Deploy an Gateway instance
 gateway: 
   enabled: true
@@ -399,7 +408,7 @@ ruler:
   tolerations: []
   affinity: {}
 
-  replicas: 2
+  replicas: 1
   
   shards: 1
 

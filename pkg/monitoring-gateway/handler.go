@@ -7,9 +7,11 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"strings"
+	"sync"
 
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
+	"github.com/pkg/errors"
 	"github.com/prometheus-community/prom-label-proxy/injectproxy"
 	"github.com/prometheus/common/route"
 	"github.com/prometheus/prometheus/model/labels"
@@ -35,8 +37,9 @@ type Options struct {
 	TenantHeader    string
 	TenantLabelName string
 
-	RemoteWriteProxy *httputil.ReverseProxy
-	QueryProxy       *httputil.ReverseProxy
+	RemoteWriteHandler http.Handler
+	QueryProxy         *httputil.ReverseProxy
+	RulesQueryProxy    *httputil.ReverseProxy
 
 	CertAuthenticator *CertAuthenticator
 }
@@ -46,8 +49,9 @@ type Handler struct {
 	options *Options
 	router  *route.Router
 
-	remoteWriteProxy *httputil.ReverseProxy
-	queryProxy       *httputil.ReverseProxy
+	remoteWriteHander http.Handler
+	queryProxy        *httputil.ReverseProxy
+	rulesQueryProxy   *httputil.ReverseProxy
 }
 
 func NewHandler(logger log.Logger, o *Options) *Handler {
@@ -56,11 +60,12 @@ func NewHandler(logger log.Logger, o *Options) *Handler {
 	}
 
 	h := &Handler{
-		logger:           logger,
-		options:          o,
-		router:           route.New(),
-		remoteWriteProxy: o.RemoteWriteProxy,
-		queryProxy:       o.QueryProxy,
+		logger:            logger,
+		options:           o,
+		router:            route.New(),
+		remoteWriteHander: o.RemoteWriteHandler,
+		queryProxy:        o.QueryProxy,
+		rulesQueryProxy:   o.RulesQueryProxy,
 	}
 
 	h.router.Get(epQuery, h.wrap(h.query))
@@ -206,16 +211,21 @@ func (h *Handler) matcher(matchersParam string) http.HandlerFunc {
 			req.Body = ioutil.NopCloser(strings.NewReader(q.Encode()))
 			req.ContentLength = int64(len(q))
 		}
+
+		if (strings.HasSuffix(req.URL.Path, "/rules") || strings.HasSuffix(req.URL.Path, "/alerts")) &&
+			h.rulesQueryProxy != nil {
+			h.rulesQueryProxy.ServeHTTP(w, req)
+			return
+		}
 		h.queryProxy.ServeHTTP(w, req)
 	}
 }
 
 func (h *Handler) remoteWrite(w http.ResponseWriter, req *http.Request) {
-	if h.remoteWriteProxy == nil {
-		http.Error(w, "The remote write target is not configured for the server", http.StatusNotAcceptable)
+	if h.remoteWriteHander == nil {
+		http.Error(w, "There is no remote write targets configured for the server", http.StatusNotAcceptable)
 		return
 	}
-
 	ctx := req.Context()
 	requestInfo, found := requestInfoFrom(ctx)
 
@@ -226,7 +236,7 @@ func (h *Handler) remoteWrite(w http.ResponseWriter, req *http.Request) {
 
 	req.Header.Set(h.options.TenantHeader, requestInfo.TenantId)
 
-	h.remoteWriteProxy.ServeHTTP(w, req)
+	h.remoteWriteHander.ServeHTTP(w, req)
 }
 
 func (h *Handler) Run() error {
@@ -264,6 +274,86 @@ func NewSingleHostReverseProxy(target *url.URL, tlsConfig *tls.Config) *httputil
 		oldDirector(req)
 	}
 	return proxy
+}
+
+type remoteWriteHandler struct {
+	writeClients []*remoteWriteClient
+	tenantHeader string
+}
+
+func (h remoteWriteHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	if len(h.writeClients) == 0 {
+		return
+	}
+
+	ctx := req.Context()
+
+	// Forward the request to multiple targets in parallel.
+	// If either forwarding fails, the errors are responded. This may result in repeated sending same data to one target.
+	body, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var results = make([]result, len(h.writeClients))
+	var i = 0
+	var wg sync.WaitGroup
+
+	var tenantHeader = make(http.Header)
+	if tenantId := req.Header.Get(h.tenantHeader); tenantId != "" {
+		tenantHeader.Set(h.tenantHeader, tenantId)
+	}
+	for _, writeClient := range h.writeClients {
+		wg.Add(1)
+		ep := writeClient.Endpoint()
+
+		go func(idx int, writeClient *remoteWriteClient) {
+			defer wg.Done()
+			result := writeClient.Send(ctx, body, tenantHeader)
+			if result.err != nil {
+				result.err = errors.Wrapf(result.err, "forwarding request to endpoint %v", ep)
+			}
+			results[idx] = result
+		}(i, writeClient)
+		i++
+	}
+	wg.Wait()
+
+	var code int
+	for _, result := range results {
+		if result.code > code {
+			code = result.code
+			err = result.err
+		}
+	}
+	if code <= 0 {
+		code = http.StatusNoContent
+	}
+	if err != nil {
+		http.Error(w, err.Error(), code)
+	} else {
+		w.WriteHeader(code)
+	}
+}
+
+func NewRemoteWriteHandler(rwsCfg []RemoteWriteConfig, tenantHeader string) (http.Handler, error) {
+
+	if len(rwsCfg) > 0 {
+		var handler = remoteWriteHandler{tenantHeader: tenantHeader}
+		for _, rwCfg := range rwsCfg {
+			writeClient, err := newRemoteWriteClient(&rwCfg)
+			if err != nil {
+				return nil, err
+			}
+			if writeClient != nil {
+				handler.writeClients = append(handler.writeClients, writeClient)
+			}
+		}
+		return &handler, nil
+	}
+
+	return nil, nil
 }
 
 // indexByteNth returns the index of the nth instance of c in s, or -1 if the nth c is not present in s.

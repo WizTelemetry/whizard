@@ -4,6 +4,8 @@ import (
 	"crypto/tls"
 	"io/ioutil"
 	"net/url"
+	"path"
+	"strings"
 
 	"github.com/alecthomas/kong"
 	"github.com/pkg/errors"
@@ -26,16 +28,26 @@ var cli struct {
 	ServerTlsCert     string `default:"" help:"TLS Certificate for HTTP server, leave blank to disable TLS."`
 	ServerTlsClientCa string `default:"" help:"TLS CA to verify clients against. If no client CA is specified, there is no client verification on server side. (tls.NoClientCert)"`
 
+	RemoteWrites struct {
+		ConfigFile string `default:"" help:"Path to YAML config for the remote-write configurations, that specify servers where received remote-write requests should be forwarded to."`
+		Config     string `default:"" help:"Alternative to 'remote-writes.config-file' flag (mutually exclusive)" `
+	} `embed:"" prefix:"remote-writes."`
+
 	RemoteWrite struct {
-		Address    string `default:"" help:"Address to send remote write requests."`
-		ConfigFile string `default:"" help:"Downstream receive service configuration file." `
-		Config     string `default:"" help:"Downstream receive service configuration content." `
+		Address    string `default:"" help:"Address to send remote write requests. (Deprecated, please use remote-writes.config[/config-file] instead)"`
+		ConfigFile string `default:"" help:"Downstream receive service configuration file. (Deprecated, please use remote-writes.config[/config-file] instead)"`
+		Config     string `default:"" help:"Downstream receive service configuration content. (Deprecated, please use remote-writes.config[/config-file] instead)"`
 	} `embed:"" prefix:"remote-write."`
 	Query struct {
 		Address    string `default:"" help:"Address to send query requests."`
 		ConfigFile string `default:"" help:"Downstream query/query-frontend service configuration file."`
 		Config     string `default:"" help:"Downstream query/query-frontend service configuration content." `
 	} `embed:"" prefix:"query."`
+	RulesQuery struct {
+		Address    string `default:"" help:"Address to send rules query requests."`
+		ConfigFile string `default:"" help:"Downstream query/query-frontend service configuration file."`
+		Config     string `default:"" help:"Downstream query/query-frontend service configuration content."`
+	} `embed:"" prefix:"rules-query."`
 	Tenant struct {
 		Header    string `default:"WHIZARD-TENANT" help:"Http header to determine tenant for requests"`
 		LabelName string `default:"tenant_id" help:"Label name through which the tenant will be announced"`
@@ -65,6 +77,10 @@ func main() {
 		options.CertAuthenticator = monitoringgateway.NewCertAuthenticator()
 	}
 
+	rwsCfg, err := monitoringgateway.LoadRemoteWritesConfig(cli.RemoteWrites.ConfigFile, cli.RemoteWrites.Config)
+	if err != nil {
+		ctx.FatalIfErrorf(err)
+	}
 	if cli.RemoteWrite.Address != "" {
 		rwUrl, err := url.Parse(cli.RemoteWrite.Address)
 		ctx.FatalIfErrorf(err)
@@ -72,16 +88,21 @@ func main() {
 		if err != nil {
 			ctx.FatalIfErrorf(err)
 		}
-		if cfg != nil && cfg.TLSConfig != nil {
-			tlsConfig, err := config.NewTLSConfig(cfg.TLSConfig)
-			if err != nil {
-				ctx.FatalIfErrorf(err)
-			}
-			options.RemoteWriteProxy = monitoringgateway.NewSingleHostReverseProxy(rwUrl, tlsConfig)
-		} else {
-			options.RemoteWriteProxy = monitoringgateway.NewSingleHostReverseProxy(rwUrl, nil)
+		if !strings.HasSuffix(strings.TrimSuffix(rwUrl.Path, "/"), "/api/v1/receive") { // to make it compactible with previous config
+			rwUrl.Path = path.Join(rwUrl.Path, "/api/v1/receive")
 		}
+		rwCfg := monitoringgateway.RemoteWriteConfig{URL: &config.URL{URL: rwUrl}}
+		if cfg != nil && cfg.TLSConfig != nil {
+			rwCfg.TLSConfig = *cfg.TLSConfig
+
+		}
+		rwsCfg = append(rwsCfg, rwCfg)
 	}
+	options.RemoteWriteHandler, err = monitoringgateway.NewRemoteWriteHandler(rwsCfg, cli.Tenant.Header)
+	if err != nil {
+		ctx.FatalIfErrorf(err)
+	}
+
 	if cli.Query.Address != "" {
 		qUrl, err := url.Parse(cli.Query.Address)
 		ctx.FatalIfErrorf(err)
@@ -97,6 +118,25 @@ func main() {
 			options.QueryProxy = monitoringgateway.NewSingleHostReverseProxy(qUrl, tlsConfig)
 		} else {
 			options.QueryProxy = monitoringgateway.NewSingleHostReverseProxy(qUrl, nil)
+		}
+
+	}
+
+	if cli.RulesQuery.Address != "" {
+		qUrl, err := url.Parse(cli.RulesQuery.Address)
+		ctx.FatalIfErrorf(err)
+		cfg, err := parseConfig(cli.RulesQuery.ConfigFile, cli.RulesQuery.Config)
+		if err != nil {
+			ctx.FatalIfErrorf(err)
+		}
+		if cfg != nil && cfg.TLSConfig != nil {
+			tlsConfig, err := config.NewTLSConfig(cfg.TLSConfig)
+			if err != nil {
+				ctx.FatalIfErrorf(err)
+			}
+			options.RulesQueryProxy = monitoringgateway.NewSingleHostReverseProxy(qUrl, tlsConfig)
+		} else {
+			options.RulesQueryProxy = monitoringgateway.NewSingleHostReverseProxy(qUrl, nil)
 		}
 
 	}
