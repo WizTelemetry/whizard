@@ -515,7 +515,7 @@ type IngesterStatus struct {
 type IngesterTenantStatus struct {
 	Name string `json:"name"`
 	// true represents that the tenant has been moved to other ingester but may left tsdb data in this ingester.
-	Legacy bool `json:"legacy"`
+	Obsolete bool `json:"obsolete"`
 }
 
 //+kubebuilder:object:root=true

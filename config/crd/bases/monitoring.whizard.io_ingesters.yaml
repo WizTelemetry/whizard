@@ -1353,15 +1353,15 @@ spec:
                   been deleted.
                 items:
                   properties:
-                    legacy:
+                    name:
+                      type: string
+                    obsolete:
                       description: true represents that the tenant has been moved
                         to other ingester but may left tsdb data in this ingester.
                       type: boolean
-                    name:
-                      type: string
                   required:
-                  - legacy
                   - name
+                  - obsolete
                   type: object
                 type: array
             type: object

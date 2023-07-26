@@ -97,13 +97,13 @@ func (r *IngesterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		tenantStatusMap[tenant.Name] = struct{}{}
 		_, ok := tenantMap[tenant.Name]
 		desiredStatus.Tenants = append(desiredStatus.Tenants, v1alpha1.IngesterTenantStatus{
-			Name:   tenant.Name,
-			Legacy: !ok,
+			Name:     tenant.Name,
+			Obsolete: !ok,
 		})
 	}
 	for _, tenant := range instance.Spec.Tenants {
 		if _, ok := tenantStatusMap[tenant]; !ok {
-			desiredStatus.Tenants = append(desiredStatus.Tenants, v1alpha1.IngesterTenantStatus{Name: tenant, Legacy: false})
+			desiredStatus.Tenants = append(desiredStatus.Tenants, v1alpha1.IngesterTenantStatus{Name: tenant, Obsolete: false})
 		}
 	}
 	if !reflect.DeepEqual(desiredStatus, instance.Status) {
