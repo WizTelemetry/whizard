@@ -506,6 +506,16 @@ type ObjectReference struct {
 type IngesterStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+
+	// Tenants contain all tenants that have been configured for this Ingester object,
+	// except those Tenant objects that have been deleted.
+	Tenants []IngesterTenantStatus `json:"tenants,omitempty"`
+}
+
+type IngesterTenantStatus struct {
+	Name string `json:"name"`
+	// true represents that the tenant has been moved to other ingester but may left tsdb data in this ingester.
+	Legacy bool `json:"legacy"`
 }
 
 //+kubebuilder:object:root=true

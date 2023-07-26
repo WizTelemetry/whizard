@@ -19,9 +19,11 @@ package monitoring
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strconv"
 	"time"
 
+	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
@@ -80,6 +82,33 @@ func (r *IngesterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
+	}
+
+	// Add spec.tenants to status.tenants,
+	// so status.tenants will contain all tenants that have been configured.
+	// When the Tenant object is deleted, it will be removed from status.tenants too.
+	var desiredStatus v1alpha1.IngesterStatus
+	var tenantMap = make(map[string]struct{}, len(instance.Spec.Tenants))
+	for _, tenant := range instance.Spec.Tenants {
+		tenantMap[tenant] = struct{}{}
+	}
+	var tenantStatusMap = make(map[string]struct{}, len(instance.Status.Tenants))
+	for _, tenant := range instance.Status.Tenants {
+		tenantStatusMap[tenant.Name] = struct{}{}
+		_, ok := tenantMap[tenant.Name]
+		desiredStatus.Tenants = append(desiredStatus.Tenants, v1alpha1.IngesterTenantStatus{
+			Name:   tenant.Name,
+			Legacy: !ok,
+		})
+	}
+	for _, tenant := range instance.Spec.Tenants {
+		if _, ok := tenantStatusMap[tenant]; !ok {
+			desiredStatus.Tenants = append(desiredStatus.Tenants, v1alpha1.IngesterTenantStatus{Name: tenant, Legacy: false})
+		}
+	}
+	if !reflect.DeepEqual(desiredStatus, instance.Status) {
+		instance.Status = desiredStatus
+		return ctrl.Result{}, r.Status().Update(r.Context, instance)
 	}
 
 	// recycle ingester by using the RequeueAfter event
