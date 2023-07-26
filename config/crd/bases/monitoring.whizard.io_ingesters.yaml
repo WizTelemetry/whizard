@@ -1346,6 +1346,24 @@ spec:
             type: object
           status:
             description: IngesterStatus defines the observed state of Ingester
+            properties:
+              tenants:
+                description: Tenants contain all tenants that have been configured
+                  for this Ingester object, except those Tenant objects that have
+                  been deleted.
+                items:
+                  properties:
+                    name:
+                      type: string
+                    obsolete:
+                      description: true represents that the tenant has been moved
+                        to other ingester but may left tsdb data in this ingester.
+                      type: boolean
+                  required:
+                  - name
+                  - obsolete
+                  type: object
+                type: array
             type: object
         type: object
     served: true

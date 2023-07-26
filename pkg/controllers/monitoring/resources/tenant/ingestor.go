@@ -2,10 +2,12 @@ package tenant
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/util"
@@ -33,6 +35,32 @@ func (t *Tenant) ingester() error {
 					return err
 				}
 				t.tenant.Status.Ingester = nil
+			}
+
+			if t.Service != nil {
+				// If ingester.status.Tenants contain the deleted tenant, remove that
+				var ingesterList monitoringv1alpha1.IngesterList
+				err := t.Client.List(t.Context, &ingesterList, &client.ListOptions{
+					Namespace:     t.Service.Namespace,
+					LabelSelector: labels.SelectorFromSet(util.ManagedLabelByService(t.Service)),
+				})
+				if err != nil {
+					return err
+				}
+				for _, ingester := range ingesterList.Items {
+					var tenantsStatus []v1alpha1.IngesterTenantStatus
+					for _, tenant := range ingester.Status.Tenants {
+						if tenant.Name != t.tenant.Name {
+							tenantsStatus = append(tenantsStatus, tenant)
+						}
+					}
+					if !reflect.DeepEqual(tenantsStatus, ingester.Status.Tenants) {
+						ingester.Status.Tenants = tenantsStatus
+						if err := t.Client.Status().Update(t.Context, &ingester); err != nil {
+							return err
+						}
+					}
+				}
 			}
 
 			t.tenant.ObjectMeta.Finalizers = removeString(t.tenant.Finalizers, constants.FinalizerIngester)
