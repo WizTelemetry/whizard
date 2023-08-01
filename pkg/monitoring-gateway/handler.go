@@ -123,7 +123,8 @@ func (h *Handler) query(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	enforcer := injectproxy.NewEnforcer(true, &labels.Matcher{
+	// Set errorOnReplace to false to directly replace the existing tenant with the new TenantId without reporting an error.
+	enforcer := injectproxy.NewEnforcer(false, &labels.Matcher{
 		Type:  labels.MatchEqual,
 		Name:  h.options.TenantLabelName,
 		Value: requestInfo.TenantId,
@@ -180,11 +181,6 @@ func (h *Handler) matcher(matchersParam string) http.HandlerFunc {
 
 		if !found || requestInfo.TenantId == "" {
 			http.NotFound(w, req)
-			return
-		}
-
-		if requestInfo.TenantId == "" {
-			h.queryProxy.ServeHTTP(w, req)
 			return
 		}
 
