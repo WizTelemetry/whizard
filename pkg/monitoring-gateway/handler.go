@@ -2,6 +2,7 @@ package monitoringgateway
 
 import (
 	"crypto/tls"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
@@ -10,24 +11,25 @@ import (
 	"sync"
 
 	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
+	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	"github.com/prometheus-community/prom-label-proxy/injectproxy"
-	"github.com/prometheus/common/route"
 	"github.com/prometheus/prometheus/model/labels"
 )
 
 const (
-	apiPrefix = "/:tenant_id/api/v1"
+	apiTenantPrefix = "/{tenant_id}/api/v1"
+	apiGlobalPrefix = "/api/v1"
+	apiUIPrefix     = "/-/ui"
 
-	epQuery       = apiPrefix + "/query"
-	epQueryRange  = apiPrefix + "/query_range"
-	epSeries      = apiPrefix + "/series"
-	epLabels      = apiPrefix + "/labels"
-	epLabelValues = apiPrefix + "/label/*path"
-	epReceive     = apiPrefix + "/receive"
-	epRules       = apiPrefix + "/rules"
-	epAlerts      = apiPrefix + "/alerts"
+	epQuery       = "/query"
+	epQueryRange  = "/query_range"
+	epSeries      = "/series"
+	epLabels      = "/labels"
+	epLabelValues = "/label/*"
+	epReceive     = "/receive"
+	epRules       = "/rules"
+	epAlerts      = "/alerts"
 )
 
 type Options struct {
@@ -47,7 +49,10 @@ type Options struct {
 type Handler struct {
 	logger  log.Logger
 	options *Options
-	router  *route.Router
+	router  *mux.Router
+
+	enabledTenantsAdmission bool
+	tenantsAdmissionMap     sync.Map
 
 	remoteWriteHander http.Handler
 	queryProxy        *httputil.ReverseProxy
@@ -60,29 +65,81 @@ func NewHandler(logger log.Logger, o *Options) *Handler {
 	}
 
 	h := &Handler{
-		logger:            logger,
-		options:           o,
-		router:            route.New(),
-		remoteWriteHander: o.RemoteWriteHandler,
-		queryProxy:        o.QueryProxy,
-		rulesQueryProxy:   o.RulesQueryProxy,
+		logger:                  logger,
+		options:                 o,
+		router:                  mux.NewRouter(),
+		remoteWriteHander:       o.RemoteWriteHandler,
+		enabledTenantsAdmission: true,
+		queryProxy:              o.QueryProxy,
+		rulesQueryProxy:         o.RulesQueryProxy,
 	}
 
-	h.router.Get(epQuery, h.wrap(h.query))
-	h.router.Post(epQuery, h.wrap(h.query))
-	h.router.Get(epQueryRange, h.wrap(h.query))
-	h.router.Post(epQueryRange, h.wrap(h.query))
-	h.router.Get(epSeries, h.wrap(h.matcher(matchersParam)))
-	h.router.Get(epLabels, h.wrap(h.matcher(matchersParam)))
-	h.router.Get(epLabelValues, h.wrap(h.matcher(matchersParam)))
-	h.router.Get(epRules, h.wrap(h.matcher(matchersParam)))
 	// do provide /api/v1/alerts because thanos does not support alerts filtering as of v0.28.0
 	// please filtering alerts by /api/v1/rules
 	// h.router.Get(epAlerts, h.wrap(h.matcher(matchersParam)))
-
-	h.router.Post(epReceive, h.wrap(h.remoteWrite))
-
+	h.addGlobalQueryHandler()
+	h.addTenantQueryHander()
+	h.addTenantRemoteWriteHander()
 	return h
+}
+
+func (h *Handler) addTenantQueryHander() {
+	h.router.Path(apiTenantPrefix + epQuery).Methods(http.MethodGet).HandlerFunc(h.wrap(h.query))
+	h.router.Path(apiTenantPrefix + epQuery).Methods(http.MethodPost).HandlerFunc(h.wrap(h.query))
+	h.router.Path(apiTenantPrefix + epQueryRange).Methods(http.MethodGet).HandlerFunc(h.wrap(h.query))
+	h.router.Path(apiTenantPrefix + epQueryRange).Methods(http.MethodPost).HandlerFunc(h.wrap(h.query))
+	h.router.Path(apiTenantPrefix + epSeries).Methods(http.MethodGet).HandlerFunc(h.wrap(h.matcher(matchersParam)))
+	h.router.Path(apiTenantPrefix + epLabels).Methods(http.MethodGet).HandlerFunc(h.wrap(h.matcher(matchersParam)))
+	h.router.Path(apiTenantPrefix + epLabelValues).Methods(http.MethodGet).HandlerFunc(h.wrap(h.matcher(matchersParam)))
+	h.router.Path(apiTenantPrefix + epRules).Methods(http.MethodGet).HandlerFunc(h.wrap(h.matcher(matchersParam)))
+}
+func (h *Handler) addTenantRemoteWriteHander() {
+	h.router.Path(apiTenantPrefix + epReceive).Methods(http.MethodPost).HandlerFunc(h.wrap(h.remoteWrite))
+}
+
+func (h *Handler) addGlobalQueryHandler() {
+	h.router.Path(apiGlobalPrefix).HandlerFunc(h.queryProxy.ServeHTTP)
+}
+
+func (h *Handler) AppendQueryUIHandler() {
+	h.router.PathPrefix(apiUIPrefix).HandlerFunc(h.queryUIHander)
+}
+
+func (h *Handler) queryUIHander(rw http.ResponseWriter, req *http.Request) {
+
+	req.URL.Path, _ = strings.CutPrefix(req.URL.Path, apiUIPrefix)
+	// Dynamic prefix configuration to expose UI
+	// https://thanos.io/v0.31/components/query.md/#expose-ui-on-a-sub-path
+	req.Header.Set("X-Forwarded-Prefix", apiUIPrefix)
+	h.queryProxy.ServeHTTP(rw, req)
+}
+
+func (h *Handler) SetAdmissionControlHandler(c AdmissionControlConfig) error {
+	if h.enabledTenantsAdmission {
+		v, ok := h.tenantsAdmissionMap.Load("/-/")
+		if !ok || v == nil {
+			h.tenantsAdmissionMap.Store("/-/", c.Tenants)
+			for _, tenant := range c.Tenants {
+				h.tenantsAdmissionMap.Store(tenant, true)
+			}
+			return nil
+		}
+		tenants := v.([]string)
+		addTenantset := intersect(c.Tenants, tenants)
+		for _, tenant := range addTenantset {
+			h.tenantsAdmissionMap.Store(tenant, true)
+		}
+		rmTenantset := intersect(tenants, c.Tenants)
+		for _, tenant := range rmTenantset {
+			h.tenantsAdmissionMap.Delete(tenant)
+		}
+	}
+
+	return nil
+}
+
+func (h *Handler) Router() *mux.Router {
+	return h.router
 }
 
 func (h *Handler) wrap(f http.HandlerFunc) http.HandlerFunc {
@@ -120,6 +177,11 @@ func (h *Handler) query(w http.ResponseWriter, req *http.Request) {
 
 	if !found || requestInfo.TenantId == "" {
 		http.NotFound(w, req)
+		return
+	}
+	if _, ok := h.tenantsAdmissionMap.Load(requestInfo.TenantId); h.enabledTenantsAdmission && !ok {
+		err := fmt.Errorf("tenant %s is not allowed to access", requestInfo.TenantId)
+		http.Error(w, err.Error(), http.StatusForbidden)
 		return
 	}
 
@@ -183,6 +245,11 @@ func (h *Handler) matcher(matchersParam string) http.HandlerFunc {
 			http.NotFound(w, req)
 			return
 		}
+		if _, ok := h.tenantsAdmissionMap.Load(requestInfo.TenantId); h.enabledTenantsAdmission && !ok {
+			err := fmt.Errorf("tenant %s is not allowed to access", requestInfo.TenantId)
+			http.Error(w, err.Error(), http.StatusForbidden)
+			return
+		}
 
 		matcher := &labels.Matcher{
 			Type:  labels.MatchEqual,
@@ -229,46 +296,35 @@ func (h *Handler) remoteWrite(w http.ResponseWriter, req *http.Request) {
 		http.NotFound(w, req)
 		return
 	}
+	if _, ok := h.tenantsAdmissionMap.Load(requestInfo.TenantId); h.enabledTenantsAdmission && !ok {
+		err := fmt.Errorf("tenant %s is not allowed to access", requestInfo.TenantId)
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 
 	req.Header.Set(h.options.TenantHeader, requestInfo.TenantId)
 
 	h.remoteWriteHander.ServeHTTP(w, req)
 }
 
-func (h *Handler) Run() error {
-	srv := &http.Server{
-		Handler:   h.router,
-		Addr:      h.options.ListenAddress,
-		TLSConfig: h.options.TLSConfig,
-	}
-
-	if h.options.TLSConfig != nil {
-		level.Info(h.logger).Log("msg", "Serving HTTPS", "address", h.options.ListenAddress)
-		return srv.ListenAndServeTLS("", "")
-	}
-
-	level.Info(h.logger).Log("msg", "Serving plain HTTP", "address", h.options.ListenAddress)
-	return srv.ListenAndServe()
-}
-
-func NewSingleHostReverseProxy(target *url.URL, tlsConfig *tls.Config) *httputil.ReverseProxy {
+func NewSingleHostReverseProxy(target *url.URL, transport *http.Transport) *httputil.ReverseProxy {
 	proxy := httputil.NewSingleHostReverseProxy(target)
+
+	proxy.Transport = transport
+
 	oldDirector := proxy.Director
-	if target.Scheme == "https" {
-		proxy.Transport = &http.Transport{
-			TLSClientConfig: tlsConfig,
-		}
-	}
 	proxy.Director = func(req *http.Request) {
 		req.URL.Scheme = target.Scheme
 		req.Host = target.Host
-		// remove the prefix /:tenant_id from path
-		if index := indexByteNth(req.URL.Path, '/', 2); index > 0 {
-			req.URL.Path = req.URL.Path[index:]
-		}
-
+		/*
+			// remove the prefix /:tenant_id from path
+			if index := indexByteNth(req.URL.Path, '/', 2); index > 0 {
+				req.URL.Path = req.URL.Path[index:]
+			}
+		*/
 		oldDirector(req)
 	}
+
 	return proxy
 }
 
@@ -364,4 +420,23 @@ func indexByteNth(s string, c byte, nth int) int {
 		}
 	}
 	return -1
+}
+
+func intersect(a, b []string) []string {
+	var set []string
+	for _, v := range a {
+		if !containers(b, v) {
+			set = append(set, v)
+		}
+	}
+	return set
+}
+
+func containers(s []string, str string) bool {
+	for _, v := range s {
+		if v == str {
+			return true
+		}
+	}
+	return false
 }
