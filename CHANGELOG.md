@@ -1,3 +1,19 @@
+# v0.8.0 / 2023-08-07
+
+### FEATURES
+
+* Support external remote write and query ([#290](https://github.com/WhizardTelemetry/whizard/pull/290))
+
+### ENHANCEMENT
+
+* Gateway: Replace tenant matcher of query param for query api ([#297](https://github.com/WhizardTelemetry/whizard/pull/297))
+* Optimize ingester data cleanup when a tenant is deleted ([#291](https://github.com/WhizardTelemetry/whizard/pull/291))
+* Optimize transport parameters for agent proxy component ([#286](https://github.com/WhizardTelemetry/whizard/pull/286))
+
+### BUGFIX
+
+* Fix values config in the chart ([#292](https://github.com/WhizardTelemetry/whizard/pull/292))
+
 # v0.8.0-rc.0 / 2023-07-27
 
 ### FEATURES
