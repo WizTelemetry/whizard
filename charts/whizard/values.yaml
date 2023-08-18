@@ -182,9 +182,11 @@ controllerManager:
           cpu: 100m
           memory: 500Mi
       indexCacheConfig: {}
+
+      timeRanges:
+      - maxTime: -36h
   
       additionalFlags: 
-      - --max-time=-36h     #The last 36h data is queried on ingester instead of store.
       - --web.disable      #Disable Block Viewer UI.
       - --no-cache-index-header #Support disabling cache index header file. When toggled, Stores can run without needing persistent disks.
       # - --min-time=-14d     # Optional, time based partitioning

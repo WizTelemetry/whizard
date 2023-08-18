@@ -1,18 +1,61 @@
 package store
 
 import (
+	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/util"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (r *Store) service() (runtime.Object, resources.Operation, error) {
-	var s = &corev1.Service{ObjectMeta: r.meta(r.name(constants.ServiceNameSuffix))}
+func (r *Store) services() (retResources []resources.Resource) {
+	timeRanges := r.store.Spec.TimeRanges
+	if len(timeRanges) == 0 {
+		timeRanges = append(timeRanges, v1alpha1.TimeRange{
+			MinTime: r.store.Spec.MinTime,
+			MaxTime: r.store.Spec.MaxTime,
+		})
+	}
+	// for expected services
+	var expectNames = make(map[string]struct{}, len(timeRanges))
+	for i := range timeRanges {
+		partitionSn := i
+		partitionName := r.partitionName(i, constants.ServiceNameSuffix)
+		expectNames[partitionName] = struct{}{}
+		retResources = append(retResources, func() (runtime.Object, resources.Operation, error) {
+			return r.service(partitionName, partitionSn)
+		})
+	}
+
+	var svcList corev1.ServiceList
+	ls := r.BaseLabels()
+	ls[constants.LabelNameAppName] = constants.AppNameStore
+	ls[constants.LabelNameAppManagedBy] = r.store.Name
+	err := r.Client.List(r.Context, &svcList, client.InNamespace(r.store.Namespace), &client.ListOptions{
+		LabelSelector: labels.SelectorFromSet(ls),
+	})
+	if err != nil {
+		return errResourcesFunc(err)
+	}
+	// check services to be deleted.
+	for i := range svcList.Items {
+		svc := svcList.Items[i]
+		if _, ok := expectNames[svc.Name]; !ok {
+			retResources = append(retResources, func() (runtime.Object, resources.Operation, error) {
+				return &svc, resources.OperationDelete, nil
+			})
+		}
+	}
+	return
+}
+
+func (r *Store) service(name string, partitionSn int) (runtime.Object, resources.Operation, error) {
+	var s = &corev1.Service{ObjectMeta: r.meta(name, partitionSn)}
 
 	if err := r.Client.Get(r.Context, client.ObjectKeyFromObject(s), s); err != nil {
 		if !util.IsNotFound(err) {
@@ -21,7 +64,7 @@ func (r *Store) service() (runtime.Object, resources.Operation, error) {
 	}
 
 	s.Spec.Type = corev1.ServiceTypeClusterIP
-	s.Spec.Selector = r.labels()
+	s.Spec.Selector = r.labels(partitionSn)
 
 	ports := []corev1.ServicePort{
 		{

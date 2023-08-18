@@ -627,7 +627,9 @@ type StoreOptions struct {
 	// MinTime specifies start of time range limit to serve
 	MinTime string `json:"minTime,omitempty" yaml:"minTime,omitempty"`
 	// MaxTime specifies end of time range limit to serve
-	MaxTime          string                     `json:"maxTime,omitempty" yaml:"maxTime,omitempty"`
+	MaxTime string `json:"maxTime,omitempty" yaml:"maxTime,omitempty"`
+	// TimeRanges is a list of TimeRange to partition Store.
+	TimeRanges       []v1alpha1.TimeRange       `json:"timeRanges,omitempty" yaml:"timeRanges,omitempty"`
 	DataVolume       *v1alpha1.KubernetesVolume `json:"dataVolume,omitempty" yaml:"dataVolume,omitempty"`
 	IndexCacheConfig *v1alpha1.IndexCacheConfig `json:"indexCacheConfig,omitempty" yaml:"indexCacheConfig,omitempty"`
 	Scaler           *v1alpha1.AutoScaler       `json:"scaler,omitempty" yaml:"scaler,omitempty"`
@@ -662,6 +664,9 @@ func (o *StoreOptions) ApplyTo(options *StoreOptions) {
 	}
 	if o.MaxTime != "" {
 		options.MaxTime = o.MaxTime
+	}
+	if len(o.TimeRanges) > 0 {
+		options.TimeRanges = o.TimeRanges
 	}
 
 	if o.DataVolume != nil {
@@ -720,8 +725,11 @@ func (o *StoreOptions) Override(spec *v1alpha1.StoreSpec) {
 	if spec.MinTime == "" {
 		spec.MinTime = o.MinTime
 	}
-	if spec.MaxTime != "" {
+	if spec.MaxTime == "" {
 		spec.MaxTime = o.MaxTime
+	}
+	if len(spec.TimeRanges) == 0 {
+		spec.TimeRanges = o.TimeRanges
 	}
 
 	if spec.DataVolume == nil {
