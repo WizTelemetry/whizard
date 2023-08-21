@@ -1940,6 +1940,20 @@ spec:
                 required:
                 - maxReplicas
                 type: object
+              timeRanges:
+                description: TimeRanges is a list of TimeRange to partition Store.
+                  If specified, the MinTime and MaxTime will be ignored.
+                items:
+                  properties:
+                    maxTime:
+                      description: MaxTime specifies end of time range limit to serve
+                      type: string
+                    minTime:
+                      description: MinTime specifies start of time range limit to
+                        serve
+                      type: string
+                  type: object
+                type: array
               tolerations:
                 description: If specified, the pod's tolerations.
                 items:

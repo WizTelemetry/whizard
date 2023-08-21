@@ -50,6 +50,8 @@ const (
 	LabelNameIngesterState        = "monitoring.whizard.io/ingester-state"
 	LabelNameIngesterDeletingTime = "monitoring.whizard.io/ingester-deleting-time"
 
+	LabelNameStorePartition = "monitoring.whizard.io/store-partition"
+
 	LabelNameRulerShardSn = "monitoring.whizard.io/ruler-shard-sn"
 
 	ConfigPath     = "/etc/whizard/"

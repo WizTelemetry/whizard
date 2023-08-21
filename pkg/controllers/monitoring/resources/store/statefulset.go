@@ -12,6 +12,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -30,8 +31,58 @@ var (
 	}
 )
 
-func (r *Store) statefulSet() (runtime.Object, resources.Operation, error) {
-	var sts = &appsv1.StatefulSet{ObjectMeta: r.meta(r.name())}
+var errResourcesFunc = func(err error) []resources.Resource {
+	return []resources.Resource{
+		func() (runtime.Object, resources.Operation, error) {
+			return nil, resources.OperationCreateOrUpdate, err
+		},
+	}
+}
+
+func (r *Store) statefulSets() (retResources []resources.Resource) {
+	timeRanges := r.store.Spec.TimeRanges
+	if len(timeRanges) == 0 {
+		timeRanges = append(timeRanges, v1alpha1.TimeRange{
+			MinTime: r.store.Spec.MinTime,
+			MaxTime: r.store.Spec.MaxTime,
+		})
+	}
+	// for expected statefulsets
+	var expectNames = make(map[string]struct{}, len(timeRanges))
+	for i := range timeRanges {
+		partitionSn := i
+		tr := timeRanges[i]
+		partitionName := r.partitionName(partitionSn)
+		expectNames[partitionName] = struct{}{}
+		retResources = append(retResources, func() (runtime.Object, resources.Operation, error) {
+			return r.statefulSet(partitionName, partitionSn, tr)
+		})
+	}
+
+	var stsList appsv1.StatefulSetList
+	ls := r.BaseLabels()
+	ls[constants.LabelNameAppName] = constants.AppNameStore
+	ls[constants.LabelNameAppManagedBy] = r.store.Name
+	err := r.Client.List(r.Context, &stsList, client.InNamespace(r.store.Namespace), &client.ListOptions{
+		LabelSelector: labels.SelectorFromSet(ls),
+	})
+	if err != nil {
+		return errResourcesFunc(err)
+	}
+	// check statefulsets to be deleted.
+	for i := range stsList.Items {
+		sts := stsList.Items[i]
+		if _, ok := expectNames[sts.Name]; !ok {
+			retResources = append(retResources, func() (runtime.Object, resources.Operation, error) {
+				return &sts, resources.OperationDelete, nil
+			})
+		}
+	}
+	return
+}
+
+func (r *Store) statefulSet(name string, partitionSn int, timeRange v1alpha1.TimeRange) (runtime.Object, resources.Operation, error) {
+	var sts = &appsv1.StatefulSet{ObjectMeta: r.meta(name, partitionSn)}
 	if err := r.Client.Get(r.Context, client.ObjectKeyFromObject(sts), sts); err != nil {
 		if !util.IsNotFound(err) {
 			return nil, "", err
@@ -39,14 +90,14 @@ func (r *Store) statefulSet() (runtime.Object, resources.Operation, error) {
 	}
 
 	sts.Spec.Selector = &metav1.LabelSelector{
-		MatchLabels: r.labels(),
+		MatchLabels: r.labels(partitionSn),
 	}
 
 	if sts.Spec.Replicas == nil || *sts.Spec.Replicas == 0 {
 		sts.Spec.Replicas = r.store.Spec.Replicas
 	}
 
-	sts.Spec.Template.Labels = r.labels()
+	sts.Spec.Template.Labels = r.labels(partitionSn)
 
 	sts.Spec.Template.Spec.Affinity = r.store.Spec.Affinity
 	sts.Spec.Template.Spec.NodeSelector = r.store.Spec.NodeSelector
@@ -144,7 +195,7 @@ func (r *Store) statefulSet() (runtime.Object, resources.Operation, error) {
 		container.Env = append(container.Env, env)
 	}
 
-	if args, err := r.megerArgs(); err != nil {
+	if args, err := r.megerArgs(timeRange); err != nil {
 		return nil, "", err
 	} else {
 		container.Args = args
@@ -157,7 +208,7 @@ func (r *Store) statefulSet() (runtime.Object, resources.Operation, error) {
 	return sts, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(r.store, sts, r.Scheme)
 }
 
-func (r *Store) megerArgs() ([]string, error) {
+func (r *Store) megerArgs(timeRange v1alpha1.TimeRange) ([]string, error) {
 	storageConfig, err := r.GetStorageConfig(r.store.Labels[constants.StorageLabelKey])
 	if err != nil {
 		return nil, err
@@ -185,11 +236,11 @@ func (r *Store) megerArgs() ([]string, error) {
 	if r.store.Spec.LogFormat != "" {
 		defaultArgs = append(defaultArgs, "--log.format="+r.store.Spec.LogFormat)
 	}
-	if r.store.Spec.MinTime != "" {
-		defaultArgs = append(defaultArgs, "--min-time="+r.store.Spec.MinTime)
+	if timeRange.MinTime != "" {
+		defaultArgs = append(defaultArgs, "--min-time="+timeRange.MinTime)
 	}
-	if r.store.Spec.MaxTime != "" {
-		defaultArgs = append(defaultArgs, "--max-time="+r.store.Spec.MaxTime)
+	if timeRange.MaxTime != "" {
+		defaultArgs = append(defaultArgs, "--max-time="+timeRange.MaxTime)
 	}
 
 	for _, flag := range r.store.Spec.Flags {

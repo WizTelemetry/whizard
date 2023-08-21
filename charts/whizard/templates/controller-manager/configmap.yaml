@@ -203,6 +203,11 @@ data:
           {{- toYaml . | nindent 10 }}
         {{- end }}
 
+        {{- with $store.timeRanges }}
+        timeRanges:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+
         {{- with $store.additionalFlags }}
         flags:
           {{- toYaml . | nindent 10 }}

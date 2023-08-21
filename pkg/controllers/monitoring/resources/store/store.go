@@ -1,6 +1,8 @@
 package store
 
 import (
+	"strconv"
+
 	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
@@ -23,10 +25,11 @@ func New(reconciler resources.BaseReconciler, instance *v1alpha1.Store, o *optio
 	}
 }
 
-func (r *Store) labels() map[string]string {
+func (r *Store) labels(partitionSn int) map[string]string {
 	labels := r.BaseLabels()
 	labels[constants.LabelNameAppName] = constants.AppNameStore
 	labels[constants.LabelNameAppManagedBy] = r.store.Name
+	labels[constants.LabelNameStorePartition] = strconv.Itoa(partitionSn)
 
 	// Do not copy all labels of the custom resource to the managed workload.
 	// util.AppendLabel(labels, r.store.Labels)
@@ -41,11 +44,20 @@ func (r *Store) name(nameSuffix ...string) string {
 	return r.QualifiedName(constants.AppNameStore, r.store.Name, nameSuffix...)
 }
 
-func (r *Store) meta(name string) metav1.ObjectMeta {
+func (r *Store) partitionName(partitionSn int, nameSuffix ...string) string {
+	if partitionSn == 0 {
+		return r.name(nameSuffix...)
+	}
+	suffix := []string{"partition-" + strconv.Itoa(partitionSn)}
+	suffix = append(suffix, nameSuffix...)
+	return r.name(suffix...)
+}
+
+func (r *Store) meta(name string, partitionSn int) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
 		Name:            name,
 		Namespace:       r.store.Namespace,
-		Labels:          r.labels(),
+		Labels:          r.labels(partitionSn),
 		OwnerReferences: r.OwnerReferences(),
 	}
 }
@@ -63,9 +75,9 @@ func (r *Store) OwnerReferences() []metav1.OwnerReference {
 }
 
 func (r *Store) Reconcile() error {
-	return r.ReconcileResources([]resources.Resource{
-		r.statefulSet,
-		r.horizontalPodAutoscaler,
-		r.service,
-	})
+	var ress []resources.Resource
+	ress = append(ress, r.statefulSets()...)
+	ress = append(ress, r.services()...)
+	ress = append(ress, r.horizontalPodAutoscalers()...)
+	return r.ReconcileResources(ress)
 }

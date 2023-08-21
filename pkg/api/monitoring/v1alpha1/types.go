@@ -423,6 +423,13 @@ type AutoScaler struct {
 	Behavior *v2beta2.HorizontalPodAutoscalerBehavior `json:"behavior,omitempty" yaml:"behavior,omitempty"`
 }
 
+type TimeRange struct {
+	// MinTime specifies start of time range limit to serve
+	MinTime string `json:"minTime,omitempty" yaml:"minTime,omitempty"`
+	// MaxTime specifies end of time range limit to serve
+	MaxTime string `json:"maxTime,omitempty" yaml:"maxTime,omitempty"`
+}
+
 type StoreSpec struct {
 	CommonSpec `json:",inline"`
 
@@ -430,6 +437,9 @@ type StoreSpec struct {
 	MinTime string `json:"minTime,omitempty"`
 	// MaxTime specifies end of time range limit to serve
 	MaxTime string `json:"maxTime,omitempty"`
+	// TimeRanges is a list of TimeRange to partition Store.
+	// If specified, the MinTime and MaxTime will be ignored.
+	TimeRanges []TimeRange `json:"timeRanges,omitempty"`
 
 	// IndexCacheConfig contains index cache configuration.
 	IndexCacheConfig *IndexCacheConfig `json:"indexCacheConfig,omitempty"`

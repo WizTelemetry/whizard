@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
@@ -192,9 +193,26 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 		return nil, resources.OperationCreateOrUpdate, err
 	}
 	for _, item := range storeList.Items {
-		storeSvcName := util.Join("-", constants.AppNameStore, item.Name, constants.ServiceNameSuffix)
-		endpoint := fmt.Sprintf("%s.%s.svc:%d", storeSvcName, item.Namespace, constants.GRPCPort)
-		queryContainer.Args = append(queryContainer.Args, "--endpoint="+endpoint)
+		q.Options.Store.Override(&item.Spec)
+		timeRanges := item.Spec.TimeRanges
+		if len(timeRanges) == 0 {
+			timeRanges = append(timeRanges, v1alpha1.TimeRange{
+				MinTime: item.Spec.MinTime,
+				MaxTime: item.Spec.MaxTime,
+			})
+		}
+		for i := range timeRanges {
+			// partitionName should be consistent with store.partitionName()
+			var partitionName string
+			if i == 0 {
+				partitionName = util.Join("-", constants.AppNameStore, item.Name, constants.ServiceNameSuffix)
+			} else {
+				partitionName = util.Join("-", constants.AppNameStore, item.Name, "partition", strconv.Itoa(i), constants.ServiceNameSuffix)
+			}
+
+			endpoint := fmt.Sprintf("%s.%s.svc:%d", partitionName, item.Namespace, constants.GRPCPort)
+			queryContainer.Args = append(queryContainer.Args, "--endpoint="+endpoint)
+		}
 	}
 
 	// add ruler endpoint to query args
