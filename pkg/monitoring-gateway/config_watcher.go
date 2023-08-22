@@ -30,7 +30,7 @@ type AdmissionControlConfig struct {
 	Tenants []string `json:"tenants,omitempty"`
 }
 
-// ConfigWatcher is able to watch a file containing a hashring configuration
+// ConfigWatcher is able to watch a file containing a configuration
 // for updates.
 type ConfigWatcher struct {
 	ch       chan AdmissionControlConfig
@@ -44,7 +44,7 @@ type ConfigWatcher struct {
 	changesCounter       prometheus.Counter
 	errorCounter         prometheus.Counter
 	refreshCounter       prometheus.Counter
-	tenantsGauge         *prometheus.GaugeVec
+	tenantsGauge         prometheus.Gauge
 
 	// lastLoadedConfigHash is the hash of the last successfully loaded configuration.
 	lastLoadedConfigHash float64
@@ -96,12 +96,11 @@ func NewConfigWatcher(logger log.Logger, reg prometheus.Registerer, path string,
 				Name: "whizard_tenant_admission_config_file_refreshes_total",
 				Help: "The number of refreshes of the configuration file.",
 			}),
-		tenantsGauge: promauto.With(reg).NewGaugeVec(
+		tenantsGauge: promauto.With(reg).NewGauge(
 			prometheus.GaugeOpts{
 				Name: "whizard_tenant_admission_tenants",
 				Help: "The number of tenants allowed.",
-			},
-			[]string{"tenant"}),
+			}),
 	}
 	return c, nil
 }
@@ -151,7 +150,7 @@ func (cw *ConfigWatcher) Run(ctx context.Context) {
 	}
 }
 
-// C returns a chan that gets hashring configuration updates.
+// C returns a chan that gets configuration updates.
 func (cw *ConfigWatcher) C() <-chan AdmissionControlConfig {
 	return cw.ch
 }
@@ -164,7 +163,7 @@ func (cw *ConfigWatcher) ValidateConfig() error {
 
 // Stop shuts down the config watcher.
 func (cw *ConfigWatcher) Stop() {
-	level.Debug(cw.logger).Log("msg", "stopping hashring configuration watcher...", "path", cw.path)
+	level.Debug(cw.logger).Log("msg", "stopping configuration watcher...", "path", cw.path)
 
 	done := make(chan struct{})
 	defer close(done)
@@ -186,10 +185,10 @@ func (cw *ConfigWatcher) Stop() {
 	}
 
 	close(cw.ch)
-	level.Debug(cw.logger).Log("msg", "hashring configuration watcher stopped")
+	level.Debug(cw.logger).Log("msg", "configuration watcher stopped")
 }
 
-// refresh reads the configured file and sends the hashring configuration on the channel.
+// refresh reads the configured file and sends the configuration on the channel.
 func (cw *ConfigWatcher) refresh(ctx context.Context) {
 	cw.refreshCounter.Inc()
 
@@ -213,9 +212,9 @@ func (cw *ConfigWatcher) refresh(ctx context.Context) {
 	cw.successGauge.Set(1)
 	cw.lastSuccessTimeGauge.SetToCurrentTime()
 
-	cw.tenantsGauge.WithLabelValues(config.Tenants...).Set(float64(len(config.Tenants)))
+	cw.tenantsGauge.Set(float64(len(config.Tenants)))
 
-	level.Debug(cw.logger).Log("msg", "refreshed hashring config")
+	level.Debug(cw.logger).Log("msg", "refreshed config")
 	select {
 	case <-ctx.Done():
 		return
@@ -232,7 +231,7 @@ func ConfigFromWatcher(ctx context.Context, updates chan<- AdmissionControlConfi
 		select {
 		case cfg, ok := <-cw.C():
 			if !ok {
-				return errors.New("hashring config watcher stopped unexpectedly")
+				return errors.New("config watcher stopped unexpectedly")
 			}
 			updates <- cfg
 		case <-ctx.Done():

@@ -154,6 +154,12 @@ type GatewaySpec struct {
 	// Secret name for HTTP Client CA certificate (Kubernetes TLS secret type)
 	ClientCACertificate string `json:"clientCaCertificate,omitempty"`
 
+	// If debug mode is on, gateway will proxy Query UI
+	DebugMode bool `json:"debug,omitempty"`
+
+	// Deny unknown tenant data remote-write and query if enabled
+	EnabledTenantsAdmission bool `json:"enabledTenantsAdmission,omitempty"`
+
 	// NodePort is the port used to expose the gateway service.
 	// If this is a valid node port, the gateway service type will be set to NodePort accordingly.
 	NodePort int32 `json:"nodePort,omitempty"`

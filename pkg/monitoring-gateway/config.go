@@ -11,7 +11,6 @@ import (
 	"github.com/prometheus/common/config"
 	"github.com/prometheus/common/model"
 	"github.com/thanos-io/thanos/pkg/extkingpin"
-	"github.com/thanos-io/thanos/pkg/httpconfig"
 
 	"gopkg.in/yaml.v2"
 )
@@ -78,24 +77,24 @@ type RulesQueryConfig struct {
 }
 
 func (rc *RulesQueryConfig) RegisterFlag(cmd extflag.FlagClause) *RulesQueryConfig {
-	cmd.Flag("rulesquery.address", "Addresses of statically configured query API servers (repeatable). The scheme may be prefixed with 'dns+' or 'dnssrv+' to detect query API servers through respective DNS lookups.").
+	cmd.Flag("rules-query.address", "Addresses of statically configured query API servers (repeatable). The scheme may be prefixed with 'dns+' or 'dnssrv+' to detect query API servers through respective DNS lookups.").
 		PlaceHolder("<query>").StringVar(&rc.DownstreamURL)
 
-	rc.DownstreamTripperConfig.TripperPathOrContent = *extflag.RegisterPathOrContent(cmd, "rulesquery.downstream-tripper-config", "YAML file that contains downstream tripper configuration. If your downstream URL is localhost or 127.0.0.1 then it is highly recommended to increase max_idle_conns_per_host to at least 100.", extflag.WithEnvSubstitution())
+	rc.DownstreamTripperConfig.TripperPathOrContent = *extflag.RegisterPathOrContent(cmd, "rules-query.config", "YAML file that contains downstream tripper configuration. If your downstream URL is localhost or 127.0.0.1 then it is highly recommended to increase max_idle_conns_per_host to at least 100.", extflag.WithEnvSubstitution())
 
 	return rc
 }
 
 // DownstreamTripperConfig stores the http.Transport configuration for query's HTTP downstream tripper.
 type DownstreamTripperConfig struct {
-	IdleConnTimeout       model.Duration        `yaml:"idle_conn_timeout"`
-	ResponseHeaderTimeout model.Duration        `yaml:"response_header_timeout"`
-	TLSHandshakeTimeout   model.Duration        `yaml:"tls_handshake_timeout"`
-	ExpectContinueTimeout model.Duration        `yaml:"expect_continue_timeout"`
-	MaxIdleConns          *int                  `yaml:"max_idle_conns"`
-	MaxIdleConnsPerHost   *int                  `yaml:"max_idle_conns_per_host"`
-	MaxConnsPerHost       *int                  `yaml:"max_conns_per_host"`
-	TLSConfig             *httpconfig.TLSConfig `yaml:"tls_config"`
+	IdleConnTimeout       model.Duration    `yaml:"idle_conn_timeout"`
+	ResponseHeaderTimeout model.Duration    `yaml:"response_header_timeout"`
+	TLSHandshakeTimeout   model.Duration    `yaml:"tls_handshake_timeout"`
+	ExpectContinueTimeout model.Duration    `yaml:"expect_continue_timeout"`
+	MaxIdleConns          *int              `yaml:"max_idle_conns"`
+	MaxIdleConnsPerHost   *int              `yaml:"max_idle_conns_per_host"`
+	MaxConnsPerHost       *int              `yaml:"max_conns_per_host"`
+	TLSConfig             *config.TLSConfig `yaml:"tls_config"`
 
 	TripperPathOrContent extflag.PathOrContent
 }
@@ -144,13 +143,7 @@ func ParseTransportConfiguration(downstreamTripperConfContentYaml []byte) (*http
 			downstreamTripper.MaxConnsPerHost = *tripperConfig.MaxConnsPerHost
 		}
 		if tripperConfig.TLSConfig != nil {
-			tlsConfig, err := config.NewTLSConfig(&config.TLSConfig{
-				CAFile:             tripperConfig.TLSConfig.CAFile,
-				CertFile:           tripperConfig.TLSConfig.CertFile,
-				KeyFile:            tripperConfig.TLSConfig.KeyFile,
-				ServerName:         tripperConfig.TLSConfig.ServerName,
-				InsecureSkipVerify: tripperConfig.TLSConfig.InsecureSkipVerify,
-			})
+			tlsConfig, err := config.NewTLSConfig(tripperConfig.TLSConfig)
 			if err != nil {
 				return nil, err
 			}

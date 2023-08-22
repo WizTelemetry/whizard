@@ -183,6 +183,10 @@ func runGateway(
 	}
 	options.RemoteWriteHandler, _ = monitoringgateway.NewRemoteWriteHandler(rwsCfg, options.TenantHeader)
 
+	if conf.tenantsFileContent != "" || conf.tenantsFilePath != "" {
+		options.EnabledTenantsAdmission = true
+	}
+
 	webhandler := monitoringgateway.NewHandler(logger, options)
 
 	if conf.debug {
@@ -205,18 +209,18 @@ func runGateway(
 
 	updates := make(chan monitoringgateway.AdmissionControlConfig, 1)
 
-	// The Hashrings config file path is given initializing config watcher.
+	// The config file path is given initializing config watcher.
 	if conf.tenantsFilePath != "" {
 		cw, err := monitoringgateway.NewConfigWatcher(log.With(logger, "component", "config-watcher"), reg, conf.tenantsFilePath, *conf.refreshInterval)
 		if err != nil {
 			return errors.Wrap(err, "failed to initialize config watcher")
 		}
 
-		// Check the hashring configuration on before running the watcher.
+		// Check the configuration on before running the watcher.
 		if err := cw.ValidateConfig(); err != nil {
 			cw.Stop()
 			close(updates)
-			return errors.Wrap(err, "failed to validate hashring configuration file")
+			return errors.Wrap(err, "failed to validate configuration file")
 		}
 
 		ctx, cancel := context.WithCancel(context.Background())
@@ -230,12 +234,12 @@ func runGateway(
 			cf  monitoringgateway.AdmissionControlConfig
 			err error
 		)
-		// The Hashrings config file content given initialize configuration from content.
+		// The config file content given initialize configuration from content.
 		if len(conf.tenantsFileContent) > 0 {
 			cf, err = monitoringgateway.ParseConfig([]byte(conf.tenantsFileContent))
 			if err != nil {
 				close(updates)
-				return errors.Wrap(err, "failed to validate hashring configuration content")
+				return errors.Wrap(err, "failed to validate configuration content")
 			}
 		}
 
@@ -261,10 +265,10 @@ func runGateway(
 				}
 
 				if err := webhandler.SetAdmissionControlHandler(c); err != nil {
-					return errors.Wrap(err, "failed to set hashring config in MultiTSDB")
+					return errors.Wrap(err, "failed to set tenants admission config in gateway")
 				}
 
-				// If not, just signal we are ready (this is important during first hashring load)
+				// If not, just signal we are ready (this is important during first config load)
 				statusProber.Ready()
 
 			case <-cancel:
@@ -286,19 +290,19 @@ func (gc *gatewayConfig) registerFlag(cmd extkingpin.FlagClause) {
 	cmd.Flag("server-tls-cert", "TLS Certificate for HTTP server, leave blank to disable TLS.").Default("").StringVar(&gc.DeprecatedServerTLS.Cert)
 	cmd.Flag("server-tls-client-ca", "TLS CA to verify clients against. If no client CA is specified, there is no client verification on server side. (tls.NoClientCert)").Default("").StringVar(&gc.DeprecatedServerTLS.ClientCa)
 
-	cmd.Flag("debug.enable-ui", "If true, Gateway will proxy and expose Thnaos Query UI for debugging.").Default("false").BoolVar(&gc.debug)
+	cmd.Flag("debug.enable-ui", "If true, Gateway will proxy and expose Thanos Query UI for debugging.").Default("false").BoolVar(&gc.debug)
 
 	cmd.Flag("tenant.header", "HTTP header to determine tenant for write requests.").Default("WHIZARD-TENANT").StringVar(&gc.tenantHeader)
 	cmd.Flag("tenant.label-name", "Label name through which the tenant will be announced.").Default("tenant_id").StringVar(&gc.tenantLabelName)
-	cmd.Flag("tenant.admission-control-config-file", "Path to file that contains the hashring configuration. A watcher is initialized to watch changes and update the hashring dynamically.").PlaceHolder("<path>").StringVar(&gc.tenantsFilePath)
-	cmd.Flag("tenant.admission-control-config", "Alternative to 'receive.hashrings-file' flag (lower priority). Content of file that contains the hashring configuration.").PlaceHolder("<content>").StringVar(&gc.tenantsFileContent)
-	gc.refreshInterval = extkingpin.ModelDuration(cmd.Flag("tenant.admission-control-config-file-refresh-interval", "Refresh interval to re-read the hashring configuration file. (used as a fallback)").Default("5m"))
+	cmd.Flag("tenant.admission-control-config-file", "Path to file that contains the configuration. A watcher is initialized to watch changes and update the dynamically.").PlaceHolder("<path>").StringVar(&gc.tenantsFilePath)
+	cmd.Flag("tenant.admission-control-config", "Alternative to 'tenant.admission-control-config-file' flag (lower priority). Content of file that contains the configuration.").PlaceHolder("<content>").StringVar(&gc.tenantsFileContent)
+	gc.refreshInterval = extkingpin.ModelDuration(cmd.Flag("tenant.admission-control-config-file-refresh-interval", "Refresh interval to re-read the configuration file. (used as a fallback)").Default("1m"))
 
 	gc.RemoteWrites.ConfigPathOrContent = *extflag.RegisterPathOrContent(cmd, "remote-writes.config", "Path to YAML config for the remote-write configurations, that specify servers where received remote-write requests should be forwarded to.", extflag.WithEnvSubstitution())
 	// Deprecated
 	cmd.Flag("remote-write.address", "Address to send remote write requests. (Deprecated, please use remote-writes.config[/config-file] instead)").Default("").StringVar(&gc.RemoteWrite.Address)
-	cmd.Flag("remote-write.ConfigFile", "ownstream receive service configuration file. (Deprecated, please use remote-writes.config[/config-file] instead)").Default("").StringVar(&gc.RemoteWrite.Address)
-	cmd.Flag("remote-write.Config", "Downstream receive service configuration content. (Deprecated, please use remote-writes.config[/config-file] instead)").Default("").StringVar(&gc.RemoteWrite.Address)
+	cmd.Flag("remote-write.configFile", "Downstream receive service configuration file. (Deprecated, please use remote-writes.config[/config-file] instead)").Default("").StringVar(&gc.RemoteWrite.Address)
+	cmd.Flag("remote-write.config", "Downstream receive service configuration content. (Deprecated, please use remote-writes.config[/config-file] instead)").Default("").StringVar(&gc.RemoteWrite.Address)
 
 	gc.queryConfig.RegisterFlag(cmd)
 	gc.rulesQueryConfig.RegisterFlag(cmd)

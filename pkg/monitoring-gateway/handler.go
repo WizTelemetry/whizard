@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	"github.com/prometheus-community/prom-label-proxy/injectproxy"
@@ -43,7 +44,8 @@ type Options struct {
 	QueryProxy         *httputil.ReverseProxy
 	RulesQueryProxy    *httputil.ReverseProxy
 
-	CertAuthenticator *CertAuthenticator
+	CertAuthenticator       *CertAuthenticator
+	EnabledTenantsAdmission bool
 }
 
 type Handler struct {
@@ -51,8 +53,7 @@ type Handler struct {
 	options *Options
 	router  *mux.Router
 
-	enabledTenantsAdmission bool
-	tenantsAdmissionMap     sync.Map
+	tenantsAdmissionMap sync.Map
 
 	remoteWriteHander http.Handler
 	queryProxy        *httputil.ReverseProxy
@@ -65,25 +66,24 @@ func NewHandler(logger log.Logger, o *Options) *Handler {
 	}
 
 	h := &Handler{
-		logger:                  logger,
-		options:                 o,
-		router:                  mux.NewRouter(),
-		remoteWriteHander:       o.RemoteWriteHandler,
-		enabledTenantsAdmission: true,
-		queryProxy:              o.QueryProxy,
-		rulesQueryProxy:         o.RulesQueryProxy,
+		logger:            logger,
+		options:           o,
+		router:            mux.NewRouter(),
+		remoteWriteHander: o.RemoteWriteHandler,
+		queryProxy:        o.QueryProxy,
+		rulesQueryProxy:   o.RulesQueryProxy,
 	}
 
 	// do provide /api/v1/alerts because thanos does not support alerts filtering as of v0.28.0
 	// please filtering alerts by /api/v1/rules
 	// h.router.Get(epAlerts, h.wrap(h.matcher(matchersParam)))
 	h.addGlobalQueryHandler()
-	h.addTenantQueryHander()
-	h.addTenantRemoteWriteHander()
+	h.addTenantQueryHandler()
+	h.addTenantRemoteWriteHandler()
 	return h
 }
 
-func (h *Handler) addTenantQueryHander() {
+func (h *Handler) addTenantQueryHandler() {
 	h.router.Path(apiTenantPrefix + epQuery).Methods(http.MethodGet).HandlerFunc(h.wrap(h.query))
 	h.router.Path(apiTenantPrefix + epQuery).Methods(http.MethodPost).HandlerFunc(h.wrap(h.query))
 	h.router.Path(apiTenantPrefix + epQueryRange).Methods(http.MethodGet).HandlerFunc(h.wrap(h.query))
@@ -93,7 +93,7 @@ func (h *Handler) addTenantQueryHander() {
 	h.router.Path(apiTenantPrefix + epLabelValues).Methods(http.MethodGet).HandlerFunc(h.wrap(h.matcher(matchersParam)))
 	h.router.Path(apiTenantPrefix + epRules).Methods(http.MethodGet).HandlerFunc(h.wrap(h.matcher(matchersParam)))
 }
-func (h *Handler) addTenantRemoteWriteHander() {
+func (h *Handler) addTenantRemoteWriteHandler() {
 	h.router.Path(apiTenantPrefix + epReceive).Methods(http.MethodPost).HandlerFunc(h.wrap(h.remoteWrite))
 }
 
@@ -115,24 +115,30 @@ func (h *Handler) queryUIHander(rw http.ResponseWriter, req *http.Request) {
 }
 
 func (h *Handler) SetAdmissionControlHandler(c AdmissionControlConfig) error {
-	if h.enabledTenantsAdmission {
+	if h.options.EnabledTenantsAdmission {
 		v, ok := h.tenantsAdmissionMap.Load("/-/")
 		if !ok || v == nil {
+			level.Info(h.logger).Log("msg", "starting tenants admission control")
 			h.tenantsAdmissionMap.Store("/-/", c.Tenants)
 			for _, tenant := range c.Tenants {
 				h.tenantsAdmissionMap.Store(tenant, true)
+				level.Info(h.logger).Log("msg", fmt.Sprintf("tenant %s join admission queue", tenant))
 			}
 			return nil
 		}
 		tenants := v.([]string)
-		addTenantset := intersect(c.Tenants, tenants)
+		addTenantset := difference(c.Tenants, tenants)
 		for _, tenant := range addTenantset {
 			h.tenantsAdmissionMap.Store(tenant, true)
+			level.Info(h.logger).Log("msg", fmt.Sprintf("tenant %s join admission queue", tenant))
+
 		}
-		rmTenantset := intersect(tenants, c.Tenants)
+		rmTenantset := difference(tenants, c.Tenants)
 		for _, tenant := range rmTenantset {
 			h.tenantsAdmissionMap.Delete(tenant)
+			level.Info(h.logger).Log("msg", fmt.Sprintf("tenant %s is removed from the access queue", tenant))
 		}
+		h.tenantsAdmissionMap.Store("/-/", c.Tenants)
 	}
 
 	return nil
@@ -179,7 +185,7 @@ func (h *Handler) query(w http.ResponseWriter, req *http.Request) {
 		http.NotFound(w, req)
 		return
 	}
-	if _, ok := h.tenantsAdmissionMap.Load(requestInfo.TenantId); h.enabledTenantsAdmission && !ok {
+	if _, ok := h.tenantsAdmissionMap.Load(requestInfo.TenantId); h.options.EnabledTenantsAdmission && !ok {
 		err := fmt.Errorf("tenant %s is not allowed to access", requestInfo.TenantId)
 		http.Error(w, err.Error(), http.StatusForbidden)
 		return
@@ -245,7 +251,7 @@ func (h *Handler) matcher(matchersParam string) http.HandlerFunc {
 			http.NotFound(w, req)
 			return
 		}
-		if _, ok := h.tenantsAdmissionMap.Load(requestInfo.TenantId); h.enabledTenantsAdmission && !ok {
+		if _, ok := h.tenantsAdmissionMap.Load(requestInfo.TenantId); h.options.EnabledTenantsAdmission && !ok {
 			err := fmt.Errorf("tenant %s is not allowed to access", requestInfo.TenantId)
 			http.Error(w, err.Error(), http.StatusForbidden)
 			return
@@ -296,7 +302,7 @@ func (h *Handler) remoteWrite(w http.ResponseWriter, req *http.Request) {
 		http.NotFound(w, req)
 		return
 	}
-	if _, ok := h.tenantsAdmissionMap.Load(requestInfo.TenantId); h.enabledTenantsAdmission && !ok {
+	if _, ok := h.tenantsAdmissionMap.Load(requestInfo.TenantId); h.options.EnabledTenantsAdmission && !ok {
 		err := fmt.Errorf("tenant %s is not allowed to access", requestInfo.TenantId)
 		http.Error(w, err.Error(), http.StatusForbidden)
 		return
@@ -422,21 +428,19 @@ func indexByteNth(s string, c byte, nth int) int {
 	return -1
 }
 
-func intersect(a, b []string) []string {
-	var set []string
+func difference(a, b []string) []string {
+	set := make([]string, 0)
+	hash := make(map[string]struct{})
+
 	for _, v := range a {
-		if !containers(b, v) {
+		hash[v] = struct{}{}
+	}
+
+	for _, v := range b {
+		if _, ok := hash[v]; !ok {
 			set = append(set, v)
 		}
 	}
-	return set
-}
 
-func containers(s []string, str string) bool {
-	for _, v := range s {
-		if v == str {
-			return true
-		}
-	}
-	return false
+	return set
 }
