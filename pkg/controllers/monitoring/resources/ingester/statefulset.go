@@ -235,6 +235,7 @@ func (r *Ingester) generateInitContainer(tsdbVolumeMount *corev1.VolumeMount) []
 	for _, tenant := range r.ingester.Status.Tenants {
 		tenants = append(tenants, tenant.Name)
 	}
+	sort.Strings(tenants)
 
 	return []corev1.Container{
 		{
