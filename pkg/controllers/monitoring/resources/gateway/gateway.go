@@ -59,5 +59,6 @@ func (g *Gateway) Reconcile() error {
 	return g.ReconcileResources([]resources.Resource{
 		g.deployment,
 		g.service,
+		g.tenantsAdmissionConfigMap,
 	})
 }

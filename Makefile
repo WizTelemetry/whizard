@@ -100,7 +100,7 @@ controller-manager:
 	$(GO_BUILD_RECIPE)  -o bin/controller-manager cmd/controller-manager/controller-manager.go
 
 monitoring-gateway: 
-	go build -o bin/monitoring-gateway cmd/monitoring-gateway/monitoring-gateway.go
+	$(GO_BUILD_RECIPE) -o bin/monitoring-gateway cmd/monitoring-gateway/*
 
 monitoring-agent-proxy:
 	go build -o bin/monitoring-agent-proxy cmd/monitoring-agent-proxy/monitoring-agent-proxy.go
@@ -114,7 +114,7 @@ docker-build-controller-manager:
 	${CONTAINER_CLI} ${CONTAINER_BUILDER} ${CONTAINER_BUILD_EXTRA_ARGS} --build-arg GOLDFLAGS="$(GO_BUILD_LDFLAGS)" -t $(CONTROLLER_MANAGER_IMG) -f build/controller-manager/Dockerfile .
 
 docker-build-monitoring-gateway:
-	${CONTAINER_CLI} ${CONTAINER_BUILDER} ${CONTAINER_BUILD_EXTRA_ARGS}  -t $(MONITORING_GATEWAY_IMG) -f build/monitoring-gateway/Dockerfile .
+	${CONTAINER_CLI} ${CONTAINER_BUILDER} ${CONTAINER_BUILD_EXTRA_ARGS} --build-arg GOLDFLAGS="$(GO_BUILD_LDFLAGS)"  -t $(MONITORING_GATEWAY_IMG) -f build/monitoring-gateway/Dockerfile .
 
 docker-build-monitoring-agent-proxy:
 	${CONTAINER_CLI} ${CONTAINER_BUILDER} ${CONTAINER_BUILD_EXTRA_ARGS}  -t $(MONITORING_AGENT_PROXY_IMG) -f build/monitoring-agent-proxy/Dockerfile .
@@ -131,7 +131,7 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 	$(KUSTOMIZE) build config/crd | kubectl delete -f -
 
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+	cd config/manager && $(KUSTOMIZE) edit set image controller=${CONTROLLER_MANAGER_IMG}
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.

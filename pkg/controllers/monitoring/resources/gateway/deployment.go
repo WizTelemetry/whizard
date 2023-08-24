@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/query"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/queryfrontend"
@@ -136,6 +137,32 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 	}
 	if g.Service.Spec.TenantLabelName != "" {
 		container.Args = append(container.Args, "--tenant.label-name="+g.Service.Spec.TenantLabelName)
+	}
+
+	if g.gateway.Spec.DebugMode {
+		container.Args = append(container.Args, "--debug.enable-ui")
+	}
+	if g.gateway.Spec.EnabledTenantsAdmission {
+
+		container.Args = append(container.Args, fmt.Sprintf("--tenant.admission-control-config-file=%s", constants.WhizardConfigMountPath+TenantsAdmissionConfigFile))
+
+		volume := corev1.Volume{
+			Name: "tenants-admission-config",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: g.name("tenants-admission-config"),
+					},
+				},
+			},
+		}
+		d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, volume)
+		volumeMount := corev1.VolumeMount{
+			Name:      volume.Name,
+			MountPath: constants.WhizardConfigMountPath,
+			ReadOnly:  true,
+		}
+		container.VolumeMounts = append(container.VolumeMounts, volumeMount)
 	}
 
 	queryFrontendAddr, err := g.queryfrontendAddress()

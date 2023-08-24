@@ -856,6 +856,12 @@ spec:
                 description: Secret name for HTTP Client CA certificate (Kubernetes
                   TLS secret type)
                 type: string
+              debug:
+                description: If debug mode is on, gateway will proxy Query UI
+                type: boolean
+              enabledTenantsAdmission:
+                description: Deny unknown tenant data remote-write and query if enabled
+                type: boolean
               flags:
                 description: Flags is the flags of component.
                 items:

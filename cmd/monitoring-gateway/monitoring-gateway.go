@@ -1,22 +1,14 @@
 package main
 
 import (
-	"crypto/tls"
-	"io/ioutil"
-	"net/url"
-	"path"
-	"strings"
+	"os"
 
-	"github.com/alecthomas/kong"
 	"github.com/pkg/errors"
 	"github.com/prometheus/common/config"
-	"github.com/thanos-io/thanos/pkg/logging"
-	thanos_tls "github.com/thanos-io/thanos/pkg/tls"
 	"gopkg.in/yaml.v2"
-
-	monitoringgateway "github.com/kubesphere/whizard/pkg/monitoring-gateway"
 )
 
+/*
 var cli struct {
 	Log struct {
 		Level  string `enum:"debug,info,warn,error" default:"info" help:"Log filtering level. Possible options: ${enum}."`
@@ -54,11 +46,9 @@ var cli struct {
 	} `embed:"" prefix:"tenant."`
 }
 
-type Config struct {
-	TLSConfig *config.TLSConfig `yaml:"tls_config,omitempty" json:"tls_config,omitempty"`
-}
 
-func main() {
+
+func m_main() {
 
 	ctx := kong.Parse(&cli)
 
@@ -146,11 +136,16 @@ func main() {
 	err = handler.Run()
 	ctx.FatalIfErrorf(err)
 }
+*/
+
+type Config struct {
+	TLSConfig *config.TLSConfig `yaml:"tls_config,omitempty" json:"tls_config,omitempty"`
+}
 
 func parseConfig(file string, content string) (*Config, error) {
 	var buff []byte
 	if len(file) > 0 {
-		c, err := ioutil.ReadFile(file)
+		c, err := os.ReadFile(file)
 		if err != nil {
 			return nil, err
 		}
