@@ -46,6 +46,20 @@ spec:
   flags:
     {{- toYaml . | nindent 4 }}
   {{- end }}
+  {{ if .Values.query.genSignedCert }}
+  httpServerTLSConfig:
+    certSecret:
+      name: {{ include "whizard.query.crname" . }}-query-tls-assets
+      key: tls.crt
+    keySecret:
+      name: {{ include "whizard.query.crname" . }}-query-tls-assets
+      key: tls.key
+  {{- else }}
+  {{- with .Values.query.httpServerTLSConfig }}
+  httpServerTLSConfig:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- end }}
   envoy: 
     image: "{{ .Values.query.envoy.image.repository }}:{{ .Values.query.envoy.image.tag }}"
     {{- with .Values.query.resources }}

@@ -43,4 +43,18 @@ spec:
   flags:
     {{- toYaml . | nindent 4 }}
   {{- end }}
+  {{ if .Values.router.genSignedCert }}
+  httpServerTLSConfig:
+    certSecret:
+      name: {{ include "whizard.router.crname" . }}-router-tls-assets
+      key: tls.crt
+    keySecret:
+      name: {{ include "whizard.router.crname" . }}-router-tls-assets
+      key: tls.key
+  {{- else }}
+  {{- with .Values.router.httpServerTLSConfig }}
+  httpServerTLSConfig:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- end }}
 {{- end }}

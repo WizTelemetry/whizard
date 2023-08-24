@@ -46,4 +46,18 @@ spec:
   cacheConfig: 
     {{- toYaml . | nindent 4 }}
   {{- end }}
+  {{ if .Values.queryFrontend.genSignedCert }}
+  httpServerTLSConfig:
+    certSecret:
+      name: {{ include "whizard.queryFrontend.crname" . }}-query-frontend-tls-assets
+      key: tls.crt
+    keySecret:
+      name: {{ include "whizard.queryFrontend.crname" . }}-query-frontend-tls-assets
+      key: tls.key
+  {{- else }}
+  {{- with .Values.queryFrontend.httpServerTLSConfig }}
+  httpServerTLSConfig:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- end }}
 {{- end }}

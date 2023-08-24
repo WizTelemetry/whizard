@@ -49,7 +49,13 @@ storage:
 controllerManager: 
   enabled: true
 
-  resources: {}
+  resources: 
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
   # resources, such as Minikube. If you do want to specify resources, uncomment the following
@@ -105,7 +111,13 @@ controllerManager:
         tag: ""
       
       replicas: 2
-      resources: {}
+      resources:
+        limits:
+          cpu: "2"
+          memory: 4Gi
+        requests:
+          cpu: 50m
+          memory: 50Mi
 
     router: 
       ## If null or unset, the global.whizardImage is used.
@@ -116,6 +128,13 @@ controllerManager:
       replicas: 2
 
       replicationFactor: 1
+      resources:
+        limits:
+          cpu: "2"
+          memory: 4Gi
+        requests:
+          cpu: 50m
+          memory: 50Mi      
 
     queryFrontend: 
       ## If null or unset, the global.whizardImage is used.
@@ -124,7 +143,13 @@ controllerManager:
       # tag: v0.28.0
 
       replicas: 2
-      resources: {}
+      resources:
+        limits:
+          cpu: "2"
+          memory: 4Gi
+        requests:
+          cpu: 50m
+          memory: 50Mi
 
       cacheConfig: {}
 
@@ -135,7 +160,13 @@ controllerManager:
         tag: v0.30.2
 
       replicas: 3
-      resources: {}
+      resources:
+        limits:
+          cpu: "2"
+          memory: 4Gi
+        requests:
+          cpu: 50m
+          memory: 50Mi
 
       additionalFlags:
       - --query.max-concurrent=200
@@ -152,7 +183,13 @@ controllerManager:
       # tag: v0.28.0
 
       replicas: 2
-      resources: {}
+      resources:
+        limits:
+          cpu: "4"
+          memory: 16Gi
+        requests:
+          cpu: 50m
+          memory: 50Mi
 
       ## how long to retain raw samples on local storage.
       localTsdbRetention: 7d
@@ -206,7 +243,13 @@ controllerManager:
       - --web.disable      #Disable Block Viewer UI.
       - --compact.enable-vertical-compaction
 
-      resources: {}
+      resources:
+        limits:
+          cpu: "2"
+          memory: 4Gi
+        requests:
+          cpu: 50m
+          memory: 50Mi
       dataVolume: {}
 
     ruler: 
@@ -216,7 +259,13 @@ controllerManager:
       # tag: v0.28.0
 
       replicas: 1
-      resources: {}
+      resources:
+        limits:
+          cpu: "2"
+          memory: 4Gi
+        requests:
+          cpu: 50m
+          memory: 50Mi
 
       shards: 1
 
@@ -237,7 +286,13 @@ controllerManager:
 adapter:
   enabled: false
 
-  resources: {}
+  resources: 
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi  
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -313,6 +368,7 @@ gateway:
   tolerations: []
   affinity: {}
 
+  enabledTenantsAdmission: true
   nodePort: 0
 
 # Deploy an Query instance
@@ -339,6 +395,10 @@ query:
   - prometheus_replica
   - receive_replica
   - ruler_replica
+
+  genSignedCert: false
+  httpServerTLSConfig: {}
+
   additionalFlags: []
 
   envoy: 
@@ -367,6 +427,9 @@ router:
   tolerations: []
   affinity: {}
 
+  genSignedCert: false
+  httpServerTLSConfig: {}
+
   additionalFlags: []
 
 # Deploy an QueryFrontend instance
@@ -390,6 +453,9 @@ queryFrontend:
   affinity: {}
   
   cacheConfig: {}
+  genSignedCert: false
+  httpServerTLSConfig: {}
+
   additionalFlags: 
   - --no-query-range.align-range-with-step #Disable query-range.align-range-with-step, the incoming query parameter remains the same (as required by the frontend), although it may reduce the cache-ability.
 
