@@ -36,4 +36,5 @@ spec:
 
   logLevel: {{ .Values.global.whizard.log.level }}
   logFormat: {{ .Values.global.whizard.log.format }}
+  enabledTenantsAdmission: {{ .Values.gateway.enabledTenantsAdmission }}
 {{- end }}
