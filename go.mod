@@ -155,8 +155,8 @@ require (
 
 replace (
 	github.com/prometheus/prometheus => github.com/prometheus/prometheus v0.42.0
-	// TODO: Remove when thanos is updated for 1.20
-	go4.org/unsafe/assume-no-moving-gc => go4.org/unsafe/assume-no-moving-gc v0.0.0-20230204201903-c31fa085b70e
+	// The version must be consistent with Go runtime version.
+	go4.org/unsafe/assume-no-moving-gc => go4.org/unsafe/assume-no-moving-gc v0.0.0-20230525183740-e7c30c78aeb2
 
 	// Overriding to use latest commit.
 	gopkg.in/alecthomas/kingpin.v2 => github.com/alecthomas/kingpin v1.3.8-0.20210301060133-17f40c25f497
