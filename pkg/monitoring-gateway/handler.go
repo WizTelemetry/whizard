@@ -432,11 +432,11 @@ func difference(a, b []string) []string {
 	set := make([]string, 0)
 	hash := make(map[string]struct{})
 
-	for _, v := range a {
+	for _, v := range b {
 		hash[v] = struct{}{}
 	}
 
-	for _, v := range b {
+	for _, v := range a {
 		if _, ok := hash[v]; !ok {
 			set = append(set, v)
 		}
