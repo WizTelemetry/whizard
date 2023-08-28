@@ -48,9 +48,10 @@ func (r *Router) deployment() (runtime.Object, resources.Operation, error) {
 				Labels: r.labels(),
 			},
 			Spec: corev1.PodSpec{
-				NodeSelector: r.router.Spec.NodeSelector,
-				Tolerations:  r.router.Spec.Tolerations,
-				Affinity:     r.router.Spec.Affinity,
+				NodeSelector:    r.router.Spec.NodeSelector,
+				Tolerations:     r.router.Spec.Tolerations,
+				Affinity:        r.router.Spec.Affinity,
+				SecurityContext: r.router.Spec.SecurityContext,
 			},
 		},
 	}

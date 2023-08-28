@@ -54,6 +54,7 @@ func (r *Compactor) statefulSet() (runtime.Object, resources.Operation, error) {
 	sts.Spec.Template.Labels = r.labels()
 	sts.Spec.Template.Spec.Affinity = r.compactor.Spec.Affinity
 	sts.Spec.Template.Spec.NodeSelector = r.compactor.Spec.NodeSelector
+	sts.Spec.Template.Spec.SecurityContext = r.compactor.Spec.SecurityContext
 	sts.Spec.Template.Spec.Volumes = []corev1.Volume{}
 	sts.Spec.VolumeClaimTemplates = []corev1.PersistentVolumeClaim{}
 

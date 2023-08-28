@@ -48,6 +48,7 @@ func (s *Storage) deployment() (runtime.Object, resources.Operation, error) {
 	d.Spec.Template.Spec.NodeSelector = s.storage.Spec.BlockManager.NodeSelector
 	d.Spec.Template.Spec.Tolerations = s.storage.Spec.BlockManager.Tolerations
 	d.Spec.Template.Spec.ServiceAccountName = s.storage.Spec.BlockManager.ServiceAccountName
+	d.Spec.Template.Spec.SecurityContext = s.storage.Spec.BlockManager.SecurityContext
 
 	if s.storage.Spec.BlockManager.ImagePullSecrets != nil && len(s.storage.Spec.BlockManager.ImagePullSecrets) > 0 {
 		d.Spec.Template.Spec.ImagePullSecrets = s.storage.Spec.BlockManager.ImagePullSecrets
