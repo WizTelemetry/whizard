@@ -13,7 +13,10 @@ import (
 	monitoringgateway "github.com/kubesphere/whizard/pkg/monitoring-gateway"
 )
 
-const TenantsAdmissionConfigFile = "tenants-admission.yaml"
+const (
+	tenantsAdmissionConfigFile = "tenants-admission.yaml"
+	webConfigFile              = "web-config.yaml"
+)
 
 func (g *Gateway) tenantsAdmissionConfigMap() (runtime.Object, resources.Operation, error) {
 
@@ -47,7 +50,7 @@ func (g *Gateway) tenantsAdmissionConfigMap() (runtime.Object, resources.Operati
 		return nil, resources.OperationCreateOrUpdate, err
 	}
 	cm.Data = map[string]string{
-		TenantsAdmissionConfigFile: string(acBytes),
+		tenantsAdmissionConfigFile: string(acBytes),
 	}
 
 	return cm, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(g.gateway, cm, g.Scheme)

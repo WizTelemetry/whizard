@@ -145,7 +145,7 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 	}
 	if g.gateway.Spec.EnabledTenantsAdmission {
 
-		container.Args = append(container.Args, fmt.Sprintf("--tenant.admission-control-config-file=%s", constants.WhizardConfigMountPath+TenantsAdmissionConfigFile))
+		container.Args = append(container.Args, fmt.Sprintf("--tenant.admission-control-config-file=%s", constants.WhizardConfigMountPath+tenantsAdmissionConfigFile))
 
 		volume := corev1.Volume{
 			Name: "tenants-admission-config",
@@ -160,10 +160,69 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 		d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, volume)
 		volumeMount := corev1.VolumeMount{
 			Name:      volume.Name,
-			MountPath: constants.WhizardConfigMountPath,
+			MountPath: constants.WhizardConfigMountPath + tenantsAdmissionConfigFile,
+			SubPath:   tenantsAdmissionConfigFile,
 			ReadOnly:  true,
 		}
 		container.VolumeMounts = append(container.VolumeMounts, volumeMount)
+	}
+
+	if g.gateway.Spec.WebConfig != nil {
+		container.Args = append(container.Args, fmt.Sprintf("--http.config=%s", constants.WhizardConfigMountPath+webConfigFile))
+
+		volume := corev1.Volume{
+			Name: "web-config",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: g.name("web-config"),
+				},
+			},
+		}
+		d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, volume)
+		volumeMount := corev1.VolumeMount{
+			Name:      volume.Name,
+			MountPath: constants.WhizardConfigMountPath + webConfigFile,
+			SubPath:   webConfigFile,
+			ReadOnly:  true,
+		}
+		container.VolumeMounts = append(container.VolumeMounts, volumeMount)
+
+		tlsAssets := []string{}
+		if g.gateway.Spec.WebConfig.HTTPServerTLSConfig != nil {
+			if g.gateway.Spec.WebConfig.HTTPServerTLSConfig.KeySecret.Name != "" {
+				tlsAssets = append(tlsAssets, g.gateway.Spec.WebConfig.HTTPServerTLSConfig.KeySecret.Name)
+			}
+			if g.gateway.Spec.WebConfig.HTTPServerTLSConfig.CertSecret.Name != "" {
+				tlsAssets = append(tlsAssets, g.gateway.Spec.WebConfig.HTTPServerTLSConfig.CertSecret.Name)
+			}
+			if g.gateway.Spec.WebConfig.HTTPServerTLSConfig.ClientCASecret.Name != "" {
+				tlsAssets = append(tlsAssets, g.gateway.Spec.WebConfig.HTTPServerTLSConfig.ClientCASecret.Name)
+			}
+			if len(tlsAssets) > 0 {
+				assetsVolume := corev1.Volume{
+					Name: "tls-assets",
+					VolumeSource: corev1.VolumeSource{
+						Projected: &corev1.ProjectedVolumeSource{
+							Sources: []corev1.VolumeProjection{},
+						},
+					},
+				}
+				for _, assetShard := range tlsAssets {
+					assetsVolume.Projected.Sources = append(assetsVolume.Projected.Sources,
+						corev1.VolumeProjection{
+							Secret: &corev1.SecretProjection{
+								LocalObjectReference: corev1.LocalObjectReference{Name: assetShard},
+							},
+						})
+				}
+				d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, assetsVolume)
+				container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
+					Name:      "tls-assets",
+					ReadOnly:  true,
+					MountPath: constants.WhizardCertsMountPath,
+				})
+			}
+		}
 	}
 
 	queryFrontendAddr, err := g.queryfrontendAddress()

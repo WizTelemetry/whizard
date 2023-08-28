@@ -60,5 +60,6 @@ func (g *Gateway) Reconcile() error {
 		g.deployment,
 		g.service,
 		g.tenantsAdmissionConfigMap,
+		g.webConfigSecret,
 	})
 }
