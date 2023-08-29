@@ -35,6 +35,10 @@ spec:
   resources:
     {{- toYaml . | nindent 4 }}
   {{- end }}
+  {{- with .Values.queryFrontend.securityContext }}
+  securityContext:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}  
 
   logLevel: {{ .Values.global.whizard.log.level }}
   logFormat: {{ .Values.global.whizard.log.format }}
