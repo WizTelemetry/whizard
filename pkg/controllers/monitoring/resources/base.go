@@ -190,17 +190,32 @@ func (r *BaseReconciler) AddTSDBVolume(sts *appsv1.StatefulSet, container *corev
 		return
 	}
 
+	var volumeName string
 	if dataVolume.PersistentVolumeClaim != nil {
 		pvc := *dataVolume.PersistentVolumeClaim
 		if pvc.Name == "" {
 			pvc.Name = constants.TSDBVolumeName
 		}
+		volumeName = pvc.Name
 		if pvc.Spec.AccessModes == nil {
 			pvc.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
 		}
 
 		sts.Spec.VolumeClaimTemplates = []corev1.PersistentVolumeClaim{pvc}
+		policy := dataVolume.PersistentVolumeClaimRetentionPolicy
+		if policy != nil {
+			if policy.WhenDeleted != appsv1.RetainPersistentVolumeClaimRetentionPolicyType &&
+				policy.WhenDeleted != appsv1.DeletePersistentVolumeClaimRetentionPolicyType {
+				policy.WhenDeleted = appsv1.RetainPersistentVolumeClaimRetentionPolicyType
+			}
+			if policy.WhenScaled != appsv1.RetainPersistentVolumeClaimRetentionPolicyType &&
+				policy.WhenScaled != appsv1.DeletePersistentVolumeClaimRetentionPolicyType {
+				policy.WhenScaled = appsv1.RetainPersistentVolumeClaimRetentionPolicyType
+			}
+			sts.Spec.PersistentVolumeClaimRetentionPolicy = policy
+		}
 	} else if dataVolume.EmptyDir != nil {
+		volumeName = constants.TSDBVolumeName
 		sts.Spec.Template.Spec.Volumes = []corev1.Volume{
 			{
 				Name: constants.TSDBVolumeName,
@@ -213,7 +228,7 @@ func (r *BaseReconciler) AddTSDBVolume(sts *appsv1.StatefulSet, container *corev
 
 	container.VolumeMounts = []corev1.VolumeMount{
 		{
-			Name:      constants.TSDBVolumeName,
+			Name:      volumeName,
 			MountPath: constants.StorageDir,
 		},
 	}

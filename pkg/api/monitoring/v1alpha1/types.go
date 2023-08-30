@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/autoscaling/v2beta2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -389,6 +390,11 @@ type InMemoryResponseCacheConfig struct {
 type KubernetesVolume struct {
 	EmptyDir              *corev1.EmptyDirVolumeSource  `json:"emptyDir,omitempty"`
 	PersistentVolumeClaim *corev1.PersistentVolumeClaim `json:"persistentVolumeClaim,omitempty"`
+	// persistentVolumeClaimRetentionPolicy describes the lifecycle of persistent
+	// volume claims created from persistentVolumeClaim.
+	// This requires the kubernetes version >= 1.23 and its StatefulSetAutoDeletePVC feature gate to be enabled.
+	// +optional
+	PersistentVolumeClaimRetentionPolicy *appsv1.StatefulSetPersistentVolumeClaimRetentionPolicy `json:"persistentVolumeClaimRetentionPolicy,omitempty"`
 }
 
 // IndexCacheConfig specifies the index cache config.

@@ -213,6 +213,11 @@ data:
           {{- toYaml . | nindent 10 }}
         {{- end }}
 
+        {{- with $store.dataVolume }}
+        dataVolume:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+
       {{- $compactor := $config.compactor }}
       compactor: 
         {{- if $compactor.image }}
