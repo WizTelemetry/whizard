@@ -51,9 +51,10 @@ func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
 				Labels: r.labels(),
 			},
 			Spec: corev1.PodSpec{
-				NodeSelector: r.ingester.Spec.NodeSelector,
-				Tolerations:  r.ingester.Spec.Tolerations,
-				Affinity:     r.ingester.Spec.Affinity,
+				NodeSelector:    r.ingester.Spec.NodeSelector,
+				Tolerations:     r.ingester.Spec.Tolerations,
+				Affinity:        r.ingester.Spec.Affinity,
+				SecurityContext: r.ingester.Spec.SecurityContext,
 			},
 		},
 	}

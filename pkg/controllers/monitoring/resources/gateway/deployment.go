@@ -43,9 +43,10 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 				Labels: g.labels(),
 			},
 			Spec: corev1.PodSpec{
-				NodeSelector: g.gateway.Spec.NodeSelector,
-				Tolerations:  g.gateway.Spec.Tolerations,
-				Affinity:     g.gateway.Spec.Affinity,
+				NodeSelector:    g.gateway.Spec.NodeSelector,
+				Tolerations:     g.gateway.Spec.Tolerations,
+				Affinity:        g.gateway.Spec.Affinity,
+				SecurityContext: g.gateway.Spec.SecurityContext,
 			},
 		},
 	}

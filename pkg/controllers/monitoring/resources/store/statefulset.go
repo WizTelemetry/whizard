@@ -102,6 +102,7 @@ func (r *Store) statefulSet(name string, partitionSn int, timeRange v1alpha1.Tim
 	sts.Spec.Template.Spec.Affinity = r.store.Spec.Affinity
 	sts.Spec.Template.Spec.NodeSelector = r.store.Spec.NodeSelector
 	sts.Spec.Template.Spec.Tolerations = r.store.Spec.Tolerations
+	sts.Spec.Template.Spec.SecurityContext = r.store.Spec.SecurityContext
 	sts.Spec.Template.Spec.Volumes = []corev1.Volume{}
 	sts.Spec.VolumeClaimTemplates = []corev1.PersistentVolumeClaim{}
 

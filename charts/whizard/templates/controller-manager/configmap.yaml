@@ -48,6 +48,11 @@ data:
         resources:
           {{- toYaml . | nindent 10 }}
         {{- end }}
+  
+        {{- with $gateway.securityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}       
 
         logLevel: {{ .Values.global.whizard.log.level }}
         logFormat: {{ .Values.global.whizard.log.format }}
@@ -68,7 +73,11 @@ data:
         {{- with $router.resources }}
         resources:
           {{- toYaml . | nindent 10 }}
-        {{- end }}        
+        {{- end }} 
+        {{- with $router.securityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
 
         envoy: 
           image: {{ $config.query.envoy.image.repository }}:{{ $config.query.envoy.image.tag }}
@@ -99,6 +108,10 @@ data:
         resources:
           {{- toYaml . | nindent 10 }}
         {{- end }}  
+        {{- with $queryFrontend.securityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
 
         envoy: 
           image: {{ $config.query.envoy.image.repository }}:{{ $config.query.envoy.image.tag }}
@@ -132,6 +145,10 @@ data:
         resources:
           {{- toYaml . | nindent 10 }}
         {{- end }}  
+        {{- with $query.securityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}        
 
         logLevel: {{ .Values.global.whizard.log.level }}
         logFormat: {{ .Values.global.whizard.log.format }}
@@ -161,6 +178,10 @@ data:
         resources:
           {{- toYaml . | nindent 10 }}
         {{- end }}  
+        {{- with $ingester.securityContext }}}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
 
         logLevel: {{ .Values.global.whizard.log.level }}
         logFormat: {{ .Values.global.whizard.log.format }}
@@ -195,6 +216,10 @@ data:
         resources:
           {{- toYaml . | nindent 10 }}
         {{- end }} 
+        {{- with $store.securityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
 
         logLevel: {{ .Values.global.whizard.log.level }}
         logFormat: {{ .Values.global.whizard.log.format }}
@@ -233,6 +258,15 @@ data:
           {{- toYaml . | nindent 10 }}
         {{- end }}
 
+        {{- with $compactor.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }} 
+        {{- with $compactor.securityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}        
+
         {{- with $compactor.additionalFlags }}
         flags:
           {{- toYaml . | nindent 10 }}
@@ -261,6 +295,10 @@ data:
         resources:
           {{- toYaml . | nindent 10 }}
         {{- end }} 
+        {{- with $ruler.securityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
 
         logLevel: {{ .Values.global.whizard.log.level }}
         logFormat: {{ .Values.global.whizard.log.format }}

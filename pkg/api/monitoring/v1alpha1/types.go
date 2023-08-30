@@ -123,6 +123,10 @@ type CommonSpec struct {
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 	// Define resources requests and limits for main container.
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
+	// SecurityContext holds pod-level security attributes and common container settings.
+	// This defaults to the default PodSecurityContext.
+	// +optional
+	SecurityContext *corev1.PodSecurityContext `json:"securityContext,omitempty"`
 	// Number of replicas for a component.
 	Replicas *int32 `json:"replicas,omitempty"`
 

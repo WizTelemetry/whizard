@@ -70,9 +70,10 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 				Labels: q.labels(),
 			},
 			Spec: corev1.PodSpec{
-				NodeSelector: q.query.Spec.NodeSelector,
-				Tolerations:  q.query.Spec.Tolerations,
-				Affinity:     q.query.Spec.Affinity,
+				NodeSelector:    q.query.Spec.NodeSelector,
+				Tolerations:     q.query.Spec.Tolerations,
+				Affinity:        q.query.Spec.Affinity,
+				SecurityContext: q.query.Spec.SecurityContext,
 			},
 		},
 	}

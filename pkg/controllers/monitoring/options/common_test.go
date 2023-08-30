@@ -23,8 +23,9 @@ func TestCommonOptionsApplyTo(t *testing.T) {
 			NewCommonOptions(),
 			CommonOptions{},
 			&CommonOptions{
-				Image:    DefaultWhizardImage,
-				Replicas: &replicas1,
+				Image:           DefaultWhizardImage,
+				Replicas:        &replicas1,
+				SecurityContext: &corev1.PodSecurityContext{},
 			},
 		},
 		{
@@ -33,10 +34,16 @@ func TestCommonOptionsApplyTo(t *testing.T) {
 			CommonOptions{
 				Image:    "thanos/thanos:v0.28.0",
 				Replicas: &replicas2,
+				SecurityContext: &corev1.PodSecurityContext{
+					FSGroup: &[]int64{0}[0],
+				},
 			},
 			&CommonOptions{
 				Image:    "thanos/thanos:v0.28.0",
 				Replicas: &replicas2,
+				SecurityContext: &corev1.PodSecurityContext{
+					FSGroup: &[]int64{0}[0],
+				},
 			},
 		},
 		{

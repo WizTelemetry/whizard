@@ -105,9 +105,10 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 				Labels: ls,
 			},
 			Spec: corev1.PodSpec{
-				NodeSelector: r.ruler.Spec.NodeSelector,
-				Tolerations:  r.ruler.Spec.Tolerations,
-				Affinity:     r.ruler.Spec.Affinity,
+				NodeSelector:    r.ruler.Spec.NodeSelector,
+				Tolerations:     r.ruler.Spec.Tolerations,
+				Affinity:        r.ruler.Spec.Affinity,
+				SecurityContext: r.ruler.Spec.SecurityContext,
 			},
 		},
 	}

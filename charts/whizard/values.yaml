@@ -190,6 +190,8 @@ controllerManager:
         requests:
           cpu: 50m
           memory: 50Mi
+      securityContext: 
+        fsGroup: 0
 
       ## how long to retain raw samples on local storage.
       localTsdbRetention: 7d
@@ -218,6 +220,8 @@ controllerManager:
         requests:
           cpu: 100m
           memory: 500Mi
+      securityContext: 
+        fsGroup: 0
       indexCacheConfig: {}
 
       timeRanges:
@@ -250,6 +254,8 @@ controllerManager:
         requests:
           cpu: 50m
           memory: 50Mi
+      securityContext: 
+        fsGroup: 0
       dataVolume: {}
 
     ruler: 
@@ -364,6 +370,7 @@ gateway:
 
 
   resources: {}
+  securityContext: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -387,6 +394,7 @@ query:
   
 
   resources: {}
+  securityContext: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -423,6 +431,7 @@ router:
 
 
   resources: {}
+  securityContext: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -448,6 +457,7 @@ queryFrontend:
 
 
   resources: {}
+  securityContext: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -475,6 +485,7 @@ ruler:
 
 
   resources: {}
+  securityContext: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -528,6 +539,8 @@ ingester:
 
 
   resources: {}
+  securityContext: 
+    fsGroup: 0
   nodeSelector: {}
   tolerations: []
   affinity: {}

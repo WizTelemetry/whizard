@@ -53,9 +53,10 @@ func (q *QueryFrontend) deployment() (runtime.Object, resources.Operation, error
 				Labels: q.labels(),
 			},
 			Spec: corev1.PodSpec{
-				NodeSelector: q.queryFrontend.Spec.NodeSelector,
-				Tolerations:  q.queryFrontend.Spec.Tolerations,
-				Affinity:     q.queryFrontend.Spec.Affinity,
+				NodeSelector:    q.queryFrontend.Spec.NodeSelector,
+				Tolerations:     q.queryFrontend.Spec.Tolerations,
+				Affinity:        q.queryFrontend.Spec.Affinity,
+				SecurityContext: q.queryFrontend.Spec.SecurityContext,
 			},
 		},
 	}

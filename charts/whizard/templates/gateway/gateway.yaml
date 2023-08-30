@@ -31,6 +31,10 @@ spec:
   resources:
     {{- toYaml . | nindent 4 }}
   {{- end }}
+  {{- with .Values.gateway.securityContext }}
+  securityContext:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 
   nodePort: {{ .Values.gateway.nodePort }}
 

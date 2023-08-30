@@ -16,6 +16,7 @@ type CommonOptions struct {
 	NodeSelector     map[string]string             `json:"nodeSelector,omitempty" yaml:"nodeSelector,omitempty"`
 	Tolerations      []corev1.Toleration           `json:"tolerations,omitempty" yaml:"tolerations,omitempty"`
 	Resources        corev1.ResourceRequirements   `json:"resources,omitempty" yaml:"resources,omitempty"`
+	SecurityContext  *corev1.PodSecurityContext    `json:"securityContext,omitempty" yaml:"securityContext,omitempty"`
 	Replicas         *int32                        `json:"replicas,omitempty" yaml:"replicas,omitempty"`
 	LogLevel         string                        `json:"logLevel,omitempty" yaml:"logLevel,omitempty"`
 	LogFormat        string                        `json:"logFormat,omitempty" yaml:"logFormat,omitempty"`
@@ -24,9 +25,11 @@ type CommonOptions struct {
 
 func NewCommonOptions() CommonOptions {
 	var replicas int32 = 1
+
 	return CommonOptions{
-		Image:    DefaultWhizardImage,
-		Replicas: &replicas,
+		Image:           DefaultWhizardImage,
+		Replicas:        &replicas,
+		SecurityContext: &corev1.PodSecurityContext{},
 	}
 }
 func (o *CommonOptions) Validate() []error {
@@ -94,6 +97,10 @@ func (o *CommonOptions) ApplyTo(options *CommonOptions) *CommonOptions {
 			}
 
 		}
+	}
+
+	if o.SecurityContext != nil {
+		options.SecurityContext = o.SecurityContext
 	}
 
 	if o.Replicas != nil {

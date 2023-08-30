@@ -301,8 +301,8 @@ func (gc *gatewayConfig) registerFlag(cmd extkingpin.FlagClause) {
 	gc.RemoteWrites.ConfigPathOrContent = *extflag.RegisterPathOrContent(cmd, "remote-writes.config", "Path to YAML config for the remote-write configurations, that specify servers where received remote-write requests should be forwarded to.", extflag.WithEnvSubstitution())
 	// Deprecated
 	cmd.Flag("remote-write.address", "Address to send remote write requests. (Deprecated, please use remote-writes.config[/config-file] instead)").Default("").StringVar(&gc.RemoteWrite.Address)
-	cmd.Flag("remote-write.configFile", "Downstream receive service configuration file. (Deprecated, please use remote-writes.config[/config-file] instead)").Default("").StringVar(&gc.RemoteWrite.Address)
-	cmd.Flag("remote-write.config", "Downstream receive service configuration content. (Deprecated, please use remote-writes.config[/config-file] instead)").Default("").StringVar(&gc.RemoteWrite.Address)
+	cmd.Flag("remote-write.configFile", "Downstream receive service configuration file. (Deprecated, please use remote-writes.config[/config-file] instead)").Default("").StringVar(&gc.RemoteWrite.ConfigFile)
+	cmd.Flag("remote-write.config", "Downstream receive service configuration content. (Deprecated, please use remote-writes.config[/config-file] instead)").Default("").StringVar(&gc.RemoteWrite.Config)
 
 	gc.queryConfig.RegisterFlag(cmd)
 	gc.rulesQueryConfig.RegisterFlag(cmd)
