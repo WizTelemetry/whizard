@@ -49,7 +49,9 @@ func (o *CompactorOptions) ApplyTo(options *CompactorOptions) {
 			if o.DataVolume.PersistentVolumeClaim != nil {
 				options.DataVolume.PersistentVolumeClaim = o.DataVolume.PersistentVolumeClaim
 			}
-
+			if o.DataVolume.PersistentVolumeClaimRetentionPolicy != nil {
+				options.DataVolume.PersistentVolumeClaimRetentionPolicy = o.DataVolume.PersistentVolumeClaimRetentionPolicy
+			}
 			if o.DataVolume.EmptyDir != nil {
 				options.DataVolume.EmptyDir = o.DataVolume.EmptyDir
 			}
@@ -136,7 +138,9 @@ func (o *IngesterOptions) ApplyTo(options *IngesterOptions) {
 			if o.DataVolume.PersistentVolumeClaim != nil {
 				options.DataVolume.PersistentVolumeClaim = o.DataVolume.PersistentVolumeClaim
 			}
-
+			if o.DataVolume.PersistentVolumeClaimRetentionPolicy != nil {
+				options.DataVolume.PersistentVolumeClaimRetentionPolicy = o.DataVolume.PersistentVolumeClaimRetentionPolicy
+			}
 			if o.DataVolume.EmptyDir != nil {
 				options.DataVolume.EmptyDir = o.DataVolume.EmptyDir
 			}
@@ -676,7 +680,9 @@ func (o *StoreOptions) ApplyTo(options *StoreOptions) {
 			if o.DataVolume.PersistentVolumeClaim != nil {
 				options.DataVolume.PersistentVolumeClaim = o.DataVolume.PersistentVolumeClaim
 			}
-
+			if o.DataVolume.PersistentVolumeClaimRetentionPolicy != nil {
+				options.DataVolume.PersistentVolumeClaimRetentionPolicy = o.DataVolume.PersistentVolumeClaimRetentionPolicy
+			}
 			if o.DataVolume.EmptyDir != nil {
 				options.DataVolume.EmptyDir = o.DataVolume.EmptyDir
 			}

@@ -172,37 +172,7 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 		watchedDirectories = append(watchedDirectories, volMount.MountPath)
 	}
 
-	var tsdbVolume = &corev1.Volume{
-		Name: "tsdb",
-		VolumeSource: corev1.VolumeSource{
-			EmptyDir: &corev1.EmptyDirVolumeSource{},
-		},
-	}
-	if v := r.ruler.Spec.DataVolume; v != nil {
-		if pvc := v.PersistentVolumeClaim; pvc != nil {
-			if pvc.Name == "" {
-				pvc.Name = sts.Name + "-tsdb"
-			}
-			if pvc.Spec.AccessModes == nil {
-				pvc.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-			}
-			sts.Spec.VolumeClaimTemplates = append(sts.Spec.VolumeClaimTemplates, *pvc)
-			container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
-				Name:      pvc.Name,
-				MountPath: storageDir,
-			})
-			tsdbVolume = nil
-		} else if v.EmptyDir != nil {
-			tsdbVolume.EmptyDir = v.EmptyDir
-		}
-	}
-	if tsdbVolume != nil {
-		sts.Spec.Template.Spec.Volumes = append(sts.Spec.Template.Spec.Volumes, *tsdbVolume)
-		container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
-			Name:      tsdbVolume.Name,
-			MountPath: storageDir,
-		})
-	}
+	r.AddTSDBVolume(sts, &container, r.ruler.Spec.DataVolume)
 
 	if r.ruler.Spec.AlertmanagersConfig != nil {
 		container.Args = append(container.Args, "--alertmanagers.config=$(ALERTMANAGERS_CONFIG)")

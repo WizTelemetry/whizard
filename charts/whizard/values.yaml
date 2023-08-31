@@ -197,6 +197,17 @@ controllerManager:
       localTsdbRetention: 7d
 
       dataVolume: {}
+        # persistentVolumeClaim:
+        #   spec:
+        #     resources:
+        #       requests:
+        #         storage: 20Gi
+        # # persistentVolumeClaimRetentionPolicy requires the kubernetes version >= 1.23 
+        # # and its StatefulSetAutoDeletePVC feature gate to be enabled.
+        # persistentVolumeClaimRetentionPolicy:
+        #   whenDeleted: Retain # must be one of Retain and Delete, to specify whether to delete pvc when statefulset is deleted.
+        #   whenScaled: Retain # must be one of Retain and Delete, to spefify whether to delete pvc when statefulset is scaled down.
+          
 
       additionalFlags:
       - --tsdb.out-of-order.time-window=10m #Receive: Added parameter `--tsdb.out-of-order.time-window` to set time window for experimental out-of-order samples ingestion. Disabled by default (set to 0s). Please note if you enable this option and you use compactor, make sure you set the `--enable-vertical-compaction` flag, otherwise you might risk compactor halt.
@@ -232,6 +243,18 @@ controllerManager:
       - --no-cache-index-header #Support disabling cache index header file. When toggled, Stores can run without needing persistent disks.
       # - --min-time=-14d     # Optional, time based partitioning
 
+      dataVolume: {}
+        # persistentVolumeClaim:
+        #   spec:
+        #     resources:
+        #       requests:
+        #         storage: 20Gi
+        # # persistentVolumeClaimRetentionPolicy requires the kubernetes version >= 1.23 
+        # # and its StatefulSetAutoDeletePVC feature gate to be enabled.
+        # persistentVolumeClaimRetentionPolicy:
+        #   whenDeleted: Retain # must be one of Retain and Delete, to specify whether to delete pvc when statefulset is deleted.
+        #   whenScaled: Retain # must be one of Retain and Delete, to spefify whether to delete pvc when statefulset is scaled down.
+
     compactor: 
       ## If null or unset, the global.whizardImage is used.
       image: null
@@ -257,6 +280,16 @@ controllerManager:
       securityContext: 
         fsGroup: 0
       dataVolume: {}
+        # persistentVolumeClaim:
+        #   spec:
+        #     resources:
+        #       requests:
+        #         storage: 20Gi
+        # # persistentVolumeClaimRetentionPolicy requires the kubernetes version >= 1.23 
+        # # and its StatefulSetAutoDeletePVC feature gate to be enabled.
+        # persistentVolumeClaimRetentionPolicy:
+        #   whenDeleted: Retain # must be one of Retain and Delete, to specify whether to delete pvc when statefulset is deleted.
+        #   whenScaled: Retain # must be one of Retain and Delete, to spefify whether to delete pvc when statefulset is scaled down.
 
     ruler: 
       ## If null or unset, the global.whizardImage is used.
@@ -496,7 +529,17 @@ ruler:
 
   tenant: ''
   
-  dataVolume: null
+  dataVolume: {}
+    # persistentVolumeClaim:
+    #   spec:
+    #     resources:
+    #       requests:
+    #         storage: 20Gi
+    # # persistentVolumeClaimRetentionPolicy requires the kubernetes version >= 1.23 
+    # # and its StatefulSetAutoDeletePVC feature gate to be enabled.
+    # persistentVolumeClaimRetentionPolicy:
+    #   whenDeleted: Retain # must be one of Retain and Delete, to specify whether delete pvc when statefulset is deleted.
+    #   whenScaled: Retain # must be one of Retain and Delete, to spefify whether delete pvc when statefulset is scaled down.
 
   evaluationInterval: 1m
 
@@ -551,5 +594,15 @@ ingester:
   logFormat: logfmt
 
   dataVolume: {}
+    # persistentVolumeClaim:
+    #   spec:
+    #     resources:
+    #       requests:
+    #         storage: 20Gi
+    # # persistentVolumeClaimRetentionPolicy requires the kubernetes version >= 1.23 
+    # # and its StatefulSetAutoDeletePVC feature gate to be enabled.
+    # persistentVolumeClaimRetentionPolicy:
+    #   whenDeleted: Retain # must be one of Retain and Delete, to specify whether delete pvc when statefulset is deleted.
+    #   whenScaled: Retain # must be one of Retain and Delete, to spefify whether delete pvc when statefulset is scaled down.
 
   additionalFlags: []
