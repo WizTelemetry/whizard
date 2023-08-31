@@ -23,9 +23,8 @@ func TestCommonOptionsApplyTo(t *testing.T) {
 			NewCommonOptions(),
 			CommonOptions{},
 			&CommonOptions{
-				Image:           DefaultWhizardImage,
-				Replicas:        &replicas1,
-				SecurityContext: &corev1.PodSecurityContext{},
+				Image:    DefaultWhizardImage,
+				Replicas: &replicas1,
 			},
 		},
 		{

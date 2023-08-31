@@ -27,9 +27,8 @@ func NewCommonOptions() CommonOptions {
 	var replicas int32 = 1
 
 	return CommonOptions{
-		Image:           DefaultWhizardImage,
-		Replicas:        &replicas,
-		SecurityContext: &corev1.PodSecurityContext{},
+		Image:    DefaultWhizardImage,
+		Replicas: &replicas,
 	}
 }
 func (o *CommonOptions) Validate() []error {
@@ -157,6 +156,10 @@ func (o *CommonOptions) Override(spec *v1alpha1.CommonSpec) {
 
 	if len(spec.Resources.Requests) == 0 {
 		spec.Resources.Requests = o.Resources.Requests
+	}
+
+	if spec.SecurityContext == nil {
+		spec.SecurityContext = o.SecurityContext
 	}
 
 	if spec.LogLevel == "" {

@@ -77,6 +77,9 @@ func newTestConfig() (*Config, error) {
 					LogLevel:  "info",
 					LogFormat: "logfmt",
 					Resources: corev1.ResourceRequirements{},
+					SecurityContext: &corev1.PodSecurityContext{
+						FSGroup: &[]int64{0}[0],
+					},
 				},
 				DataVolume: &v1alpha1.KubernetesVolume{
 					PersistentVolumeClaim: &corev1.PersistentVolumeClaim{
@@ -119,6 +122,19 @@ func newTestConfig() (*Config, error) {
 					LogLevel:  "info",
 					LogFormat: "logfmt",
 				},
+				Envoy: &options.SidecarOptions{
+					Image: "envoyproxy/envoy:corev1.20.2",
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							corev1.ResourceCPU:    resource.MustParse("100m"),
+							corev1.ResourceMemory: resource.MustParse("500Mi"),
+						},
+						Limits: corev1.ResourceList{
+							corev1.ResourceCPU:    resource.MustParse("100m"),
+							corev1.ResourceMemory: resource.MustParse("500Mi"),
+						},
+					},
+				},
 			},
 			Router: &options.RouterOptions{
 				ReplicationFactor: &replicas,
@@ -127,6 +143,19 @@ func newTestConfig() (*Config, error) {
 					Replicas:  &replicas2,
 					LogLevel:  "info",
 					LogFormat: "logfmt",
+				},
+				Envoy: &options.SidecarOptions{
+					Image: "envoyproxy/envoy:corev1.20.2",
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							corev1.ResourceCPU:    resource.MustParse("100m"),
+							corev1.ResourceMemory: resource.MustParse("500Mi"),
+						},
+						Limits: corev1.ResourceList{
+							corev1.ResourceCPU:    resource.MustParse("100m"),
+							corev1.ResourceMemory: resource.MustParse("500Mi"),
+						},
+					},
 				},
 			},
 			Ruler: &options.RulerOptions{
@@ -180,6 +209,19 @@ func newTestConfig() (*Config, error) {
 						Limits: corev1.ResourceList{
 							corev1.ResourceCPU:    resource.MustParse("200m"),
 							corev1.ResourceMemory: resource.MustParse("400Mi"),
+						},
+					},
+				},
+				Envoy: &options.SidecarOptions{
+					Image: "envoyproxy/envoy:corev1.20.2",
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							corev1.ResourceCPU:    resource.MustParse("100m"),
+							corev1.ResourceMemory: resource.MustParse("500Mi"),
+						},
+						Limits: corev1.ResourceList{
+							corev1.ResourceCPU:    resource.MustParse("100m"),
+							corev1.ResourceMemory: resource.MustParse("500Mi"),
 						},
 					},
 				},

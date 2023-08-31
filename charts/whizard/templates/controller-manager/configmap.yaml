@@ -178,7 +178,7 @@ data:
         resources:
           {{- toYaml . | nindent 10 }}
         {{- end }}  
-        {{- with $ingester.securityContext }}}
+        {{- with $ingester.securityContext }}
         securityContext:
           {{- toYaml . | nindent 10 }}
         {{- end }}
