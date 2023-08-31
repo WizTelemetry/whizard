@@ -160,15 +160,14 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 		d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, volume)
 		volumeMount := corev1.VolumeMount{
 			Name:      volume.Name,
-			MountPath: constants.WhizardConfigMountPath + tenantsAdmissionConfigFile,
-			SubPath:   tenantsAdmissionConfigFile,
+			MountPath: constants.WhizardConfigMountPath,
 			ReadOnly:  true,
 		}
 		container.VolumeMounts = append(container.VolumeMounts, volumeMount)
 	}
 
 	if g.gateway.Spec.WebConfig != nil {
-		container.Args = append(container.Args, fmt.Sprintf("--http.config=%s", constants.WhizardConfigMountPath+webConfigFile))
+		container.Args = append(container.Args, fmt.Sprintf("--http.config=%s", constants.WhizardWebConfigMountPath+webConfigFile))
 
 		volume := corev1.Volume{
 			Name: "web-config",
@@ -181,8 +180,7 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 		d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, volume)
 		volumeMount := corev1.VolumeMount{
 			Name:      volume.Name,
-			MountPath: constants.WhizardConfigMountPath + webConfigFile,
-			SubPath:   webConfigFile,
+			MountPath: constants.WhizardWebConfigMountPath,
 			ReadOnly:  true,
 		}
 		container.VolumeMounts = append(container.VolumeMounts, volumeMount)
