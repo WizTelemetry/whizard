@@ -311,8 +311,8 @@ func (gc *gatewayConfig) registerFlag(cmd extkingpin.FlagClause) {
 }
 
 var (
-	Gateway = customcomponent{name: "gateway"}
-	Agent   = customcomponent{name: "agent"}
+	Gateway    = customcomponent{name: "gateway"}
+	AgentProxy = customcomponent{name: "agent-proxy"}
 )
 
 type customcomponent struct {

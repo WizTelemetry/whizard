@@ -25,17 +25,21 @@ const (
 type Options struct {
 	ListenAddress               string
 	TLSConfig                   *tls.Config
-	Tenant                      string
 	GatewayProxyEndpoint        *url.URL
 	GatewayProxyClientTLSConfig *tls.Config
 	MaxIdleConnsPerHost         int
 	MaxConnsPerHost             int
+
+	Tenant       string
+	GatewayProxy *httputil.ReverseProxy
 }
 
 type Server struct {
 	logger  log.Logger
 	router  *route.Router
 	options *Options
+
+	gatewayProxy *httputil.ReverseProxy
 }
 
 func NewServer(logger log.Logger, opt *Options) *Server {
@@ -44,54 +48,53 @@ func NewServer(logger log.Logger, opt *Options) *Server {
 		logger = log.NewNopLogger()
 	}
 	s := &Server{
-		options: opt,
-		router:  route.New(),
-		logger:  logger,
+		options:      opt,
+		router:       route.New(),
+		logger:       logger,
+		gatewayProxy: opt.GatewayProxy,
 	}
 
-	s.router.Get(query, s.wrap(query))
-	s.router.Post(query, s.wrap(query))
-	s.router.Get(queryRange, s.wrap(queryRange))
-	s.router.Post(queryRange, s.wrap(queryRange))
-	s.router.Get(series, s.wrap(series))
-	s.router.Get(labels, s.wrap(labels))
-	s.router.Get(labelValues, s.wrap(labelValues))
-	s.router.Get(rules, s.wrap(rules))
+	s.router.Get(query, s.wrap())
+	s.router.Post(query, s.wrap())
+	s.router.Get(queryRange, s.wrap())
+	s.router.Post(queryRange, s.wrap())
+	s.router.Get(series, s.wrap())
+	s.router.Get(labels, s.wrap())
+	s.router.Get(labelValues, s.wrap())
+	s.router.Get(rules, s.wrap())
 	// do provide /api/v1/alerts because thanos does not support alerts filtering as of v0.28.0
 	// please filtering alerts by /api/v1/rules
 	// s.router.Get(alerts, s.wrap(alerts))
 
-	s.router.Post(receive, s.wrap(receive))
+	s.router.Post(receive, s.wrap())
 
 	return s
 }
 
-func (s *Server) wrap(path string) http.HandlerFunc {
+func (s *Server) Router() *route.Router {
+	return s.router
+}
 
-	proxy := httputil.NewSingleHostReverseProxy(s.options.GatewayProxyEndpoint)
-	oldDirector := proxy.Director
+func (s *Server) wrap() http.HandlerFunc {
 
-	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.MaxIdleConnsPerHost = s.options.MaxIdleConnsPerHost
-	transport.MaxConnsPerHost = s.options.MaxConnsPerHost
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 
-	if s.options.GatewayProxyEndpoint.Scheme == "https" {
-		transport.TLSClientConfig = s.options.GatewayProxyClientTLSConfig
-	}
-
-	proxy.Transport = transport
-
-	proxy.Director = func(req *http.Request) {
-		req.URL.Scheme = s.options.GatewayProxyEndpoint.Scheme
-		req.Host = s.options.GatewayProxyEndpoint.Host
 		if s.options.Tenant != "" {
 			// add the prefix /:tenant_id from path
 			req.URL.Path = "/" + s.options.Tenant + req.URL.Path
 		}
-		oldDirector(req)
-	}
 
-	return proxy.ServeHTTP
+		s.gatewayProxy.ServeHTTP(w, req)
+	})
+}
+
+func NewSingleHostReverseProxy(target *url.URL, rt http.RoundTripper) *httputil.ReverseProxy {
+
+	proxy := httputil.NewSingleHostReverseProxy(target)
+
+	proxy.Transport = rt
+
+	return proxy
 }
 
 func (s *Server) Run() error {

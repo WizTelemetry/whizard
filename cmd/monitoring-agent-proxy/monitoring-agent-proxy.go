@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"net/url"
 
 	"github.com/alecthomas/kong"
@@ -43,15 +44,22 @@ func main() {
 	rawUrl, err := url.Parse(cli.MonitorGateway.Address)
 	ctx.FatalIfErrorf(err)
 
-	options := &monitoringagentproxy.Options{
-		Tenant:               cli.Tenant,
-		ListenAddress:        cli.HttpAddress,
-		GatewayProxyEndpoint: rawUrl,
-		MaxIdleConnsPerHost:  cli.MaxIdleConnsPerHost,
-		MaxConnsPerHost:      cli.MaxConnsPerHost,
-	}
-	options.GatewayProxyClientTLSConfig, err = thanos_tls.NewClientConfig(logger, cli.MonitorGateway.ClientTlsCert, cli.MonitorGateway.ClientTlsKey, cli.MonitorGateway.ServerTlsClientCa, cli.MonitorGateway.ServerName, cli.MonitorGateway.InsecureSkipVerify)
+	gatewayProxyClientTLSConfig, err := thanos_tls.NewClientConfig(logger, cli.MonitorGateway.ClientTlsCert, cli.MonitorGateway.ClientTlsKey, cli.MonitorGateway.ServerTlsClientCa, cli.MonitorGateway.ServerName, cli.MonitorGateway.InsecureSkipVerify)
 	ctx.FatalIfErrorf(err)
+
+	defaultTransport := http.DefaultTransport.(*http.Transport)
+
+	defaultTransport.MaxIdleConnsPerHost = cli.MaxIdleConnsPerHost
+	defaultTransport.MaxConnsPerHost = cli.MaxConnsPerHost
+	defaultTransport.TLSClientConfig = gatewayProxyClientTLSConfig
+
+	gatewayProxy := monitoringagentproxy.NewSingleHostReverseProxy(rawUrl, http.DefaultTransport)
+
+	options := &monitoringagentproxy.Options{
+		Tenant:        cli.Tenant,
+		GatewayProxy:  gatewayProxy,
+		ListenAddress: cli.HttpAddress,
+	}
 
 	options.TLSConfig, err = thanos_tls.NewServerConfig(logger, cli.ServerTlsCert, cli.ServerTlsKey, cli.ServerTlsClientCa)
 	ctx.FatalIfErrorf(err)

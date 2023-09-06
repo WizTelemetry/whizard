@@ -102,8 +102,8 @@ controller-manager:
 monitoring-gateway: 
 	$(GO_BUILD_RECIPE) -o bin/monitoring-gateway cmd/monitoring-gateway/*
 
-monitoring-agent-proxy:
-	go build -o bin/monitoring-agent-proxy cmd/monitoring-agent-proxy/monitoring-agent-proxy.go
+#monitoring-agent-proxy:
+#	go build -o bin/monitoring-agent-proxy cmd/monitoring-agent-proxy/monitoring-agent-proxy.go
 
 monitoring-block-manager:
 	go build -o bin/monitoring-block-manager cmd/monitoring-block-manager/block-manager.go
@@ -117,7 +117,7 @@ docker-build-monitoring-gateway:
 	${CONTAINER_CLI} ${CONTAINER_BUILDER} ${CONTAINER_BUILD_EXTRA_ARGS} --build-arg GOLDFLAGS="$(GO_BUILD_LDFLAGS)"  -t $(MONITORING_GATEWAY_IMG) -f build/monitoring-gateway/Dockerfile .
 
 docker-build-monitoring-agent-proxy:
-	${CONTAINER_CLI} ${CONTAINER_BUILDER} ${CONTAINER_BUILD_EXTRA_ARGS}  -t $(MONITORING_AGENT_PROXY_IMG) -f build/monitoring-agent-proxy/Dockerfile .
+	${CONTAINER_CLI} ${CONTAINER_BUILDER} ${CONTAINER_BUILD_EXTRA_ARGS} --build-arg GOLDFLAGS="$(GO_BUILD_LDFLAGS)"  -t $(MONITORING_AGENT_PROXY_IMG) -f build/monitoring-agent-proxy/Dockerfile .
 
 docker-build-monitoring-block-manager:
 	${CONTAINER_CLI} ${CONTAINER_BUILDER} ${CONTAINER_BUILD_EXTRA_ARGS}  -t $(MONITORING_BLOCK_MANAGER_IMG) -f build/monitoring-block-manager/Dockerfile .

@@ -14,14 +14,16 @@ RUN GOPROXY=$GOPROXY go mod download
 COPY cmd/ cmd/
 COPY pkg/ pkg/
 
+ARG GOLDFLAGS
+
 # Build
-RUN CGO_ENABLED=0 go build -a -o agent-proxy cmd/monitoring-agent-proxy/monitoring-agent-proxy.go
+RUN CGO_ENABLED=0 go build -a -ldflags="${GOLDFLAGS}" -o monitoring-gateway cmd/monitoring-gateway/*
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /
-COPY --from=builder /workspace/agent-proxy .
+COPY --from=builder /workspace/monitoring-gateway .
 USER 65532:65532
 
-ENTRYPOINT ["/agent-proxy"]
+ENTRYPOINT ["/monitoring-gateway","agent-proxy"]

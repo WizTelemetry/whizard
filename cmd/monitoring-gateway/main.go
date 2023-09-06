@@ -46,6 +46,7 @@ func main() {
 		Default(logging.LogFormatLogfmt).Enum(logging.LogFormatLogfmt, logging.LogFormatJSON)
 
 	registerGateway(app)
+	registerAgentProxy(app)
 
 	cmd, setup := app.Parse()
 	logger := logging.NewLogger(*logLevel, *logFormat, *debugName)
