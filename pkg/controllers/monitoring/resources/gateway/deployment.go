@@ -1,6 +1,8 @@
 package gateway
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"net/url"
 	"path"
@@ -167,6 +169,18 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 	}
 
 	if g.gateway.Spec.WebConfig != nil {
+		secret, _, err := g.webConfigSecret()
+		if err != nil {
+			return nil, "", err
+		}
+		hash := md5.New()
+		hash.Write(secret.(*corev1.Secret).Data[webConfigFile])
+		hashStr := hex.EncodeToString(hash.Sum(nil))
+		if d.Spec.Template.Annotations == nil {
+			d.Spec.Template.Annotations = make(map[string]string)
+		}
+		d.Spec.Template.Annotations[constants.LabelNameConfigHash] = hashStr
+
 		container.Args = append(container.Args, fmt.Sprintf("--http.config=%s", constants.WhizardWebConfigMountPath+webConfigFile))
 
 		volume := corev1.Volume{

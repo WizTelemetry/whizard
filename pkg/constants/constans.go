@@ -68,6 +68,7 @@ const (
 
 	LabelNameStorageHash = "monitoring.whizard.io/storage-hash"
 	LabelNameTenantHash  = "monitoring.whizard.io/tenant-hash"
+	LabelNameConfigHash  = "monitoring.whizard.io/config-hash"
 
 	TenantHash  = "TENANT_HASH"
 	StorageHash = "STORAGE_HASH"
