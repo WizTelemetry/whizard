@@ -58,15 +58,17 @@ const (
 	StorageDir     = "/whizard"
 	TSDBVolumeName = "tsdb"
 
-	WhizardConfigMountPath  = "/etc/whizard/config/"
-	WhizardCertsMountPath   = "/etc/whizard/certs/"
-	EnvoyConfigMountPath    = "/etc/envoy/config/"
-	EnvoyCertsMountPath     = "/etc/envoy/certs/"
-	EnvoyConfigMapMountPath = "/etc/envoy/configmap/"
-	EnvoySecretMountPath    = "/etc/envoy/secret/"
+	WhizardConfigMountPath    = "/etc/whizard/config/"
+	WhizardWebConfigMountPath = "/etc/whizard/web_config/"
+	WhizardCertsMountPath     = "/etc/whizard/certs/"
+	EnvoyConfigMountPath      = "/etc/envoy/config/"
+	EnvoyCertsMountPath       = "/etc/envoy/certs/"
+	EnvoyConfigMapMountPath   = "/etc/envoy/configmap/"
+	EnvoySecretMountPath      = "/etc/envoy/secret/"
 
 	LabelNameStorageHash = "monitoring.whizard.io/storage-hash"
 	LabelNameTenantHash  = "monitoring.whizard.io/tenant-hash"
+	LabelNameConfigHash  = "monitoring.whizard.io/config-hash"
 
 	TenantHash  = "TENANT_HASH"
 	StorageHash = "STORAGE_HASH"

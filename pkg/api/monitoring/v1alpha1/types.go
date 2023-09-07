@@ -154,10 +154,12 @@ type CommonSpec struct {
 type GatewaySpec struct {
 	CommonSpec `json:",inline"`
 
-	// Secret name for HTTP Server certificate (Kubernetes TLS secret type)
+	// Deprecated, Secret name for HTTP Server certificate (Kubernetes TLS secret type)
 	ServerCertificate string `json:"serverCertificate,omitempty"`
-	// Secret name for HTTP Client CA certificate (Kubernetes TLS secret type)
+	// Deprecated, Secret name for HTTP Client CA certificate (Kubernetes TLS secret type)
 	ClientCACertificate string `json:"clientCaCertificate,omitempty"`
+
+	WebConfig *WebConfig `json:"webConfig,omitempty"`
 
 	// If debug mode is on, gateway will proxy Query UI
 	DebugMode bool `json:"debug,omitempty"`
@@ -325,6 +327,28 @@ type RouterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Router `json:"items"`
+}
+
+// WebConfig defines the configuration for the HTTP server.
+// More info: https://prometheus.io/docs/prometheus/latest/configuration/https/
+type WebConfig struct {
+	HTTPServerTLSConfig *HTTPServerTLSConfig `json:"httpServerTLSConfig,omitempty"`
+	HTTPServerConfig    *HTTPServerConfig    `json:"httpServerConfig,omitempty"`
+	BasicAuthUsers      []BasicAuth          `json:"basicAuthUsers,omitempty"`
+}
+
+// BasicAuth allow an endpoint to authenticate over basic authentication
+// +k8s:openapi-gen=true
+type BasicAuth struct {
+	// The secret in the service monitor namespace that contains the username
+	// for authentication.
+	Username corev1.SecretKeySelector `json:"username,omitempty"`
+	// The secret in the service monitor namespace that contains the password
+	// for authentication.
+	Password corev1.SecretKeySelector `json:"password,omitempty"`
+}
+
+type HTTPServerConfig struct {
 }
 
 type QueryFrontendSpec struct {

@@ -15,13 +15,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/config"
 	"github.com/prometheus/common/model"
-	"github.com/prometheus/exporter-toolkit/web"
 	"github.com/thanos-io/thanos/pkg/component"
 	"github.com/thanos-io/thanos/pkg/extkingpin"
 	"github.com/thanos-io/thanos/pkg/extprom"
 	"github.com/thanos-io/thanos/pkg/prober"
 	httpserver "github.com/thanos-io/thanos/pkg/server/http"
-	"gopkg.in/yaml.v3"
 
 	monitoringgateway "github.com/kubesphere/whizard/pkg/monitoring-gateway"
 )
@@ -95,21 +93,24 @@ func runGateway(
 		prober.NewInstrumentation(comp, logger, extprom.WrapRegistererWithPrefix("whizard_", reg)),
 	)
 
-	if conf.DeprecatedServerTLS.Cert != "" || conf.DeprecatedServerTLS.Key != "" || conf.DeprecatedServerTLS.ClientCa != "" {
-		config := web.Config{
-			TLSConfig: web.TLSConfig{
-				TLSCertPath: conf.DeprecatedServerTLS.Cert,
-				TLSKeyPath:  conf.DeprecatedServerTLS.Key,
-				ClientAuth:  conf.DeprecatedServerTLS.ClientCa,
-			},
+	// Deprecated
+	/*
+		if conf.DeprecatedServerTLS.Cert != "" || conf.DeprecatedServerTLS.Key != "" || conf.DeprecatedServerTLS.ClientCa != "" {
+			config := web.Config{
+				TLSConfig: web.TLSConfig{
+					TLSCertPath: conf.DeprecatedServerTLS.Cert,
+					TLSKeyPath:  conf.DeprecatedServerTLS.Key,
+					ClientAuth:  conf.DeprecatedServerTLS.ClientCa,
+				},
+			}
+			out, err := yaml.Marshal(config)
+			if err != nil {
+				return err
+			}
+			httpTLSConfig := string(out)
+			conf.httpTLSConfig = &httpTLSConfig
 		}
-		out, err := yaml.Marshal(config)
-		if err != nil {
-			return err
-		}
-		httpTLSConfig := string(out)
-		conf.httpTLSConfig = &httpTLSConfig
-	}
+	*/
 
 	srv := httpserver.New(logger, reg, comp, httpProbe,
 		httpserver.WithListen(*conf.httpBindAddr),
@@ -310,8 +311,8 @@ func (gc *gatewayConfig) registerFlag(cmd extkingpin.FlagClause) {
 }
 
 var (
-	Gateway = customcomponent{name: "gateway"}
-	Agent   = customcomponent{name: "agent"}
+	Gateway    = customcomponent{name: "gateway"}
+	AgentProxy = customcomponent{name: "agent-proxy"}
 )
 
 type customcomponent struct {

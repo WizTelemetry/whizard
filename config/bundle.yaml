@@ -1409,7 +1409,7 @@ spec:
                     type: object
                 type: object
               clientCaCertificate:
-                description: Secret name for HTTP Client CA certificate (Kubernetes TLS secret type)
+                description: Deprecated, Secret name for HTTP Client CA certificate (Kubernetes TLS secret type)
                 type: string
               debug:
                 description: If debug mode is on, gateway will proxy Query UI
@@ -1583,7 +1583,7 @@ spec:
                     type: object
                 type: object
               serverCertificate:
-                description: Secret name for HTTP Server certificate (Kubernetes TLS secret type)
+                description: Deprecated, Secret name for HTTP Server certificate (Kubernetes TLS secret type)
                 type: string
               tolerations:
                 description: If specified, the pod's tolerations.
@@ -1608,6 +1608,99 @@ spec:
                       type: string
                   type: object
                 type: array
+              webConfig:
+                description: 'WebConfig defines the configuration for the HTTP server. More info: https://prometheus.io/docs/prometheus/latest/configuration/https/'
+                properties:
+                  basicAuthUsers:
+                    items:
+                      description: BasicAuth allow an endpoint to authenticate over basic authentication
+                      properties:
+                        password:
+                          description: The secret in the service monitor namespace that contains the password for authentication.
+                          properties:
+                            key:
+                              description: The key of the secret to select from.  Must be a valid secret key.
+                              type: string
+                            name:
+                              description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
+                              type: string
+                            optional:
+                              description: Specify whether the Secret or its key must be defined
+                              type: boolean
+                          required:
+                          - key
+                          type: object
+                        username:
+                          description: The secret in the service monitor namespace that contains the username for authentication.
+                          properties:
+                            key:
+                              description: The key of the secret to select from.  Must be a valid secret key.
+                              type: string
+                            name:
+                              description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
+                              type: string
+                            optional:
+                              description: Specify whether the Secret or its key must be defined
+                              type: boolean
+                          required:
+                          - key
+                          type: object
+                      type: object
+                    type: array
+                  httpServerConfig:
+                    type: object
+                  httpServerTLSConfig:
+                    properties:
+                      certSecret:
+                        description: Contains the TLS certificate for the server.
+                        properties:
+                          key:
+                            description: The key of the secret to select from.  Must be a valid secret key.
+                            type: string
+                          name:
+                            description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
+                            type: string
+                          optional:
+                            description: Specify whether the Secret or its key must be defined
+                            type: boolean
+                        required:
+                        - key
+                        type: object
+                      clientCASecret:
+                        description: Contains the CA certificate for client certificate authentication to the server.
+                        properties:
+                          key:
+                            description: The key of the secret to select from.  Must be a valid secret key.
+                            type: string
+                          name:
+                            description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
+                            type: string
+                          optional:
+                            description: Specify whether the Secret or its key must be defined
+                            type: boolean
+                        required:
+                        - key
+                        type: object
+                      keySecret:
+                        description: Secret containing the TLS key for the server.
+                        properties:
+                          key:
+                            description: The key of the secret to select from.  Must be a valid secret key.
+                            type: string
+                          name:
+                            description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
+                            type: string
+                          optional:
+                            description: Specify whether the Secret or its key must be defined
+                            type: boolean
+                        required:
+                        - key
+                        type: object
+                    required:
+                    - certSecret
+                    - keySecret
+                    type: object
+                type: object
             type: object
           status:
             description: GatewayStatus defines the observed state of Gateway
