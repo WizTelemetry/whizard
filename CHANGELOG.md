@@ -1,3 +1,21 @@
+# v0.9.0-rc.0 / 2023-09-07
+
+### FEATURES
+
+* Gateway supports server-side basic_auth authentication configuration([#332](https://github.com/WhizardTelemetry/whizard/pull/332))
+* Add persistentVolumeClaimRetentionPolicy config([#330](https://github.com/WhizardTelemetry/whizard/pull/330))
+* Add securityContext ([#329](https://github.com/WhizardTelemetry/whizard/pull/329))
+* Add genSignedCert in charts([#316](https://github.com/WhizardTelemetry/whizard/pull/316))
+* Add time partition support([#311](https://github.com/WhizardTelemetry/whizard/pull/311))
+* Gateway supports tenant access control([#310](https://github.com/WhizardTelemetry/whizard/pull/310))
+* Gateway enhancement and refactor([#310](https://github.com/WhizardTelemetry/whizard/pull/310))
+
+### ENHANCEMENT
+
+* Upgrade thanos version to v0.32.2([#335](https://github.com/WhizardTelemetry/whizard/pull/335))
+* Fix dependabot security alerts([#329](https://github.com/WhizardTelemetry/whizard/pull/329))
+* Upgrade go version to 1.21([#306](https://github.com/WhizardTelemetry/whizard/pull/329))
+
 # v0.8.0 / 2023-08-07
 
 ### FEATURES
