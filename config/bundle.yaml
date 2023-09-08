@@ -707,6 +707,16 @@ spec:
                             type: string
                         type: object
                     type: object
+                  persistentVolumeClaimRetentionPolicy:
+                    description: persistentVolumeClaimRetentionPolicy describes the lifecycle of persistent volume claims created from persistentVolumeClaim. This requires the kubernetes version >= 1.23 and its StatefulSetAutoDeletePVC feature gate to be enabled.
+                    properties:
+                      whenDeleted:
+                        description: WhenDeleted specifies what happens to PVCs created from StatefulSet VolumeClaimTemplates when the StatefulSet is deleted. The default policy of `Retain` causes PVCs to not be affected by StatefulSet deletion. The `Delete` policy causes those PVCs to be deleted.
+                        type: string
+                      whenScaled:
+                        description: WhenScaled specifies what happens to PVCs created from StatefulSet VolumeClaimTemplates when the StatefulSet is scaled down. The default policy of `Retain` causes PVCs to not be affected by a scaledown. The `Delete` policy causes the associated PVCs for any excess pods above the replica count to be deleted.
+                        type: string
+                    type: object
                 type: object
               disableDownsampling:
                 description: DisableDownsampling specifies whether to disable downsampling
@@ -2421,6 +2431,16 @@ spec:
                             description: resizeStatus stores status of resize operation. ResizeStatus is not set by default but when expansion is complete resizeStatus is set to empty string by resize controller or kubelet. This is an alpha field and requires enabling RecoverVolumeExpansionFailure feature.
                             type: string
                         type: object
+                    type: object
+                  persistentVolumeClaimRetentionPolicy:
+                    description: persistentVolumeClaimRetentionPolicy describes the lifecycle of persistent volume claims created from persistentVolumeClaim. This requires the kubernetes version >= 1.23 and its StatefulSetAutoDeletePVC feature gate to be enabled.
+                    properties:
+                      whenDeleted:
+                        description: WhenDeleted specifies what happens to PVCs created from StatefulSet VolumeClaimTemplates when the StatefulSet is deleted. The default policy of `Retain` causes PVCs to not be affected by StatefulSet deletion. The `Delete` policy causes those PVCs to be deleted.
+                        type: string
+                      whenScaled:
+                        description: WhenScaled specifies what happens to PVCs created from StatefulSet VolumeClaimTemplates when the StatefulSet is scaled down. The default policy of `Retain` causes PVCs to not be affected by a scaledown. The `Delete` policy causes the associated PVCs for any excess pods above the replica count to be deleted.
+                        type: string
                     type: object
                 type: object
               flags:
@@ -5801,6 +5821,16 @@ spec:
                             type: string
                         type: object
                     type: object
+                  persistentVolumeClaimRetentionPolicy:
+                    description: persistentVolumeClaimRetentionPolicy describes the lifecycle of persistent volume claims created from persistentVolumeClaim. This requires the kubernetes version >= 1.23 and its StatefulSetAutoDeletePVC feature gate to be enabled.
+                    properties:
+                      whenDeleted:
+                        description: WhenDeleted specifies what happens to PVCs created from StatefulSet VolumeClaimTemplates when the StatefulSet is deleted. The default policy of `Retain` causes PVCs to not be affected by StatefulSet deletion. The `Delete` policy causes those PVCs to be deleted.
+                        type: string
+                      whenScaled:
+                        description: WhenScaled specifies what happens to PVCs created from StatefulSet VolumeClaimTemplates when the StatefulSet is scaled down. The default policy of `Retain` causes PVCs to not be affected by a scaledown. The `Delete` policy causes the associated PVCs for any excess pods above the replica count to be deleted.
+                        type: string
+                    type: object
                 type: object
               envoy:
                 properties:
@@ -7954,6 +7984,16 @@ spec:
                             type: string
                         type: object
                     type: object
+                  persistentVolumeClaimRetentionPolicy:
+                    description: persistentVolumeClaimRetentionPolicy describes the lifecycle of persistent volume claims created from persistentVolumeClaim. This requires the kubernetes version >= 1.23 and its StatefulSetAutoDeletePVC feature gate to be enabled.
+                    properties:
+                      whenDeleted:
+                        description: WhenDeleted specifies what happens to PVCs created from StatefulSet VolumeClaimTemplates when the StatefulSet is deleted. The default policy of `Retain` causes PVCs to not be affected by StatefulSet deletion. The `Delete` policy causes those PVCs to be deleted.
+                        type: string
+                      whenScaled:
+                        description: WhenScaled specifies what happens to PVCs created from StatefulSet VolumeClaimTemplates when the StatefulSet is scaled down. The default policy of `Retain` causes PVCs to not be affected by a scaledown. The `Delete` policy causes the associated PVCs for any excess pods above the replica count to be deleted.
+                        type: string
+                    type: object
                 type: object
               flags:
                 description: Flags is the flags of component.
@@ -8782,6 +8822,20 @@ rules:
   - autoscaling
   resources:
   - horizontalpodautoscalers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - secrets
+  - services
   verbs:
   - create
   - delete
