@@ -216,14 +216,12 @@ func (r *BaseReconciler) AddTSDBVolume(sts *appsv1.StatefulSet, container *corev
 		}
 	} else if dataVolume.EmptyDir != nil {
 		volumeName = constants.TSDBVolumeName
-		sts.Spec.Template.Spec.Volumes = []corev1.Volume{
-			{
-				Name: constants.TSDBVolumeName,
-				VolumeSource: corev1.VolumeSource{
-					EmptyDir: dataVolume.EmptyDir,
-				},
+		sts.Spec.Template.Spec.Volumes = append(sts.Spec.Template.Spec.Volumes, corev1.Volume{
+			Name: constants.TSDBVolumeName,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: dataVolume.EmptyDir,
 			},
-		}
+		})
 	}
 
 	container.VolumeMounts = []corev1.VolumeMount{
