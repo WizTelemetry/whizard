@@ -1,3 +1,14 @@
+# v0.9.0-rc.1 / 2023-09-12
+
+### Features
+
+* Add helm lint and test ([#338](https://github.com/WhizardTelemetry/whizard/pull/352)) @frezes
+
+### Bugfix
+
+* Add ruler emptyDir volume mount ([#352](https://github.com/WhizardTelemetry/whizard/pull/352)) @frezes
+* Fix bug to add emptyDir volume([#340](https://github.com/WhizardTelemetry/whizard/pull/340), [#350](https://github.com/WhizardTelemetry/whizard/pull/350)) @junotx
+
 # v0.9.0-rc.0 / 2023-09-07
 
 ### FEATURES
