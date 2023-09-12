@@ -305,6 +305,11 @@ data:
           {{- toYaml . | nindent 10 }}
         {{- end }}
 
+        {{- with $ruler.dataVolume }}
+        dataVolume:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+
         logLevel: {{ .Values.global.whizard.log.level }}
         logFormat: {{ .Values.global.whizard.log.format }}
         evaluationInterval: {{ $ruler.evaluationInterval }}
