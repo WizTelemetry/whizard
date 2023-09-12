@@ -6,6 +6,7 @@ This page describes the release process and the currently planned schedule for u
 
 | release series | date  (year-month-day) | release shepherd                            |
 |----------------|--------------------------------------------|---------------------------------------------|
+| v0.9.0-rc.1    | 2023-09-12                                 | Junhao Zhang (GitHub: @frezes)              |
 | v0.9.0-rc.0    | 2023-09-07                                 | Junhao Zhang (GitHub: @frezes)              |
 | v0.8.0         | 2023-08-07                                 | junot (GitHub: @junotx)                     |
 | v0.8.0-rc.0    | 2023-07-27                                 | junot (GitHub: @junotx)                     |
