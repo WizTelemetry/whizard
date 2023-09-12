@@ -315,6 +315,12 @@ controllerManager:
       ruleSelectors: []
       alertmanagersUrl: []
 
+      securityContext:
+        fsGroup: 0
+
+      dataVolume:
+        emptyDir: {}
+
       prometheusConfigReloader:
         image:
           repository: kubesphere/prometheus-config-reloader
@@ -520,7 +526,8 @@ ruler:
 
 
   resources: {}
-  securityContext: {}
+  securityContext:
+    fsGroup: 0
   nodeSelector: {}
   tolerations: []
   affinity: {}
