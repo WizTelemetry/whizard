@@ -224,12 +224,10 @@ func (r *BaseReconciler) AddTSDBVolume(sts *appsv1.StatefulSet, container *corev
 		})
 	}
 
-	container.VolumeMounts = []corev1.VolumeMount{
-		{
-			Name:      volumeName,
-			MountPath: constants.StorageDir,
-		},
-	}
+	container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
+		Name:      volumeName,
+		MountPath: constants.StorageDir,
+	})
 }
 
 func (r *BaseReconciler) GetTenantHash(selector map[string]string) (string, error) {
