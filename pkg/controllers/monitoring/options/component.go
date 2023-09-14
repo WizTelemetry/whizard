@@ -445,6 +445,8 @@ func (o *RouterOptions) AddFlags(fs *pflag.FlagSet, ro *RouterOptions) {
 type RulerOptions struct {
 	CommonOptions `json:",inline" yaml:",inline"  mapstructure:",squash"`
 
+	DataVolume *v1alpha1.KubernetesVolume `json:"dataVolume,omitempty" yaml:"dataVolume,omitempty"`
+
 	PrometheusConfigReloader SidecarOptions  `json:"prometheusConfigReloader,omitempty" yaml:"prometheusConfigReloader,omitempty"`
 	RulerQueryProxy          SidecarOptions  `json:"rulerQueryProxy" yaml:"rulerQueryProxy,omitempty"`
 	RulerWriteProxy          SidecarOptions  `json:"rulerWriteProxy" yaml:"rulerWriteProxy,omitempty"`
@@ -546,6 +548,22 @@ func (o *RulerOptions) ApplyTo(options *RulerOptions) {
 	o.RulerQueryProxy.ApplyTo(&options.RulerQueryProxy)
 	o.RulerWriteProxy.ApplyTo(&options.RulerWriteProxy)
 
+	if o.DataVolume != nil {
+		if options.DataVolume == nil {
+			options.DataVolume = o.DataVolume
+		} else {
+			if o.DataVolume.PersistentVolumeClaim != nil {
+				options.DataVolume.PersistentVolumeClaim = o.DataVolume.PersistentVolumeClaim
+			}
+			if o.DataVolume.PersistentVolumeClaimRetentionPolicy != nil {
+				options.DataVolume.PersistentVolumeClaimRetentionPolicy = o.DataVolume.PersistentVolumeClaimRetentionPolicy
+			}
+			if o.DataVolume.EmptyDir != nil {
+				options.DataVolume.EmptyDir = o.DataVolume.EmptyDir
+			}
+		}
+	}
+
 	if *o.Shards != 0 {
 		options.Shards = o.Shards
 	}
@@ -579,6 +597,10 @@ func (o *RulerOptions) Override(spec *v1alpha1.RulerSpec) {
 	o.Envoy.Override(&spec.Envoy)
 	o.PrometheusConfigReloader.Override(&spec.PrometheusConfigReloader)
 	o.RulerQueryProxy.Override(&spec.RulerQueryProxy)
+
+	if spec.DataVolume == nil {
+		spec.DataVolume = o.DataVolume
+	}
 
 	if spec.Shards == nil {
 		spec.Shards = o.Shards

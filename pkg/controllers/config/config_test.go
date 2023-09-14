@@ -27,6 +27,7 @@ func newTestConfig() (*Config, error) {
 	var stabilizationWindowSeconds int32 = 300
 	var cpuAverageUtilization int32 = 80
 	var memAverageUtilization int32 = 80
+	var sizeLimit = resource.MustParse("500Mi")
 	var conf = &Config{
 		KubernetesOptions: &k8s.KubernetesOptions{
 			KubeConfig: "/Users/frezes/.kube/config",
@@ -172,6 +173,11 @@ func newTestConfig() (*Config, error) {
 					Replicas:  &replicas1,
 					LogLevel:  "info",
 					LogFormat: "logfmt",
+				},
+				DataVolume: &v1alpha1.KubernetesVolume{
+					EmptyDir: &corev1.EmptyDirVolumeSource{
+						SizeLimit: &sizeLimit,
+					},
 				},
 				PrometheusConfigReloader: options.SidecarOptions{
 					Image: "kubesphere/prometheus-config-reloader:v0.55.1",
