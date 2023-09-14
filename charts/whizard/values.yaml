@@ -319,7 +319,8 @@ controllerManager:
         fsGroup: 0
 
       dataVolume:
-        emptyDir: {}
+        emptyDir: 
+          sizeLimit: 500Mi            # The size limit of emptyDir volume.
 
       prometheusConfigReloader:
         image:
