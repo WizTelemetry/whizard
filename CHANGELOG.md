@@ -1,3 +1,9 @@
+# v0.9.0-rc.2 / 2023-09-15
+
+### Bugfix
+
+* Fix rulerOptions missing dataVolume ([#356](https://github.com/WhizardTelemetry/whizard/pull/356)) @frezes
+
 # v0.9.0-rc.1 / 2023-09-12
 
 ### Features
