@@ -238,6 +238,8 @@ type QuerySpec struct {
 
 	HTTPServerTLSConfig *HTTPServerTLSConfig `json:"httpServerTLSConfig,omitempty"`
 
+	PromqlEngine string `json:"promqlEngine,omitempty"`
+
 	// Additional StoreApi servers from which Query component queries from
 	Stores []QueryStores `json:"stores,omitempty"`
 	// Selector labels that will be exposed in info endpoint.
