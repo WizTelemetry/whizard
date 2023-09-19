@@ -1008,6 +1008,8 @@ spec:
                   type: string
                 description: Define which Nodes the Pods are scheduled on.
                 type: object
+              promqlEngine:
+                type: string
               replicaLabelNames:
                 description: Labels to treat as a replica indicator along which data
                   is deduplicated.
