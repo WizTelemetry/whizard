@@ -157,6 +157,10 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 		d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, volumes...)
 	}
 
+	if q.query.Spec.PromqlEngine != "" {
+		queryContainer.Args = append(queryContainer.Args, "--query.promql-engine="+q.query.Spec.PromqlEngine)
+	}
+
 	if q.query.Spec.LogLevel != "" {
 		queryContainer.Args = append(queryContainer.Args, "--log.level="+q.query.Spec.LogLevel)
 	}
