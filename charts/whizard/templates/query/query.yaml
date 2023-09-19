@@ -19,6 +19,10 @@ spec:
   {{- end }}
   replicas: {{ .Values.query.replicas }}
 
+  {{- if .Values.query.promqlEngine }}
+  promqlEngine: {{ .Values.query.promqlEngine }}
+  {{- end }}
+
   {{- with .Values.query.nodeSelector }}
   nodeSelector:
     {{- toYaml . | nindent 4 }}

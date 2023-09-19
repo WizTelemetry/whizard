@@ -435,6 +435,8 @@ query:
     # repository: thanosio/thanos
     # tag: v0.28.0
 
+  promqlEngine: thanos
+
   resources: {}
   securityContext: {}
   nodeSelector: {}
