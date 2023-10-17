@@ -78,6 +78,6 @@ func (r *Store) Reconcile() error {
 	var ress []resources.Resource
 	ress = append(ress, r.statefulSets()...)
 	ress = append(ress, r.services()...)
-	ress = append(ress, r.horizontalPodAutoscalers()...)
+	// ress = append(ress, r.horizontalPodAutoscalers()...)
 	return r.ReconcileResources(ress)
 }
