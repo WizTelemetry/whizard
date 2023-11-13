@@ -191,7 +191,8 @@ func runGateway(
 	webhandler := monitoringgateway.NewHandler(logger, options)
 
 	if conf.debug {
-		webhandler.AppendQueryUIHandler()
+		webhandler.AppendQueryUIHandler(logger, reg)
+
 	}
 
 	srv.Handle("/", webhandler.Router())
