@@ -36,7 +36,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // RouterReconciler reconciles a Service object
@@ -105,9 +104,9 @@ func (r *RouterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 func (r *RouterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&monitoringv1alpha1.Router{}).
-		Watches(&source.Kind{Type: &monitoringv1alpha1.Service{}},
+		Watches(&monitoringv1alpha1.Service{},
 			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(util.ManagedLabelByService))).
-		Watches(&source.Kind{Type: &monitoringv1alpha1.Ingester{}},
+		Watches(&monitoringv1alpha1.Ingester{},
 			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(util.ManagedLabelBySameService))).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
@@ -116,7 +115,7 @@ func (r *RouterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *RouterReconciler) mapFuncBySelectorFunc(fn func(metav1.Object) map[string]string) handler.MapFunc {
-	return func(o client.Object) []reconcile.Request {
+	return func(ctx context.Context, o client.Object) []reconcile.Request {
 		routerList := &monitoringv1alpha1.RouterList{}
 		if err := r.Client.List(r.Context, routerList, client.MatchingLabels(fn(o))); err != nil {
 			log.FromContext(r.Context).WithValues("routerList", "").Error(err, "")

@@ -35,7 +35,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // StoreReconciler reconciles a Store object
@@ -107,7 +106,7 @@ func (r *StoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 func (r *StoreReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&monitoringv1alpha1.Store{}).
-		Watches(&source.Kind{Type: &monitoringv1alpha1.Storage{}},
+		Watches(&monitoringv1alpha1.Storage{},
 			handler.EnqueueRequestsFromMapFunc(r.reconcileRequestFromStorage)).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Service{}).
@@ -115,7 +114,7 @@ func (r *StoreReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *StoreReconciler) reconcileRequestFromStorage(o client.Object) []reconcile.Request {
+func (r *StoreReconciler) reconcileRequestFromStorage(ctx context.Context, o client.Object) []reconcile.Request {
 	storeList := &monitoringv1alpha1.StoreList{}
 	if err := r.Client.List(r.Context, storeList, client.MatchingLabels(util.ManagedLabelByStorage(o))); err != nil {
 		log.FromContext(r.Context).WithValues("storeList", "").Error(err, "")

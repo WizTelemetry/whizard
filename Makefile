@@ -94,7 +94,7 @@ test: manifests generate fmt vet ## Run tests.
 ##@ Build
 
 .PHONY: build
-build: controller-manager monitoring-gateway monitoring-agent-proxy monitoring-block-manager
+build: controller-manager monitoring-gateway monitoring-block-manager
 
 controller-manager: 
 	$(GO_BUILD_RECIPE)  -o bin/controller-manager cmd/controller-manager/controller-manager.go

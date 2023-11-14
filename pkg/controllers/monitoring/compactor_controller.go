@@ -37,7 +37,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // CompactorReconciler reconciles a compactor object
@@ -123,9 +122,9 @@ func (r *CompactorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 func (r *CompactorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&monitoringv1alpha1.Compactor{}).
-		Watches(&source.Kind{Type: &monitoringv1alpha1.Service{}},
+		Watches(&monitoringv1alpha1.Service{},
 			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(util.ManagedLabelByService))).
-		Watches(&source.Kind{Type: &monitoringv1alpha1.Storage{}},
+		Watches(&monitoringv1alpha1.Storage{},
 			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(util.ManagedLabelByStorage))).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Service{}).
@@ -133,7 +132,7 @@ func (r *CompactorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *CompactorReconciler) mapFuncBySelectorFunc(fn func(metav1.Object) map[string]string) handler.MapFunc {
-	return func(o client.Object) []reconcile.Request {
+	return func(ctx context.Context, o client.Object) []reconcile.Request {
 		compactorList := &monitoringv1alpha1.CompactorList{}
 		if err := r.Client.List(r.Context, compactorList, client.MatchingLabels(fn(o))); err != nil {
 			log.FromContext(r.Context).WithValues("compactorList", "").Error(err, "")

@@ -33,7 +33,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // TenantReconciler reconciles a Tenant object
@@ -102,21 +101,21 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&monitoringv1alpha1.Tenant{}).
-		Watches(&source.Kind{Type: &monitoringv1alpha1.Ingester{}},
+		Watches(&monitoringv1alpha1.Ingester{},
 			handler.EnqueueRequestsFromMapFunc(r.mapToTenantbyObjectSpecFunc)).
-		Watches(&source.Kind{Type: &monitoringv1alpha1.Compactor{}},
+		Watches(&monitoringv1alpha1.Compactor{},
 			handler.EnqueueRequestsFromMapFunc(r.mapToTenantbyObjectSpecFunc)).
-		Watches(&source.Kind{Type: &monitoringv1alpha1.Store{}},
+		Watches(&monitoringv1alpha1.Store{},
 			handler.EnqueueRequestsFromMapFunc(r.mapToTenantByStore)).
-		Watches(&source.Kind{Type: &monitoringv1alpha1.Service{}},
+		Watches(&monitoringv1alpha1.Service{},
 			handler.EnqueueRequestsFromMapFunc(r.mapToTenantByService)).
-		Watches(&source.Kind{Type: &monitoringv1alpha1.Ruler{}},
+		Watches(&monitoringv1alpha1.Ruler{},
 			handler.EnqueueRequestsFromMapFunc(r.mapToTenantbyObjectSpecFunc)).
 		Owns(&monitoringv1alpha1.Ruler{}).
 		Complete(r)
 }
 
-func (r *TenantReconciler) mapToTenantbyObjectSpecFunc(o client.Object) []reconcile.Request {
+func (r *TenantReconciler) mapToTenantbyObjectSpecFunc(ctx context.Context, o client.Object) []reconcile.Request {
 
 	var tenants []string
 	switch o := o.(type) {
@@ -152,7 +151,7 @@ func (r *TenantReconciler) mapToTenantbyObjectSpecFunc(o client.Object) []reconc
 	return reqs
 }
 
-func (r *TenantReconciler) mapToTenantByService(o client.Object) []reconcile.Request {
+func (r *TenantReconciler) mapToTenantByService(ctx context.Context, o client.Object) []reconcile.Request {
 
 	var tenantList monitoringv1alpha1.TenantList
 	if err := r.Client.List(r.Context, &tenantList, client.MatchingLabels(util.ManagedLabelByService(o))); err != nil {
@@ -175,7 +174,7 @@ func (r *TenantReconciler) mapToTenantByService(o client.Object) []reconcile.Req
 	return reqs
 }
 
-func (r *TenantReconciler) mapToTenantByStore(_ client.Object) []reconcile.Request {
+func (r *TenantReconciler) mapToTenantByStore(ctx context.Context, _ client.Object) []reconcile.Request {
 
 	var tenantList monitoringv1alpha1.TenantList
 	if err := r.Client.List(r.Context, &tenantList); err != nil {

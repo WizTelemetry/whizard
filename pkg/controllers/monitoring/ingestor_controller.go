@@ -42,7 +42,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // IngesterReconciler reconciles a Ingester object
@@ -157,9 +156,9 @@ func (r *IngesterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 func (r *IngesterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&monitoringv1alpha1.Ingester{}).
-		Watches(&source.Kind{Type: &monitoringv1alpha1.Service{}},
+		Watches(&monitoringv1alpha1.Service{},
 			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(util.ManagedLabelByService))).
-		Watches(&source.Kind{Type: &monitoringv1alpha1.Storage{}},
+		Watches(&monitoringv1alpha1.Storage{},
 			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(util.ManagedLabelByStorage))).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Service{}).
@@ -167,7 +166,7 @@ func (r *IngesterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *IngesterReconciler) mapFuncBySelectorFunc(fn func(metav1.Object) map[string]string) handler.MapFunc {
-	return func(o client.Object) []reconcile.Request {
+	return func(ctx context.Context, o client.Object) []reconcile.Request {
 		ingesterList := &monitoringv1alpha1.IngesterList{}
 		if err := r.Client.List(r.Context, ingesterList, client.MatchingLabels(fn(o))); err != nil {
 			log.FromContext(r.Context).WithValues("ingesterList", "").Error(err, "")

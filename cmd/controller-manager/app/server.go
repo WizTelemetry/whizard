@@ -17,6 +17,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/kubesphere/whizard/cmd/controller-manager/app/options"
 	"github.com/kubesphere/whizard/pkg/apis"
@@ -136,11 +138,14 @@ func run(s *options.ControllerManagerOptions, ctx context.Context) error {
 		kubernetesClient.ApiExtensions())
 
 	mgrOptions := manager.Options{
-		CertDir: s.WebhookCertDir,
-		Port:    8443,
-
-		MetricsBindAddress:     s.MetricsBindAddress,
 		HealthProbeBindAddress: s.HealthProbeBindAddress,
+		Metrics: metricsserver.Options{
+			BindAddress: s.MetricsBindAddress,
+		},
+		WebhookServer: webhook.NewServer(webhook.Options{
+			CertDir: s.WebhookCertDir,
+			Port:    8443,
+		}),
 	}
 
 	if s.LeaderElect {

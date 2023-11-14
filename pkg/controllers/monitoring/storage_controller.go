@@ -30,7 +30,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // StorageReconciler reconciles a Storage object
@@ -88,7 +87,7 @@ func (r *StorageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 func (r *StorageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&monitoringv1alpha1.Storage{}).
-		Watches(&source.Kind{Type: &corev1.Secret{}},
+		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.mapToStoragebySecretRefFunc)).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
@@ -96,7 +95,7 @@ func (r *StorageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *StorageReconciler) mapToStoragebySecretRefFunc(o client.Object) []reconcile.Request {
+func (r *StorageReconciler) mapToStoragebySecretRefFunc(ctx context.Context, o client.Object) []reconcile.Request {
 	var reqs []reconcile.Request
 	var storageList monitoringv1alpha1.StorageList
 	if err := r.List(r.Context, &storageList, client.InNamespace(o.GetNamespace())); err != nil {
