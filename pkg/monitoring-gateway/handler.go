@@ -15,7 +15,11 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	"github.com/prometheus-community/prom-label-proxy/injectproxy"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/common/route"
 	"github.com/prometheus/prometheus/model/labels"
+	extpromhttp "github.com/thanos-io/thanos/pkg/extprom/http"
+	"github.com/thanos-io/thanos/pkg/ui"
 )
 
 const (
@@ -98,20 +102,29 @@ func (h *Handler) addTenantRemoteWriteHandler() {
 }
 
 func (h *Handler) addGlobalQueryHandler() {
-	h.router.Path(apiGlobalPrefix).HandlerFunc(h.queryProxy.ServeHTTP)
+	h.router.PathPrefix(apiGlobalPrefix).HandlerFunc(h.queryProxy.ServeHTTP)
 }
 
-func (h *Handler) AppendQueryUIHandler() {
-	h.router.PathPrefix(apiUIPrefix).HandlerFunc(h.queryUIHander)
+func (h *Handler) AppendQueryUIHandler(logger log.Logger, reg *prometheus.Registry) {
+
+	ins := extpromhttp.NewInstrumentationMiddleware(reg, nil)
+	r := route.New()
+	ui.NewQueryUI(logger, nil, "/-/ui", "", "").Register(r, ins)
+
+	// matching /-/ui/* routes
+	h.router.PathPrefix(apiUIPrefix).HandlerFunc(h.queryUIHander(apiUIPrefix, h.queryProxy.ServeHTTP, r.ServeHTTP))
 }
 
-func (h *Handler) queryUIHander(rw http.ResponseWriter, req *http.Request) {
+func (h *Handler) queryUIHander(prefix string, queryHanler, uiHandler http.HandlerFunc) http.HandlerFunc {
 
-	req.URL.Path, _ = strings.CutPrefix(req.URL.Path, apiUIPrefix)
-	// Dynamic prefix configuration to expose UI
-	// https://thanos.io/v0.31/components/query.md/#expose-ui-on-a-sub-path
-	req.Header.Set("X-Forwarded-Prefix", apiUIPrefix)
-	h.queryProxy.ServeHTTP(rw, req)
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		req.URL.Path, _ = strings.CutPrefix(req.URL.Path, prefix)
+		if strings.Contains(req.URL.Path, "/api/v1") {
+			queryHanler.ServeHTTP(w, req)
+		} else {
+			uiHandler.ServeHTTP(w, req)
+		}
+	})
 }
 
 func (h *Handler) SetAdmissionControlHandler(c AdmissionControlConfig) error {
