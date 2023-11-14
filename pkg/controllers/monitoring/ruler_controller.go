@@ -38,7 +38,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // RulerReconciler reconciles a Ruler object
@@ -110,15 +109,15 @@ func (r *RulerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 func (r *RulerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&monitoringv1alpha1.Ruler{}).
-		Watches(&source.Kind{Type: &promv1.PrometheusRule{}},
+		Watches(&promv1.PrometheusRule{},
 			handler.EnqueueRequestsFromMapFunc(r.mapRuleToRulerFunc)).
-		Watches(&source.Kind{Type: &monitoringv1alpha1.Service{}},
+		Watches(&monitoringv1alpha1.Service{},
 			handler.EnqueueRequestsFromMapFunc(r.mapToRulerFunc)).
-		Watches(&source.Kind{Type: &monitoringv1alpha1.Query{}},
+		Watches(&monitoringv1alpha1.Query{},
 			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(util.ManagedLabelBySameService))).
-		Watches(&source.Kind{Type: &monitoringv1alpha1.QueryFrontend{}},
+		Watches(&monitoringv1alpha1.QueryFrontend{},
 			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(util.ManagedLabelBySameService))).
-		Watches(&source.Kind{Type: &monitoringv1alpha1.Router{}},
+		Watches(&monitoringv1alpha1.Router{},
 			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(util.ManagedLabelBySameService))).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Service{}).
@@ -127,7 +126,7 @@ func (r *RulerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *RulerReconciler) mapFuncBySelectorFunc(fn func(metav1.Object) map[string]string) handler.MapFunc {
-	return func(o client.Object) []reconcile.Request {
+	return func(ctx context.Context, o client.Object) []reconcile.Request {
 		rulerList := &monitoringv1alpha1.RulerList{}
 		if err := r.Client.List(r.Context, rulerList, client.MatchingLabels(fn(o))); err != nil {
 			log.FromContext(r.Context).WithValues("rulerList", "").Error(err, "")
@@ -148,7 +147,7 @@ func (r *RulerReconciler) mapFuncBySelectorFunc(fn func(metav1.Object) map[strin
 	}
 }
 
-func (r *RulerReconciler) mapRuleToRulerFunc(o client.Object) []reconcile.Request {
+func (r *RulerReconciler) mapRuleToRulerFunc(ctx context.Context, o client.Object) []reconcile.Request {
 	var ns corev1.Namespace
 	if err := r.Client.Get(r.Context, types.NamespacedName{Name: o.GetNamespace()}, &ns); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -190,7 +189,7 @@ func (r *RulerReconciler) mapRuleToRulerFunc(o client.Object) []reconcile.Reques
 	return reqs
 }
 
-func (r *RulerReconciler) mapToRulerFunc(o client.Object) []reconcile.Request {
+func (r *RulerReconciler) mapToRulerFunc(ctx context.Context, o client.Object) []reconcile.Request {
 
 	var rulerList monitoringv1alpha1.RulerList
 	if err := r.Client.List(r.Context, &rulerList,

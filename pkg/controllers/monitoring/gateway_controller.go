@@ -39,7 +39,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // GatewayReconciler reconciles a Service object
@@ -124,15 +123,15 @@ func (r *ResourceCustomPredicate) Update(e event.UpdateEvent) bool {
 func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&monitoringv1alpha1.Gateway{}).
-		Watches(&source.Kind{Type: &monitoringv1alpha1.Service{}},
+		Watches(&monitoringv1alpha1.Service{},
 			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(util.ManagedLabelByService))).
-		Watches(&source.Kind{Type: &monitoringv1alpha1.Query{}},
+		Watches(&monitoringv1alpha1.Query{},
 			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(util.ManagedLabelBySameService))).
-		Watches(&source.Kind{Type: &monitoringv1alpha1.QueryFrontend{}},
+		Watches(&monitoringv1alpha1.QueryFrontend{},
 			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(util.ManagedLabelBySameService))).
-		Watches(&source.Kind{Type: &monitoringv1alpha1.Router{}},
+		Watches(&monitoringv1alpha1.Router{},
 			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(util.ManagedLabelBySameService))).
-		Watches(&source.Kind{Type: &monitoringv1alpha1.Tenant{}},
+		Watches(&monitoringv1alpha1.Tenant{},
 			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(util.ManagedLabelBySameService)), builder.WithPredicates(p)).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
@@ -141,7 +140,7 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *GatewayReconciler) mapFuncBySelectorFunc(fn func(metav1.Object) map[string]string) handler.MapFunc {
-	return func(o client.Object) []reconcile.Request {
+	return func(ctx context.Context, o client.Object) []reconcile.Request {
 		gatewayList := &monitoringv1alpha1.GatewayList{}
 		if err := r.Client.List(r.Context, gatewayList, client.MatchingLabels(fn(o))); err != nil {
 			log.FromContext(r.Context).WithValues("gatewayList", "").Error(err, "")

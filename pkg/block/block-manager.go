@@ -73,7 +73,11 @@ func NewBlockManager(ctx context.Context,
 	}
 
 	mapper, err := func(c *rest.Config) (meta.RESTMapper, error) {
-		return apiutil.NewDynamicRESTMapper(c)
+		httpClient, err := rest.HTTPClientFor(c)
+		if err != nil {
+			return nil, err
+		}
+		return apiutil.NewDynamicRESTMapper(c, httpClient)
 	}(cfg)
 	if err != nil {
 		klog.Errorf("Failed to create rest mapper, %s ", err)
@@ -85,20 +89,20 @@ func NewBlockManager(ctx context.Context,
 		klog.Errorf("Failed to create kubernetes client, %s ", err)
 		os.Exit(1)
 	}
-
-	delegatingClient, err := client.NewDelegatingClient(
-		client.NewDelegatingClientInput{
-			CacheReader: informerCache,
-			Client:      c,
-		})
-	if err != nil {
-		klog.Errorf("Failed to create delegating client, %s ", err)
-		os.Exit(1)
-	}
-
+	/*
+		delegatingClient, err := client.NewDelegatingClient(
+			client.NewDelegatingClientInput{
+				CacheReader: informerCache,
+				Client:      c,
+			})
+		if err != nil {
+			klog.Errorf("Failed to create delegating client, %s ", err)
+			os.Exit(1)
+		}
+	*/
 	return &BlockManager{
 		ctx:               ctx,
-		Client:            delegatingClient,
+		Client:            c,
 		Scheme:            scheme,
 		Cache:             informerCache,
 		storageConfig:     storageConfig,
