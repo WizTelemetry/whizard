@@ -326,7 +326,7 @@ func (h *Handler) remoteWrite(w http.ResponseWriter, req *http.Request) {
 	h.remoteWriteHander.ServeHTTP(w, req)
 }
 
-func NewSingleHostReverseProxy(target *url.URL, transport *http.Transport) *httputil.ReverseProxy {
+func NewSingleHostReverseProxy(target *url.URL, transport http.RoundTripper) *httputil.ReverseProxy {
 	proxy := httputil.NewSingleHostReverseProxy(target)
 
 	proxy.Transport = transport

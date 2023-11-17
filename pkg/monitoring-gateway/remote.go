@@ -20,10 +20,7 @@ type remoteWriteClient struct {
 }
 
 func newRemoteWriteClient(conf *RemoteWriteConfig) (*remoteWriteClient, error) {
-	httpClientConfig := config_util.HTTPClientConfig{
-		TLSConfig: conf.TLSConfig,
-	}
-	httpClient, err := config_util.NewClientFromConfig(httpClientConfig, "remote_storage_write_client")
+	httpClient, err := config_util.NewClientFromConfig(conf.HTTPCilentConfig, "remote_storage_write_client")
 	if err != nil {
 		return nil, err
 	}

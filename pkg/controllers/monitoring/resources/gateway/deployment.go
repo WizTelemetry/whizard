@@ -309,7 +309,7 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 	url.Path = path.Join(url.Path, "/api/v1/receive")
 	rwRouter := &monitoringgateway.RemoteWriteConfig{URL: &config_util.URL{URL: url}}
 	if url.Scheme == "https" {
-		rwRouter.TLSConfig = config_util.TLSConfig{InsecureSkipVerify: true}
+		rwRouter.HTTPCilentConfig.TLSConfig = config_util.TLSConfig{InsecureSkipVerify: true}
 	}
 	rwsCfg = append(rwsCfg, rwRouter)
 	// write to configured remote-writes targets
@@ -332,7 +332,7 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 				rwCfg.RemoteTimeout = model.Duration(timeout)
 			}
 			if url.Scheme == "https" {
-				rwCfg.TLSConfig = config_util.TLSConfig{InsecureSkipVerify: true}
+				rwCfg.HTTPCilentConfig.TLSConfig = config_util.TLSConfig{InsecureSkipVerify: true}
 			}
 			rwsCfg = append(rwsCfg, rwCfg)
 		}

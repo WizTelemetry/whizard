@@ -4,6 +4,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"reflect"
 	"time"
 
 	extflag "github.com/efficientgo/tools/extkingpin"
@@ -16,11 +17,11 @@ import (
 )
 
 type RemoteWriteConfig struct {
-	Name          string            `yaml:"name,omitempty"`
-	URL           *config.URL       `yaml:"url"`
-	Headers       map[string]string `yaml:"headers,omitempty"`
-	RemoteTimeout model.Duration    `yaml:"remote_timeout,omitempty"`
-	TLSConfig     config.TLSConfig  `yaml:"tls_config,omitempty"`
+	Name             string                  `yaml:"name,omitempty"`
+	URL              *config.URL             `yaml:"url"`
+	Headers          map[string]string       `yaml:"headers,omitempty"`
+	RemoteTimeout    model.Duration          `yaml:"remote_timeout,omitempty"`
+	HTTPCilentConfig config.HTTPClientConfig `yaml:",inline"`
 }
 
 // LoadRemoteWritesConfig loads remotewrites config, and prefers file to content
@@ -45,12 +46,6 @@ func LoadRemoteWritesConfig(file, content string) ([]RemoteWriteConfig, error) {
 	return rws, nil
 }
 
-type QueryConfig struct {
-	DownstreamURL string
-
-	DownstreamTripperConfig
-}
-
 // RegisterCommonObjStoreFlags register flags commonly used to configure http servers with.
 func RegisterHTTPFlags(cmd extkingpin.FlagClause) (httpBindAddr *string, httpGracePeriod *model.Duration, httpTLSConfig *string) {
 	httpBindAddr = cmd.Flag("http-address", "Listen host:port for HTTP endpoints.").Default("0.0.0.0:9090").String()
@@ -60,6 +55,12 @@ func RegisterHTTPFlags(cmd extkingpin.FlagClause) (httpBindAddr *string, httpGra
 		"[EXPERIMENTAL] Path to the configuration file that can enable TLS or authentication for all HTTP endpoints.",
 	).Default("").String()
 	return httpBindAddr, httpGracePeriod, httpTLSConfig
+}
+
+type QueryConfig struct {
+	DownstreamURL string
+
+	DownstreamTripperConfig
 }
 
 func (qc *QueryConfig) RegisterFlag(cmd extflag.FlagClause) *QueryConfig {
@@ -87,19 +88,19 @@ func (rc *RulesQueryConfig) RegisterFlag(cmd extflag.FlagClause) *RulesQueryConf
 
 // DownstreamTripperConfig stores the http.Transport configuration for query's HTTP downstream tripper.
 type DownstreamTripperConfig struct {
-	IdleConnTimeout       model.Duration    `yaml:"idle_conn_timeout"`
-	ResponseHeaderTimeout model.Duration    `yaml:"response_header_timeout"`
-	TLSHandshakeTimeout   model.Duration    `yaml:"tls_handshake_timeout"`
-	ExpectContinueTimeout model.Duration    `yaml:"expect_continue_timeout"`
-	MaxIdleConns          *int              `yaml:"max_idle_conns"`
-	MaxIdleConnsPerHost   *int              `yaml:"max_idle_conns_per_host"`
-	MaxConnsPerHost       *int              `yaml:"max_conns_per_host"`
-	TLSConfig             *config.TLSConfig `yaml:"tls_config"`
+	IdleConnTimeout       model.Duration          `yaml:"idle_conn_timeout"`
+	ResponseHeaderTimeout model.Duration          `yaml:"response_header_timeout"`
+	TLSHandshakeTimeout   model.Duration          `yaml:"tls_handshake_timeout"`
+	ExpectContinueTimeout model.Duration          `yaml:"expect_continue_timeout"`
+	MaxIdleConns          *int                    `yaml:"max_idle_conns"`
+	MaxIdleConnsPerHost   *int                    `yaml:"max_idle_conns_per_host"`
+	MaxConnsPerHost       *int                    `yaml:"max_conns_per_host"`
+	HTTPClientConfig      config.HTTPClientConfig `yaml:",inline"`
 
 	TripperPathOrContent extflag.PathOrContent
 }
 
-func ParseTransportConfiguration(downstreamTripperConfContentYaml []byte) (*http.Transport, error) {
+func ParseTransportConfiguration(downstreamTripperConfContentYaml []byte) (http.RoundTripper, error) {
 
 	downstreamTripper := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
@@ -119,6 +120,14 @@ func ParseTransportConfiguration(downstreamTripperConfContentYaml []byte) (*http
 		tripperConfig := &DownstreamTripperConfig{}
 		if err := yaml.UnmarshalStrict(downstreamTripperConfContentYaml, tripperConfig); err != nil {
 			return nil, errors.Wrap(err, "parsing downstream tripper config YAML file")
+		}
+		if !reflect.DeepEqual(tripperConfig.HTTPClientConfig, config.HTTPClientConfig{}) {
+			// todo: load DownstreamTripperConfig
+			rt, err := config.NewRoundTripperFromConfig(tripperConfig.HTTPClientConfig, "")
+			if err != nil {
+				return nil, err
+			}
+			return rt, nil
 		}
 
 		if tripperConfig.IdleConnTimeout > 0 {
@@ -142,13 +151,7 @@ func ParseTransportConfiguration(downstreamTripperConfContentYaml []byte) (*http
 		if tripperConfig.MaxConnsPerHost != nil {
 			downstreamTripper.MaxConnsPerHost = *tripperConfig.MaxConnsPerHost
 		}
-		if tripperConfig.TLSConfig != nil {
-			tlsConfig, err := config.NewTLSConfig(tripperConfig.TLSConfig)
-			if err != nil {
-				return nil, err
-			}
-			downstreamTripper.TLSClientConfig = tlsConfig
-		}
+
 	}
 
 	return downstreamTripper, nil
