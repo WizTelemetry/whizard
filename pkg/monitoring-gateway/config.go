@@ -17,11 +17,25 @@ import (
 )
 
 type RemoteWriteConfig struct {
-	Name             string                  `yaml:"name,omitempty"`
-	URL              *config.URL             `yaml:"url"`
-	Headers          map[string]string       `yaml:"headers,omitempty"`
-	RemoteTimeout    model.Duration          `yaml:"remote_timeout,omitempty"`
-	HTTPCilentConfig config.HTTPClientConfig `yaml:",inline"`
+	Name          string            `yaml:"name,omitempty"`
+	URL           *config.URL       `yaml:"url"`
+	Headers       map[string]string `yaml:"headers,omitempty"`
+	RemoteTimeout model.Duration    `yaml:"remote_timeout,omitempty"`
+
+	// The HTTP basic authentication credentials for the targets.
+	BasicAuth *BasicAuth `yaml:"basic_auth,omitempty" json:"basic_auth,omitempty"`
+	// The bearer token for the targets. Deprecated in favour of
+	// Authorization.Credentials.
+	BearerToken string `yaml:"bearer_token,omitempty" json:"bearer_token,omitempty"`
+	// TLSConfig to use to connect to the targets.
+	TLSConfig config.TLSConfig `yaml:"tls_config,omitempty" json:"tls_config,omitempty"`
+}
+
+// BasicAuth contains basic HTTP authentication credentials.
+type BasicAuth struct {
+	Username     string `yaml:"username" json:"username"`
+	Password     string `yaml:"password,omitempty" json:"password,omitempty"`
+	PasswordFile string `yaml:"password_file,omitempty" json:"password_file,omitempty"`
 }
 
 // LoadRemoteWritesConfig loads remotewrites config, and prefers file to content

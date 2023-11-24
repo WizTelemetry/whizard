@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"path/filepath"
-	"sort"
+	"reflect"
 	"strconv"
 
 	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
@@ -114,6 +114,9 @@ func (q *QueryFrontend) deployment() (runtime.Object, resources.Operation, error
 	var addr string
 	if q.Service != nil && q.Service.Spec.RemoteQuery != nil {
 		addr = q.Service.Spec.RemoteQuery.URL
+		if !reflect.DeepEqual(q.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth, v1alpha1.BasicAuth{}) || q.Service.Spec.RemoteQuery.HTTPClientConfig.BearerToken != "" {
+			container.Args = append(container.Args, []string{"--query-frontend.forward-header", "Authorization"}...)
+		}
 	} else {
 		var err error
 		addr, err = q.queryAddress()
@@ -199,7 +202,8 @@ func (q *QueryFrontend) deployment() (runtime.Object, resources.Operation, error
 		}
 	}
 
-	sort.Strings(container.Args[1:])
+	// disable sort flag
+	// sort.Strings(container.Args[1:])
 
 	d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, container)
 	d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, cacheConfigVol)
