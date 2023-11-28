@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"path"
 	"path/filepath"
+	"reflect"
 	"time"
 
 	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
@@ -257,8 +258,27 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 			return nil, "", fmt.Errorf("invalid query frontend address: %s", queryFrontendAddr)
 		}
 		container.Args = append(container.Args, fmt.Sprintf("--query.address=%s", queryFrontendAddr))
+		var cfg = config{}
 		if queryFrontendUrl.Scheme == "https" {
-			cfg := config{TLSConfig: &config_util.TLSConfig{InsecureSkipVerify: true}}
+			cfg.TLSConfig = &config_util.TLSConfig{InsecureSkipVerify: true}
+		}
+		if !reflect.DeepEqual(g.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth, v1alpha1.BasicAuth{}) {
+			cfg.BasicAuth = &monitoringgateway.BasicAuth{}
+			secret := &corev1.Secret{}
+			if err := g.Client.Get(g.Context, client.ObjectKey{Name: g.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Username.Name, Namespace: g.Service.Namespace}, secret); err != nil {
+				return nil, "", err
+			}
+
+			cfg.BasicAuth.Username = string(secret.Data[g.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Username.Key])
+			if err := g.Client.Get(g.Context, client.ObjectKey{Name: g.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Password.Name, Namespace: g.Service.Namespace}, secret); err != nil {
+				return nil, "", err
+			}
+			cfg.BasicAuth.Password = string(secret.Data[g.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Password.Key])
+		}
+		if g.Service.Spec.RemoteQuery.HTTPClientConfig.BearerToken != "" {
+			cfg.BearerToken = string(g.Service.Spec.RemoteQuery.HTTPClientConfig.BearerToken)
+		}
+		if !reflect.DeepEqual(cfg, config{}) {
 			buff, _ := yaml.Marshal(cfg)
 			container.Args = append(container.Args, fmt.Sprintf("--query.config=%s", buff))
 		}
@@ -333,6 +353,21 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 			}
 			if url.Scheme == "https" {
 				rwCfg.TLSConfig = config_util.TLSConfig{InsecureSkipVerify: true}
+			}
+			if !reflect.DeepEqual(rw.HTTPClientConfig.BasicAuth, v1alpha1.BasicAuth{}) {
+				secret := &corev1.Secret{}
+				rwCfg.BasicAuth = &monitoringgateway.BasicAuth{}
+				if err := g.Client.Get(g.Context, client.ObjectKey{Name: rw.HTTPClientConfig.BasicAuth.Username.Name, Namespace: g.Service.Namespace}, secret); err != nil {
+					return nil, "", err
+				}
+				rwCfg.BasicAuth.Username = string(secret.Data[rw.HTTPClientConfig.BasicAuth.Username.Key])
+				if err := g.Client.Get(g.Context, client.ObjectKey{Name: rw.HTTPClientConfig.BasicAuth.Password.Name, Namespace: g.Service.Namespace}, secret); err != nil {
+					return nil, "", err
+				}
+				rwCfg.BasicAuth.Password = string(secret.Data[rw.HTTPClientConfig.BasicAuth.Password.Key])
+			}
+			if rw.HTTPClientConfig.BearerToken != "" {
+				rwCfg.BearerToken = string(rw.HTTPClientConfig.BearerToken)
 			}
 			rwsCfg = append(rwsCfg, rwCfg)
 		}
@@ -429,5 +464,10 @@ func (g *Gateway) remoteWriteAddress() (string, error) {
 }
 
 type config struct {
+	// The HTTP basic authentication credentials for the targets.
+	BasicAuth *monitoringgateway.BasicAuth `yaml:"basic_auth,omitempty" json:"basic_auth,omitempty"`
+	// The bearer token for the targets.
+	BearerToken string `yaml:"bearer_token,omitempty" json:"bearer_token,omitempty"`
+	// TLSConfig to use to connect to the targets.
 	TLSConfig *config_util.TLSConfig `yaml:"tls_config,omitempty" json:"tls_config,omitempty"`
 }

@@ -73,8 +73,9 @@ type ServiceSpec struct {
 // RemoteQuerySpec defines the configuration to query from remote service
 // which should have prometheus-compatible Query APIs.
 type RemoteQuerySpec struct {
-	Name string `json:"name,omitempty"`
-	URL  string `json:"url"`
+	Name             string `json:"name,omitempty"`
+	URL              string `json:"url"`
+	HTTPClientConfig `json:",inline"`
 }
 
 // RemoteWriteSpec defines the remote write configuration.
@@ -85,6 +86,16 @@ type RemoteWriteSpec struct {
 	Headers map[string]string `json:"headers,omitempty"`
 	// Timeout for requests to the remote write endpoint.
 	RemoteTimeout Duration `json:"remoteTimeout,omitempty"`
+
+	HTTPClientConfig `json:",inline"`
+}
+
+// HTTPClientConfig configures an HTTP client.
+type HTTPClientConfig struct {
+	// The HTTP basic authentication credentials for the targets.
+	BasicAuth BasicAuth `json:"basicAuth,omitempty"`
+	// The bearer token for the targets.
+	BearerToken string `json:"bearerToken,omitempty"`
 }
 
 // ServiceStatus defines the observed state of Service

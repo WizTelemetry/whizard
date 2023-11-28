@@ -5,17 +5,20 @@ import (
 	"net/url"
 	"path"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/query"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/queryfrontend"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/router"
+	monitoringgateway "github.com/kubesphere/whizard/pkg/monitoring-gateway"
 	"github.com/kubesphere/whizard/pkg/util"
 	"github.com/prometheus-operator/prometheus-operator/pkg/k8sutil"
 	promoperator "github.com/prometheus-operator/prometheus-operator/pkg/operator"
@@ -24,6 +27,7 @@ import (
 	promconfig "github.com/prometheus/prometheus/config"
 	"github.com/prometheus/prometheus/model/relabel"
 	"github.com/thanos-io/thanos/pkg/httpconfig"
+	"gopkg.in/yaml.v3"
 	yamlv3 "gopkg.in/yaml.v3"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -248,6 +252,38 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 				// TODO support certificate validation
 				rwCfg.HTTPClientConfig.TLSConfig.InsecureSkipVerify = true
 			}
+			if !reflect.DeepEqual(rw.HTTPClientConfig.BasicAuth, v1alpha1.BasicAuth{}) {
+				secret := &corev1.Secret{}
+				if err := r.Client.Get(r.Context, client.ObjectKey{Name: rw.HTTPClientConfig.BasicAuth.Username.Name, Namespace: r.Service.Namespace}, secret); err != nil {
+					return nil, "", err
+				}
+				username := string(secret.Data[rw.HTTPClientConfig.BasicAuth.Username.Key])
+				if err := r.Client.Get(r.Context, client.ObjectKey{Name: rw.HTTPClientConfig.BasicAuth.Password.Name, Namespace: r.Service.Namespace}, secret); err != nil {
+					return nil, "", err
+				}
+				password := promcommonconfig.Secret(secret.Data[rw.HTTPClientConfig.BasicAuth.Password.Key])
+				rwCfg.HTTPClientConfig.BasicAuth = &promcommonconfig.BasicAuth{
+					Username: username,
+					Password: password,
+				}
+
+				//	basicAuthEnc := func(username, password string) string {
+				//		auth := username + ":" + password
+				//		return base64.StdEncoding.EncodeToString([]byte(auth))
+				//	}(username, strings.TrimSpace(string(password)))
+				//	if len(rwCfg.Headers) == 0 {
+				//		rwCfg.Headers = make(map[string]string, 1)
+				//	}
+				//	rwCfg.Headers["Authorization"] = "Basic " + basicAuthEnc
+			}
+			if rw.HTTPClientConfig.BearerToken != "" {
+				rwCfg.HTTPClientConfig.BearerToken = promcommonconfig.Secret(rw.HTTPClientConfig.BearerToken)
+				//	if len(rwCfg.Headers) == 0 {
+				//		rwCfg.Headers = make(map[string]string, 1)
+				//	}
+				//	bearerEnc := fmt.Sprintf("%s %s", "Bearer", string(rw.HTTPClientConfig.BearerToken))
+				//	rwCfg.Headers["Authorization"] = bearerEnc
+			}
 			rwCfg.Headers = rw.Headers
 			if rw.RemoteTimeout != "" {
 				timeout, err := time.ParseDuration(string(rw.RemoteTimeout))
@@ -275,25 +311,43 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 			// which points to the QueryFrontend/Query under the same whizard service.
 			// If and only if the ruler needs to query external data out of whizard service, the --query flag can be specified.
 			if !hasQueryFlag {
-				if url, err := url.Parse(queryAddr); err == nil && url.Scheme == "https" {
-					queryConfig := []httpconfig.Config{
-						{
-							HTTPClientConfig: httpconfig.ClientConfig{
-								TLSConfig: httpconfig.TLSConfig{
-									InsecureSkipVerify: true,
-								},
-							},
-							EndpointsConfig: httpconfig.EndpointsConfig{
-								Scheme:          url.Scheme,
-								StaticAddresses: []string{url.Host},
-							},
+				url, err := url.Parse(queryAddr)
+				if err != nil {
+					return nil, "", err
+				}
+				queryconfig := httpconfig.Config{
+					EndpointsConfig: httpconfig.EndpointsConfig{
+						Scheme:          url.Scheme,
+						StaticAddresses: []string{url.Host},
+					},
+				}
+				if url.Scheme == "https" {
+					queryconfig.HTTPClientConfig = httpconfig.ClientConfig{
+						TLSConfig: httpconfig.TLSConfig{
+							InsecureSkipVerify: true,
 						},
 					}
-					buff, _ := yamlv3.Marshal(queryConfig)
-					container.Args = append(container.Args, "--query.config="+string(buff))
-				} else {
-					container.Args = append(container.Args, "--query="+queryAddr)
 				}
+
+				if !reflect.DeepEqual(r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth, v1alpha1.BasicAuth{}) {
+					secret := &corev1.Secret{}
+
+					if err := r.Client.Get(r.Context, client.ObjectKey{Name: r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Username.Name, Namespace: r.Service.Namespace}, secret); err != nil {
+						return nil, "", err
+					}
+					queryconfig.HTTPClientConfig.BasicAuth.Username = string(secret.Data[r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Username.Key])
+					if err := r.Client.Get(r.Context, client.ObjectKey{Name: r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Password.Name, Namespace: r.Service.Namespace}, secret); err != nil {
+						return nil, "", err
+					}
+					queryconfig.HTTPClientConfig.BasicAuth.Password = string(secret.Data[r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Password.Key])
+				}
+				if r.Service.Spec.RemoteQuery.HTTPClientConfig.BearerToken != "" {
+					queryconfig.HTTPClientConfig.BearerToken = string(r.Service.Spec.RemoteQuery.HTTPClientConfig.BearerToken)
+				}
+				queryConfigs := []httpconfig.Config{}
+				queryConfigs = append(queryConfigs, queryconfig)
+				buff, _ := yamlv3.Marshal(queryConfigs)
+				container.Args = append(container.Args, "--query.config="+string(buff))
 			}
 
 			writeUrl, err := url.Parse("http://127.0.0.1:8081/push")
@@ -307,7 +361,28 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 			if err != nil {
 				return nil, resources.OperationCreateOrUpdate, err
 			}
-			container.Args = append(container.Args, "--remote-write.config="+string(content))
+			root := &yaml.Node{}
+			if err := yaml.Unmarshal(content, root); err != nil {
+				return nil, "", err
+			}
+			for _, rwCfg := range cfgs.RemoteWriteConfigs {
+				if rwCfg.HTTPClientConfig.BasicAuth != nil {
+					if n := findYamlNodeByKey(root, "password"); n != nil {
+						n.SetString(string(rwCfg.HTTPClientConfig.BasicAuth.Password))
+					}
+				}
+				if rwCfg.HTTPClientConfig.BearerToken != "" {
+					if n := findYamlNodeByKey(root, "bearer_token"); n != nil {
+						n.SetString(string(rwCfg.HTTPClientConfig.BearerToken))
+					}
+				}
+			}
+
+			body, err := yaml.Marshal(root)
+			if err != nil {
+				return nil, resources.OperationCreateOrUpdate, err
+			}
+			container.Args = append(container.Args, "--remote-write.config="+string(body))
 
 			if url, err := url.Parse(writeAddr); err == nil && url.Scheme == "https" {
 				writeAddr = "http://127.0.0.1:" + constants.CustomProxyPort
@@ -369,7 +444,28 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 			if err != nil {
 				return nil, resources.OperationCreateOrUpdate, err
 			}
-			container.Args = append(container.Args, "--remote-write.config="+string(content))
+			root := &yaml.Node{}
+			if err := yaml.Unmarshal(content, root); err != nil {
+				return nil, "", err
+			}
+			for _, rwCfg := range cfgs.RemoteWriteConfigs {
+				if rwCfg.HTTPClientConfig.BasicAuth != nil {
+					if n := findYamlNodeByKey(root, "password"); n != nil {
+						n.SetString(string(rwCfg.HTTPClientConfig.BasicAuth.Password))
+					}
+				}
+				if rwCfg.HTTPClientConfig.BearerToken != "" {
+					if n := findYamlNodeByKey(root, "bearer_token"); n != nil {
+						n.SetString(string(rwCfg.HTTPClientConfig.BearerToken))
+					}
+				}
+			}
+
+			body, err := yaml.Marshal(root)
+			if err != nil {
+				return nil, resources.OperationCreateOrUpdate, err
+			}
+			container.Args = append(container.Args, "--remote-write.config="+string(body))
 
 			queryProxyContainer, _ := r.addQueryProxyContainer(&service.Spec, queryAddr, writeAddr)
 			sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, *queryProxyContainer)
@@ -509,7 +605,15 @@ func (r *Ruler) queryAddress() (string, error) {
 }
 
 type gatewayConfig struct {
+	// The HTTP basic authentication credentials for the targets.
+	BasicAuth *monitoringgateway.BasicAuth `yaml:"basic_auth,omitempty" json:"basic_auth,omitempty"`
+	// The bearer token for the targets.
+	BearerToken string `yaml:"bearer_token,omitempty" json:"bearer_token,omitempty"`
+
 	TLSConfig *promcommonconfig.TLSConfig `yaml:"tls_config,omitempty" json:"tls_config,omitempty"`
+}
+
+type BasicAuth struct {
 }
 
 func (r *Ruler) addQueryProxyContainer(serviceSpec *monitoringv1alpha1.ServiceSpec, queryAddr, remoteWriteAddr string) (*corev1.Container, error) {
@@ -525,27 +629,49 @@ func (r *Ruler) addQueryProxyContainer(serviceSpec *monitoringv1alpha1.ServiceSp
 	queryProxyContainer.Args = append(queryProxyContainer.Args, "--tenant.label-name="+serviceSpec.TenantLabelName)
 	queryProxyContainer.Args = append(queryProxyContainer.Args, "--tenant.header="+serviceSpec.TenantHeader)
 
+	var cfg = gatewayConfig{}
 	if url, err := url.Parse(queryAddr); err == nil && url.Scheme == "https" {
-		cfg := gatewayConfig{
-			TLSConfig: &promcommonconfig.TLSConfig{
-				InsecureSkipVerify: true,
-			},
+		cfg.TLSConfig = &promcommonconfig.TLSConfig{
+			InsecureSkipVerify: true,
 		}
+	}
+
+	if !reflect.DeepEqual(r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth, v1alpha1.BasicAuth{}) {
+		secret := &corev1.Secret{}
+		cfg.BasicAuth = &monitoringgateway.BasicAuth{}
+		if err := r.Client.Get(r.Context, client.ObjectKey{Name: r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Username.Name, Namespace: r.Service.Namespace}, secret); err != nil {
+			return nil, err
+		}
+		cfg.BasicAuth.Username = string(secret.Data[r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Username.Key])
+		if err := r.Client.Get(r.Context, client.ObjectKey{Name: r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Password.Name, Namespace: r.Service.Namespace}, secret); err != nil {
+			return nil, err
+		}
+		cfg.BasicAuth.Password = string(secret.Data[r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Password.Key])
+	}
+	if r.Service.Spec.RemoteQuery.HTTPClientConfig.BearerToken != "" {
+		cfg.BearerToken = string(r.Service.Spec.RemoteQuery.HTTPClientConfig.BearerToken)
+	}
+	if !reflect.DeepEqual(cfg, config{}) {
 		buff, _ := yamlv3.Marshal(cfg)
 		queryProxyContainer.Args = append(queryProxyContainer.Args, fmt.Sprintf("--query.config=%s", buff))
 	}
-
 	queryProxyContainer.Args = append(queryProxyContainer.Args, "--query.address="+queryAddr)
-	if url, err := url.Parse(remoteWriteAddr); err == nil && url.Scheme == "https" {
-		cfg := gatewayConfig{
-			TLSConfig: &promcommonconfig.TLSConfig{
+
+	remoteWritesConigs := []monitoringgateway.RemoteWriteConfig{}
+	rwcfg := monitoringgateway.RemoteWriteConfig{}
+	if url, err := url.Parse(remoteWriteAddr); err == nil {
+		rwcfg.URL = &promcommonconfig.URL{URL: url}
+		if url.Scheme == "https" {
+			rwcfg.TLSConfig = promcommonconfig.TLSConfig{
 				InsecureSkipVerify: true,
-			},
+			}
 		}
-		buff, _ := yamlv3.Marshal(cfg)
-		queryProxyContainer.Args = append(queryProxyContainer.Args, fmt.Sprintf("--remote-write.config=%s", buff))
+		remoteWritesConigs = append(remoteWritesConigs, rwcfg)
+
+		buff, _ := yamlv3.Marshal(remoteWritesConigs)
+		queryProxyContainer.Args = append(queryProxyContainer.Args, fmt.Sprintf("--remote-writes.config=%s", buff))
 	}
-	queryProxyContainer.Args = append(queryProxyContainer.Args, "--remote-write.address="+remoteWriteAddr)
+
 	return queryProxyContainer, nil
 }
 
@@ -615,4 +741,18 @@ func (r *Ruler) addWriteProxyContainer(serviceSpec *monitoringv1alpha1.ServiceSp
 		Resources: r.Options.RulerWriteProxy.Resources,
 	}
 	return writeProxyContainer, nil
+}
+
+func findYamlNodeByKey(root *yaml.Node, key string) *yaml.Node {
+
+	for i := 0; i < len(root.Content); i++ {
+		if root.Content[i].Value == key && i+1 < len(root.Content) {
+			return root.Content[i+1]
+		}
+
+		if n := findYamlNodeByKey(root.Content[i], key); n != nil {
+			return n
+		}
+	}
+	return nil
 }

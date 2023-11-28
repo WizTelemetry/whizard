@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"net/url"
-	"path"
-	"strings"
 	"time"
 
 	extflag "github.com/efficientgo/tools/extkingpin"
@@ -13,7 +11,6 @@ import (
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/common/config"
 	"github.com/prometheus/common/model"
 	"github.com/thanos-io/thanos/pkg/component"
 	"github.com/thanos-io/thanos/pkg/extkingpin"
@@ -29,13 +26,7 @@ type gatewayConfig struct {
 	httpGracePeriod *model.Duration
 	httpTLSConfig   *string
 
-	debug bool
-
-	DeprecatedServerTLS struct {
-		Key      string
-		Cert     string
-		ClientCa string
-	}
+	debugEnabledUI bool
 
 	tenantsFilePath    string
 	tenantsFileContent string
@@ -44,11 +35,6 @@ type gatewayConfig struct {
 	tenantHeader    string
 	tenantLabelName string
 
-	RemoteWrite struct {
-		Address    string
-		Config     string
-		ConfigFile string
-	}
 	RemoteWrites struct {
 		ConfigPathOrContent extflag.PathOrContent
 	}
@@ -84,7 +70,6 @@ func runGateway(
 	reg *prometheus.Registry,
 	conf *gatewayConfig,
 	comp component.Component,
-
 ) error {
 
 	httpProbe := prober.NewHTTP()
@@ -92,25 +77,6 @@ func runGateway(
 		httpProbe,
 		prober.NewInstrumentation(comp, logger, extprom.WrapRegistererWithPrefix("whizard_", reg)),
 	)
-
-	// Deprecated
-	/*
-		if conf.DeprecatedServerTLS.Cert != "" || conf.DeprecatedServerTLS.Key != "" || conf.DeprecatedServerTLS.ClientCa != "" {
-			config := web.Config{
-				TLSConfig: web.TLSConfig{
-					TLSCertPath: conf.DeprecatedServerTLS.Cert,
-					TLSKeyPath:  conf.DeprecatedServerTLS.Key,
-					ClientAuth:  conf.DeprecatedServerTLS.ClientCa,
-				},
-			}
-			out, err := yaml.Marshal(config)
-			if err != nil {
-				return err
-			}
-			httpTLSConfig := string(out)
-			conf.httpTLSConfig = &httpTLSConfig
-		}
-	*/
 
 	srv := httpserver.New(logger, reg, comp, httpProbe,
 		httpserver.WithListen(*conf.httpBindAddr),
@@ -163,25 +129,7 @@ func runGateway(
 	if err != nil {
 		return err
 	}
-	if conf.RemoteWrite.Address != "" {
-		rwUrl, err := url.Parse(conf.RemoteWrite.Address)
-		if err != nil {
-			return err
-		}
-		if !strings.HasSuffix(strings.TrimSuffix(rwUrl.Path, "/"), "/api/v1/receive") { // to make it compactible with previous config
-			rwUrl.Path = path.Join(rwUrl.Path, "/api/v1/receive")
-		}
 
-		rwCfg := monitoringgateway.RemoteWriteConfig{URL: &config.URL{URL: rwUrl}}
-		cfg, err := parseConfig(conf.RemoteWrite.ConfigFile, conf.RemoteWrite.Config)
-		if err != nil {
-			return err
-		}
-		if cfg != nil && cfg.TLSConfig != nil {
-			rwCfg.TLSConfig = *cfg.TLSConfig
-		}
-		rwsCfg = append(rwsCfg, rwCfg)
-	}
 	options.RemoteWriteHandler, _ = monitoringgateway.NewRemoteWriteHandler(rwsCfg, options.TenantHeader)
 
 	if conf.tenantsFileContent != "" || conf.tenantsFilePath != "" {
@@ -190,9 +138,8 @@ func runGateway(
 
 	webhandler := monitoringgateway.NewHandler(logger, options)
 
-	if conf.debug {
+	if conf.debugEnabledUI {
 		webhandler.AppendQueryUIHandler(logger, reg)
-
 	}
 
 	srv.Handle("/", webhandler.Router())
@@ -288,11 +235,7 @@ func runGateway(
 func (gc *gatewayConfig) registerFlag(cmd extkingpin.FlagClause) {
 	gc.httpBindAddr, gc.httpGracePeriod, gc.httpTLSConfig = monitoringgateway.RegisterHTTPFlags(cmd)
 
-	cmd.Flag("server-tls-key", "TLS Certificate for HTTP server, leave blank to disable TLS.").Default("").StringVar(&gc.DeprecatedServerTLS.Key)
-	cmd.Flag("server-tls-cert", "TLS Certificate for HTTP server, leave blank to disable TLS.").Default("").StringVar(&gc.DeprecatedServerTLS.Cert)
-	cmd.Flag("server-tls-client-ca", "TLS CA to verify clients against. If no client CA is specified, there is no client verification on server side. (tls.NoClientCert)").Default("").StringVar(&gc.DeprecatedServerTLS.ClientCa)
-
-	cmd.Flag("debug.enable-ui", "If true, Gateway will proxy and expose Thanos Query UI for debugging.").Default("false").BoolVar(&gc.debug)
+	cmd.Flag("debug.enable-ui", "If true, Gateway will proxy and expose Thanos Query UI for debugging.").Default("false").BoolVar(&gc.debugEnabledUI)
 
 	cmd.Flag("tenant.header", "HTTP header to determine tenant for write requests.").Default("WHIZARD-TENANT").StringVar(&gc.tenantHeader)
 	cmd.Flag("tenant.label-name", "Label name through which the tenant will be announced.").Default("tenant_id").StringVar(&gc.tenantLabelName)
@@ -301,14 +244,9 @@ func (gc *gatewayConfig) registerFlag(cmd extkingpin.FlagClause) {
 	gc.refreshInterval = extkingpin.ModelDuration(cmd.Flag("tenant.admission-control-config-file-refresh-interval", "Refresh interval to re-read the configuration file. (used as a fallback)").Default("1m"))
 
 	gc.RemoteWrites.ConfigPathOrContent = *extflag.RegisterPathOrContent(cmd, "remote-writes.config", "Path to YAML config for the remote-write configurations, that specify servers where received remote-write requests should be forwarded to.", extflag.WithEnvSubstitution())
-	// Deprecated
-	cmd.Flag("remote-write.address", "Address to send remote write requests. (Deprecated, please use remote-writes.config[/config-file] instead)").Default("").StringVar(&gc.RemoteWrite.Address)
-	cmd.Flag("remote-write.configFile", "Downstream receive service configuration file. (Deprecated, please use remote-writes.config[/config-file] instead)").Default("").StringVar(&gc.RemoteWrite.ConfigFile)
-	cmd.Flag("remote-write.config", "Downstream receive service configuration content. (Deprecated, please use remote-writes.config[/config-file] instead)").Default("").StringVar(&gc.RemoteWrite.Config)
 
 	gc.queryConfig.RegisterFlag(cmd)
 	gc.rulesQueryConfig.RegisterFlag(cmd)
-
 }
 
 var (

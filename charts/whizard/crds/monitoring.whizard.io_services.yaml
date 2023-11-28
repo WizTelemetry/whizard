@@ -48,6 +48,52 @@ spec:
                   metrics read requests through the QueryFrontend to the remote target,
                   but proxy rules read requests directly to the Query.
                 properties:
+                  basicAuth:
+                    description: The HTTP basic authentication credentials for the
+                      targets.
+                    properties:
+                      password:
+                        description: The secret in the service monitor namespace that
+                          contains the password for authentication.
+                        properties:
+                          key:
+                            description: The key of the secret to select from.  Must
+                              be a valid secret key.
+                            type: string
+                          name:
+                            description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                              TODO: Add other useful fields. apiVersion, kind, uid?'
+                            type: string
+                          optional:
+                            description: Specify whether the Secret or its key must
+                              be defined
+                            type: boolean
+                        required:
+                        - key
+                        type: object
+                      username:
+                        description: The secret in the service monitor namespace that
+                          contains the username for authentication.
+                        properties:
+                          key:
+                            description: The key of the secret to select from.  Must
+                              be a valid secret key.
+                            type: string
+                          name:
+                            description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                              TODO: Add other useful fields. apiVersion, kind, uid?'
+                            type: string
+                          optional:
+                            description: Specify whether the Secret or its key must
+                              be defined
+                            type: boolean
+                        required:
+                        - key
+                        type: object
+                    type: object
+                  bearerToken:
+                    description: The bearer token for the targets.
+                    type: string
                   name:
                     type: string
                   url:
@@ -62,6 +108,52 @@ spec:
                 items:
                   description: RemoteWriteSpec defines the remote write configuration.
                   properties:
+                    basicAuth:
+                      description: The HTTP basic authentication credentials for the
+                        targets.
+                      properties:
+                        password:
+                          description: The secret in the service monitor namespace
+                            that contains the password for authentication.
+                          properties:
+                            key:
+                              description: The key of the secret to select from.  Must
+                                be a valid secret key.
+                              type: string
+                            name:
+                              description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                TODO: Add other useful fields. apiVersion, kind, uid?'
+                              type: string
+                            optional:
+                              description: Specify whether the Secret or its key must
+                                be defined
+                              type: boolean
+                          required:
+                          - key
+                          type: object
+                        username:
+                          description: The secret in the service monitor namespace
+                            that contains the username for authentication.
+                          properties:
+                            key:
+                              description: The key of the secret to select from.  Must
+                                be a valid secret key.
+                              type: string
+                            name:
+                              description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                TODO: Add other useful fields. apiVersion, kind, uid?'
+                              type: string
+                            optional:
+                              description: Specify whether the Secret or its key must
+                                be defined
+                              type: boolean
+                          required:
+                          - key
+                          type: object
+                      type: object
+                    bearerToken:
+                      description: The bearer token for the targets.
+                      type: string
                     headers:
                       additionalProperties:
                         type: string
