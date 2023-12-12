@@ -14,5 +14,5 @@ maintainers:
     email: junhaozhang@kubesphere.io
   - name: junot
     email: junotxiang@kubesphere.io
-version: 0.9.5
+version: 0.9.6
 appVersion: "latest"

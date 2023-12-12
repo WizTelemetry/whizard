@@ -461,6 +461,8 @@ type RulerOptions struct {
 	// Namespaces to be selected for PrometheusRules discovery. If unspecified, only
 	// the same namespace as the Ruler object is in is used.
 	RuleNamespaceSelector *metav1.LabelSelector `json:"ruleNamespaceSelector,omitempty"`
+	// If true, the tenant ruler will not select alerting rules associated with this tenant(cluster)
+	DisableAlertingRulesAutoSelection *bool `json:"disableAlertingRulesAutoSelection,omitempty"`
 
 	// Labels configure the external label pairs to Ruler. A default replica label
 	// `ruler_replica` will be always added  as a label with the value of the pod's name and it will be dropped in the alerts.
@@ -572,6 +574,9 @@ func (o *RulerOptions) ApplyTo(options *RulerOptions) {
 	}
 	if o.RuleNamespaceSelector != nil {
 		options.RuleNamespaceSelector = o.RuleNamespaceSelector
+	}
+	if o.DisableAlertingRulesAutoSelection != nil {
+		options.DisableAlertingRulesAutoSelection = o.DisableAlertingRulesAutoSelection
 	}
 	if o.Labels != nil {
 		options.Labels = o.Labels

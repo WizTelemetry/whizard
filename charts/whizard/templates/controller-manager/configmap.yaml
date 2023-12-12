@@ -321,6 +321,9 @@ data:
         ruleNamespaceSelector:
           {{- toYaml . | nindent 10 }}
         {{- end }}
+        {{- if eq (kindOf $ruler.disableAlertingRulesAutoSelection) "bool" }}
+        disableAlertingRulesAutoSelection: {{ $ruler.disableAlertingRulesAutoSelection }}
+        {{- end }}
         {{- with $ruler.alertmanagersUrl }}
         alertmanagersUrl:
           {{- toYaml . | nindent 10 }}

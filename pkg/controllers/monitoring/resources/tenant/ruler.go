@@ -42,19 +42,6 @@ func (t *Tenant) ruler() error {
 			} else {
 				return err
 			}
-		} else {
-			var needResetRuler bool = false
-			// todo: more ruler check
-			if v, ok := ruler.Labels[constants.ServiceLabelKey]; !ok || v != t.tenant.Labels[constants.ServiceLabelKey] {
-				klog.V(3).Infof("Tenant [%s] and ruler [%s]'s Service mismatch, need to reset ingester", t.tenant.Name, ruler.Name)
-				needResetRuler = true
-			}
-
-			if !needResetRuler {
-				return nil
-			} else {
-				klog.V(3).Infof("Ruler [%s] is already assigned to tenant [%s],  reset ruler for this tenant", ruler.Name, t.tenant.Name)
-			}
 		}
 	}
 
@@ -92,17 +79,20 @@ func (t *Tenant) createOrUpdateRulerinstance() *monitoringv1alpha1.Ruler {
 	var ruleSelectors []*metav1.LabelSelector
 	// add default rule selectors. (mainly used to select recording rules)
 	ruleSelectors = append(ruleSelectors, t.Options.Ruler.RuleSelectors...)
-	// select alerting rules associated with this tenant(cluster)
-	ruleSelectors = append(ruleSelectors, &metav1.LabelSelector{
-		MatchLabels: map[string]string{
-			PrometheusRuleResourceLabelKeyOwnerCluster: t.tenant.Spec.Tenant,
-		},
-		MatchExpressions: []metav1.LabelSelectorRequirement{{
-			Key:      PrometheusRuleResourceLabelKeyRuleLevel,
-			Operator: metav1.LabelSelectorOpIn,
-			Values:   []string{string(RuleLevelCluster), string(RuleLevelNamesapce)},
-		}},
-	})
+	if t.Options.Ruler.DisableAlertingRulesAutoSelection == nil ||
+		!*t.Options.Ruler.DisableAlertingRulesAutoSelection {
+		// select alerting rules associated with this tenant(cluster)
+		ruleSelectors = append(ruleSelectors, &metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				PrometheusRuleResourceLabelKeyOwnerCluster: t.tenant.Spec.Tenant,
+			},
+			MatchExpressions: []metav1.LabelSelectorRequirement{{
+				Key:      PrometheusRuleResourceLabelKeyRuleLevel,
+				Operator: metav1.LabelSelectorOpIn,
+				Values:   []string{string(RuleLevelCluster), string(RuleLevelNamesapce)},
+			}},
+		})
+	}
 
 	rulerName := t.tenant.Name
 
