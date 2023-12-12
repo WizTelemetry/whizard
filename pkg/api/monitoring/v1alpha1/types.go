@@ -141,6 +141,11 @@ type CommonSpec struct {
 	SecurityContext *corev1.PodSecurityContext `json:"securityContext,omitempty"`
 	// Number of replicas for a component.
 	Replicas *int32 `json:"replicas,omitempty"`
+	// Containers allows injecting additional containers or modifying operator generated containers.
+	// Containers described here modify an operator generated
+	// container if they share the same name and modifications are done via a
+	// strategic merge patch.
+	Containers []corev1.Container `json:"containers,omitempty"`
 
 	// Image is the component image with tag/version.
 	Image string `json:"image,omitempty"`

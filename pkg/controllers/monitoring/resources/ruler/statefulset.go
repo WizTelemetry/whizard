@@ -526,6 +526,14 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 		sts.Spec.Template.Spec.ImagePullSecrets = r.ruler.Spec.ImagePullSecrets
 	}
 
+	if len(r.ruler.Spec.Containers) > 0 {
+		containers, err := k8sutil.MergePatchContainers(sts.Spec.Template.Spec.Containers, r.ruler.Spec.Containers)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to merge containers spec: %w", err)
+		}
+		sts.Spec.Template.Spec.Containers = containers
+	}
+
 	return sts, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(r.ruler, sts, r.Scheme)
 }
 

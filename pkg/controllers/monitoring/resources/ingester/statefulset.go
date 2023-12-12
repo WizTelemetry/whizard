@@ -9,6 +9,7 @@ import (
 	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/util"
+	"github.com/prometheus-operator/prometheus-operator/pkg/k8sutil"
 	"github.com/prometheus/common/model"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -192,6 +193,14 @@ func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
 
 	sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, container)
 	sts.Spec.Template.Spec.InitContainers = r.generateInitContainer(getTSDBVolumeMount(container))
+
+	if len(r.ingester.Spec.Containers) > 0 {
+		containers, err := k8sutil.MergePatchContainers(sts.Spec.Template.Spec.Containers, r.ingester.Spec.Containers)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to merge containers spec: %w", err)
+		}
+		sts.Spec.Template.Spec.Containers = containers
+	}
 
 	return sts, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(r.ingester, sts, r.Scheme)
 }
