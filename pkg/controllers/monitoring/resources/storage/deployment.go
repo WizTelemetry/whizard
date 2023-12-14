@@ -6,6 +6,7 @@ import (
 	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/util"
+	"github.com/prometheus-operator/prometheus-operator/pkg/k8sutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -179,6 +180,14 @@ func (s *Storage) deployment() (runtime.Object, resources.Operation, error) {
 		if needToAppend {
 			d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, *gcContainer)
 		}
+	}
+
+	if len(s.storage.Spec.BlockManager.Containers) > 0 {
+		containers, err := k8sutil.MergePatchContainers(d.Spec.Template.Spec.Containers, s.storage.Spec.BlockManager.Containers)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to merge containers spec: %w", err)
+		}
+		d.Spec.Template.Spec.Containers = containers
 	}
 
 	return d, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(s.storage, d, s.Scheme)

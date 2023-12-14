@@ -18,6 +18,7 @@ import (
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/router"
 	monitoringgateway "github.com/kubesphere/whizard/pkg/monitoring-gateway"
 	"github.com/kubesphere/whizard/pkg/util"
+	"github.com/prometheus-operator/prometheus-operator/pkg/k8sutil"
 	config_util "github.com/prometheus/common/config"
 	"github.com/prometheus/common/model"
 	"gopkg.in/yaml.v3"
@@ -380,6 +381,14 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 	container.Args = append(container.Args, fmt.Sprintf("--remote-writes.config=%s", buff))
 
 	d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, container)
+
+	if len(g.gateway.Spec.Containers) > 0 {
+		containers, err := k8sutil.MergePatchContainers(d.Spec.Template.Spec.Containers, g.gateway.Spec.Containers)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to merge containers spec: %w", err)
+		}
+		d.Spec.Template.Spec.Containers = containers
+	}
 
 	return d, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(g.gateway, d, g.Scheme)
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/util"
+	"github.com/prometheus-operator/prometheus-operator/pkg/k8sutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -204,6 +205,14 @@ func (r *Store) statefulSet(name string, partitionSn int, timeRange v1alpha1.Tim
 
 	if needToAppend {
 		sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, *container)
+	}
+
+	if len(r.store.Spec.Containers) > 0 {
+		containers, err := k8sutil.MergePatchContainers(sts.Spec.Template.Spec.Containers, r.store.Spec.Containers)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to merge containers spec: %w", err)
+		}
+		sts.Spec.Template.Spec.Containers = containers
 	}
 
 	return sts, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(r.store, sts, r.Scheme)

@@ -12,6 +12,7 @@ import (
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/query"
 	"github.com/kubesphere/whizard/pkg/util"
+	"github.com/prometheus-operator/prometheus-operator/pkg/k8sutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -210,6 +211,14 @@ func (q *QueryFrontend) deployment() (runtime.Object, resources.Operation, error
 
 	if q.queryFrontend.Spec.ImagePullSecrets != nil && len(q.queryFrontend.Spec.ImagePullSecrets) > 0 {
 		d.Spec.Template.Spec.ImagePullSecrets = q.queryFrontend.Spec.ImagePullSecrets
+	}
+
+	if len(q.queryFrontend.Spec.Containers) > 0 {
+		containers, err := k8sutil.MergePatchContainers(d.Spec.Template.Spec.Containers, q.queryFrontend.Spec.Containers)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to merge containers spec: %w", err)
+		}
+		d.Spec.Template.Spec.Containers = containers
 	}
 
 	return d, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(q.queryFrontend, d, q.Scheme)
