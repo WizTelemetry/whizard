@@ -328,21 +328,22 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 						},
 					}
 				}
+				if r.Service.Spec.RemoteQuery != nil {
+					if !reflect.DeepEqual(r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth, v1alpha1.BasicAuth{}) {
+						secret := &corev1.Secret{}
 
-				if !reflect.DeepEqual(r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth, v1alpha1.BasicAuth{}) {
-					secret := &corev1.Secret{}
-
-					if err := r.Client.Get(r.Context, client.ObjectKey{Name: r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Username.Name, Namespace: r.Service.Namespace}, secret); err != nil {
-						return nil, "", err
+						if err := r.Client.Get(r.Context, client.ObjectKey{Name: r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Username.Name, Namespace: r.Service.Namespace}, secret); err != nil {
+							return nil, "", err
+						}
+						queryconfig.HTTPClientConfig.BasicAuth.Username = string(secret.Data[r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Username.Key])
+						if err := r.Client.Get(r.Context, client.ObjectKey{Name: r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Password.Name, Namespace: r.Service.Namespace}, secret); err != nil {
+							return nil, "", err
+						}
+						queryconfig.HTTPClientConfig.BasicAuth.Password = string(secret.Data[r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Password.Key])
 					}
-					queryconfig.HTTPClientConfig.BasicAuth.Username = string(secret.Data[r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Username.Key])
-					if err := r.Client.Get(r.Context, client.ObjectKey{Name: r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Password.Name, Namespace: r.Service.Namespace}, secret); err != nil {
-						return nil, "", err
+					if r.Service.Spec.RemoteQuery.HTTPClientConfig.BearerToken != "" {
+						queryconfig.HTTPClientConfig.BearerToken = string(r.Service.Spec.RemoteQuery.HTTPClientConfig.BearerToken)
 					}
-					queryconfig.HTTPClientConfig.BasicAuth.Password = string(secret.Data[r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Password.Key])
-				}
-				if r.Service.Spec.RemoteQuery.HTTPClientConfig.BearerToken != "" {
-					queryconfig.HTTPClientConfig.BearerToken = string(r.Service.Spec.RemoteQuery.HTTPClientConfig.BearerToken)
 				}
 				queryConfigs := []httpconfig.Config{}
 				queryConfigs = append(queryConfigs, queryconfig)
@@ -636,20 +637,22 @@ func (r *Ruler) addQueryProxyContainer(serviceSpec *monitoringv1alpha1.ServiceSp
 		}
 	}
 
-	if !reflect.DeepEqual(r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth, v1alpha1.BasicAuth{}) {
-		secret := &corev1.Secret{}
-		cfg.BasicAuth = &monitoringgateway.BasicAuth{}
-		if err := r.Client.Get(r.Context, client.ObjectKey{Name: r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Username.Name, Namespace: r.Service.Namespace}, secret); err != nil {
-			return nil, err
+	if r.Service.Spec.RemoteQuery != nil {
+		if !reflect.DeepEqual(r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth, v1alpha1.BasicAuth{}) {
+			secret := &corev1.Secret{}
+			cfg.BasicAuth = &monitoringgateway.BasicAuth{}
+			if err := r.Client.Get(r.Context, client.ObjectKey{Name: r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Username.Name, Namespace: r.Service.Namespace}, secret); err != nil {
+				return nil, err
+			}
+			cfg.BasicAuth.Username = string(secret.Data[r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Username.Key])
+			if err := r.Client.Get(r.Context, client.ObjectKey{Name: r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Password.Name, Namespace: r.Service.Namespace}, secret); err != nil {
+				return nil, err
+			}
+			cfg.BasicAuth.Password = string(secret.Data[r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Password.Key])
 		}
-		cfg.BasicAuth.Username = string(secret.Data[r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Username.Key])
-		if err := r.Client.Get(r.Context, client.ObjectKey{Name: r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Password.Name, Namespace: r.Service.Namespace}, secret); err != nil {
-			return nil, err
+		if r.Service.Spec.RemoteQuery.HTTPClientConfig.BearerToken != "" {
+			cfg.BearerToken = string(r.Service.Spec.RemoteQuery.HTTPClientConfig.BearerToken)
 		}
-		cfg.BasicAuth.Password = string(secret.Data[r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Password.Key])
-	}
-	if r.Service.Spec.RemoteQuery.HTTPClientConfig.BearerToken != "" {
-		cfg.BearerToken = string(r.Service.Spec.RemoteQuery.HTTPClientConfig.BearerToken)
 	}
 	if !reflect.DeepEqual(cfg, config{}) {
 		buff, _ := yamlv3.Marshal(cfg)
