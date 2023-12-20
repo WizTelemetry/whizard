@@ -670,7 +670,7 @@ func (r *Ruler) addQueryProxyContainer(serviceSpec *monitoringv1alpha1.ServiceSp
 
 	remoteWritesConigs := []monitoringgateway.RemoteWriteConfig{}
 	rwcfg := monitoringgateway.RemoteWriteConfig{}
-	if url, err := url.Parse(remoteWriteAddr); err == nil {
+	if url, err := url.Parse(remoteWriteAddr + "/api/v1/receive"); err == nil {
 		rwcfg.URL = &promcommonconfig.URL{URL: url}
 		if url.Scheme == "https" {
 			rwcfg.TLSConfig = promcommonconfig.TLSConfig{
