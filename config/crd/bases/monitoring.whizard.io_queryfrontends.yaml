@@ -14,7 +14,15 @@ spec:
     singular: queryfrontend
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - description: The number of desired replicas
+      jsonPath: .spec.replicas
+      name: Replicas
+      type: integer
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: QueryFrontend is the Schema for the monitoring queryfrontend

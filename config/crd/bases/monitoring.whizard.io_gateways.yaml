@@ -14,7 +14,19 @@ spec:
     singular: gateway
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - description: The number of desired replicas
+      jsonPath: .spec.Node
+      name: Replicas
+      type: integer
+    - description: The nodePort of Gateway service
+      jsonPath: .spec.nodePort
+      name: NodePort
+      type: integer
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: Gateway is the Schema for the monitoring gateway API

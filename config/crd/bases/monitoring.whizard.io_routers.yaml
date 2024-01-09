@@ -14,7 +14,19 @@ spec:
     singular: router
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - description: The number of desired replicas
+      jsonPath: .spec.replicas
+      name: Replicas
+      type: integer
+    - description: How many times to replicate incoming write requests
+      jsonPath: .spec.replicationFactor
+      name: ReplicationFactor
+      type: integer
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: Router is the Schema for the monitoring router API

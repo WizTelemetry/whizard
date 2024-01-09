@@ -14,7 +14,19 @@ spec:
     singular: ingester
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - description: The number of desired replicas
+      jsonPath: .spec.replicas
+      name: Replicas
+      type: integer
+    - description: How long to retain raw samples on local storage.
+      jsonPath: .spec.localTsdbRetention
+      name: LocalTsdbRetention
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: Ingester is the Schema for the Ingester API

@@ -159,9 +159,13 @@ type GatewayStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
 // +genclient
+// +k8s:openapi-gen=true
+// +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".spec.replicas",description="The number of desired replicas"
+// +kubebuilder:printcolumn:name="NodePort",type="integer",JSONPath=".spec.nodePort",description="The nodePort of Gateway service"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:subresource:status
 
 // Gateway is the Schema for the monitoring gateway API
 type Gateway struct {
@@ -252,9 +256,12 @@ type QueryStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
 // +genclient
+// +k8s:openapi-gen=true
+// +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".spec.replicas",description="The number of desired replicas"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:subresource:status
 
 // Query is the Schema for the monitoring query API
 type Query struct {
@@ -290,9 +297,13 @@ type RouterStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
 // +genclient
+// +k8s:openapi-gen=true
+// +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".spec.replicas",description="The number of desired replicas"
+// +kubebuilder:printcolumn:name="ReplicationFactor",type="integer",JSONPath=".spec.replicationFactor",description="How many times to replicate incoming write requests"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:subresource:status
 
 // Router is the Schema for the monitoring router API
 type Router struct {
@@ -350,9 +361,12 @@ type QueryFrontendStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
 // +genclient
+// +k8s:openapi-gen=true
+// +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".spec.replicas",description="The number of desired replicas"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:subresource:status
 
 // QueryFrontend is the Schema for the monitoring queryfrontend API
 type QueryFrontend struct {
@@ -479,9 +493,12 @@ type StoreStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
 // +genclient
+// +k8s:openapi-gen=true
+// +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".spec.replicas",description="The number of desired replicas"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:subresource:status
 
 // Store is the Schema for the Store API
 type Store struct {
@@ -507,6 +524,9 @@ type CompactorSpec struct {
 	// DisableDownsampling specifies whether to disable downsampling
 	DisableDownsampling *bool `json:"disableDownsampling,omitempty"`
 
+	// Retention configs how long to retain samples
+	Retention *Retention `json:"retention,omitempty"`
+
 	// DataVolume specifies how volume shall be used
 	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
 
@@ -520,9 +540,13 @@ type CompactorStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
 // +genclient
+// +k8s:openapi-gen=true
+// +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".spec.replicas",description="The number of desired replicas"
+// +kubebuilder:printcolumn:name="DisableDownsampling",type="boolean",JSONPath=".spec.disableDownsampling",description="The storage for service"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:subresource:status
 
 // Compactor is the Schema for the Compactor API
 type Compactor struct {
@@ -577,9 +601,13 @@ type IngesterTenantStatus struct {
 	Obsolete bool `json:"obsolete"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
 // +genclient
+// +k8s:openapi-gen=true
+// +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".spec.replicas",description="The number of desired replicas"
+// +kubebuilder:printcolumn:name="LocalTsdbRetention",type="string",JSONPath=".spec.localTsdbRetention",description="How long to retain raw samples on local storage."
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:subresource:status
 
 // Ingester is the Schema for the Ingester API
 type Ingester struct {
@@ -649,9 +677,12 @@ type RulerStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
 // +genclient
+// +k8s:openapi-gen=true
+// +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".spec.replicas",description="The number of desired replicas"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:subresource:status
 
 // Ruler is the Schema for the Ruler API
 type Ruler struct {

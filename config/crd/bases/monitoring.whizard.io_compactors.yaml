@@ -14,7 +14,19 @@ spec:
     singular: compactor
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - description: The number of desired replicas
+      jsonPath: .spec.replicas
+      name: Replicas
+      type: integer
+    - description: The storage for service
+      jsonPath: .spec.disableDownsampling
+      name: DisableDownsampling
+      type: boolean
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: Compactor is the Schema for the Compactor API
@@ -1426,6 +1438,25 @@ spec:
                       to an implementation-defined value. Requests cannot exceed Limits.
                       More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
                     type: object
+                type: object
+              retention:
+                description: Retention configs how long to retain samples
+                properties:
+                  retention1h:
+                    description: Retention1h specifies how long to retain samples
+                      of 1h resolution in bucket
+                    pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
+                    type: string
+                  retention5m:
+                    description: Retention5m specifies how long to retain samples
+                      of 5m resolution in bucket
+                    pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
+                    type: string
+                  retentionRaw:
+                    description: RetentionRaw specifies how long to retain raw samples
+                      in bucket
+                    pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
+                    type: string
                 type: object
               secrets:
                 description: Secrets is a list of Secrets in the same namespace as

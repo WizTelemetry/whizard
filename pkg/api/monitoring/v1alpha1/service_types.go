@@ -20,8 +20,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"time"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -73,7 +71,7 @@ type IngesterTemplateSpec struct {
 	//
 	// Default: "3h"
 	// +kubebuilder:default:="3h"
-	DefaultIngesterRetentionPeriod time.Duration `json:"defaultIngesterRetentionPeriod,omitempty"`
+	DefaultIngesterRetentionPeriod Duration `json:"defaultIngesterRetentionPeriod,omitempty"`
 }
 
 type CompactorTemplateSpec struct {
@@ -119,9 +117,12 @@ type ServiceStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
 // +genclient
+// +k8s:openapi-gen=true
+// +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Storage",type="string",JSONPath=".spec.storage.name",description="The storage for service"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:subresource:status
 
 // Service is the Schema for the monitoring service API
 type Service struct {
