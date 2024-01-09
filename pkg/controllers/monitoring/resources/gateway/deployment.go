@@ -382,8 +382,8 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 
 	d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, container)
 
-	if len(g.gateway.Spec.Containers) > 0 {
-		containers, err := k8sutil.MergePatchContainers(d.Spec.Template.Spec.Containers, g.gateway.Spec.Containers)
+	if len(g.gateway.Spec.EmbeddedContainers) > 0 {
+		containers, err := k8sutil.MergePatchContainers(d.Spec.Template.Spec.Containers, g.gateway.Spec.EmbeddedContainers)
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to merge containers spec: %w", err)
 		}

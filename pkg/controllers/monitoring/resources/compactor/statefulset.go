@@ -135,8 +135,8 @@ func (r *Compactor) statefulSet() (runtime.Object, resources.Operation, error) {
 		sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, *container)
 	}
 
-	if len(r.compactor.Spec.Containers) > 0 {
-		containers, err := k8sutil.MergePatchContainers(sts.Spec.Template.Spec.Containers, r.compactor.Spec.Containers)
+	if len(r.compactor.Spec.EmbeddedContainers) > 0 {
+		containers, err := k8sutil.MergePatchContainers(sts.Spec.Template.Spec.Containers, r.compactor.Spec.EmbeddedContainers)
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to merge containers spec: %w", err)
 		}

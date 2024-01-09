@@ -186,8 +186,8 @@ func (r *Router) deployment() (runtime.Object, resources.Operation, error) {
 
 	d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, container)
 
-	if len(r.router.Spec.Containers) > 0 {
-		containers, err := k8sutil.MergePatchContainers(d.Spec.Template.Spec.Containers, r.router.Spec.Containers)
+	if len(r.router.Spec.EmbeddedContainers) > 0 {
+		containers, err := k8sutil.MergePatchContainers(d.Spec.Template.Spec.Containers, r.router.Spec.EmbeddedContainers)
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to merge containers spec: %w", err)
 		}
