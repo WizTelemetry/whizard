@@ -23,6 +23,7 @@ import (
 	"k8s.io/api/autoscaling/v2beta2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -43,90 +44,32 @@ type Retention struct {
 	Retention1h Duration `json:"retention1h,omitempty"`
 }
 
-// ServiceSpec defines the desired state of a Service
-type ServiceSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// HTTP header to determine tenant for remote write requests.
-	TenantHeader string `json:"tenantHeader,omitempty"`
-	// Default tenant ID to use when none is provided via a header.
-	DefaultTenantId string `json:"defaultTenantId,omitempty"`
-	// Label name through which the tenant will be announced.
-	TenantLabelName string `json:"tenantLabelName,omitempty"`
-
-	// Retention configs how long to retain samples
-	Retention *Retention `json:"retention,omitempty"`
-
-	Storage *ObjectReference `json:"storage,omitempty"`
-
-	// RemoteWrites is the list of remote write configurations.
-	// If it is configured, its targets will receive write requests from the Gateway and the Ruler.
-	RemoteWrites []RemoteWriteSpec `json:"remoteWrites,omitempty"`
-	// RemoteQuery is the remote query configuration and the remote target should have prometheus-compatible Query APIs.
-	// If not configured, the Gateway will proxy all read requests through the QueryFrontend to the Query,
-	// If configured, the Gateway will proxy metrics read requests through the QueryFrontend to the remote target,
-	// but proxy rules read requests directly to the Query.
-	RemoteQuery *RemoteQuerySpec `json:"remoteQuery,omitempty"`
-}
-
-// RemoteQuerySpec defines the configuration to query from remote service
-// which should have prometheus-compatible Query APIs.
-type RemoteQuerySpec struct {
-	Name             string `json:"name,omitempty"`
-	URL              string `json:"url"`
-	HTTPClientConfig `json:",inline"`
-}
-
-// RemoteWriteSpec defines the remote write configuration.
-type RemoteWriteSpec struct {
-	Name string `json:"name,omitempty"`
-	URL  string `json:"url"`
-	// Custom HTTP headers to be sent along with each remote write request.
-	Headers map[string]string `json:"headers,omitempty"`
-	// Timeout for requests to the remote write endpoint.
-	RemoteTimeout Duration `json:"remoteTimeout,omitempty"`
-
-	HTTPClientConfig `json:",inline"`
-}
-
-// HTTPClientConfig configures an HTTP client.
-type HTTPClientConfig struct {
-	// The HTTP basic authentication credentials for the targets.
-	BasicAuth BasicAuth `json:"basicAuth,omitempty"`
-	// The bearer token for the targets.
-	BearerToken string `json:"bearerToken,omitempty"`
-}
-
-// ServiceStatus defines the observed state of Service
-type ServiceStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-}
-
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-// +genclient
-
-// Service is the Schema for the monitoring service API
-type Service struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   ServiceSpec   `json:"spec,omitempty"`
-	Status ServiceStatus `json:"status,omitempty"`
-}
-
-//+kubebuilder:object:root=true
-
-// ServiceList contains a list of Service
-type ServiceList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Service `json:"items"`
-}
-
 type CommonSpec struct {
+	// Containers allows injecting additional containers or modifying operator generated containers.
+	// Containers described here modify an operator generated
+	// container if they share the same name and modifications are done via a
+	// strategic merge patch.
+	Containers runtime.RawExtension `json:"containers,omitempty"`
+
+	// EmbeddedContainers
+	EmbeddedContainers []corev1.Container `json:"-"`
+
+	// PodMetadata configures labels and annotations which are propagated to the pods.
+	//
+	// * "kubectl.kubernetes.io/default-container" annotation, set to main pod.
+	PodMetadata *EmbeddedObjectMetadata `json:"podMetadata,omitempty"`
+
+	// Secrets is a list of Secrets in the same namespace as the component
+	// object, which shall be mounted into the Prometheus Pods.
+	// Each Secret is added to the StatefulSet/Deployment definition as a volume named `secret-<secret-name>`.
+	// The Secrets are mounted into /etc/whizard/secrets/<secret-name> in the default container.
+	Secrets []string `json:"secrets,omitempty"`
+	// ConfigMaps is a list of ConfigMaps in the same namespace as the component
+	// object, which shall be mounted into the default Pods.
+	// Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named `configmap-<configmap-name>`.
+	// The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.
+	ConfigMaps []string `json:"configMaps,omitempty"`
+
 	// If specified, the pod's scheduling constraints.
 	Affinity *corev1.Affinity `json:"affinity,omitempty"`
 	// Define which Nodes the Pods are scheduled on.
@@ -141,11 +84,6 @@ type CommonSpec struct {
 	SecurityContext *corev1.PodSecurityContext `json:"securityContext,omitempty"`
 	// Number of replicas for a component.
 	Replicas *int32 `json:"replicas,omitempty"`
-	// Containers allows injecting additional containers or modifying operator generated containers.
-	// Containers described here modify an operator generated
-	// container if they share the same name and modifications are done via a
-	// strategic merge patch.
-	Containers []corev1.Container `json:"containers,omitempty"`
 
 	// Image is the component image with tag/version.
 	Image string `json:"image,omitempty"`
@@ -165,6 +103,33 @@ type CommonSpec struct {
 	LogFormat string `json:"logFormat,omitempty"`
 	// Flags is the flags of component.
 	Flags []string `json:"flags,omitempty"`
+}
+
+// EmbeddedObjectMetadata contains a subset of the fields included in k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
+// Only fields which are relevant to embedded resources are included.
+type EmbeddedObjectMetadata struct {
+	// Name must be unique within a namespace. Is required when creating resources, although
+	// some resources may allow a client to request the generation of an appropriate name
+	// automatically. Name is primarily intended for creation idempotence and configuration
+	// definition.
+	// Cannot be updated.
+	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names#names
+	// +optional
+	Name string `json:"name,omitempty" protobuf:"bytes,1,opt,name=name"`
+
+	// Map of string keys and values that can be used to organize and categorize
+	// (scope and select) objects. May match selectors of replication controllers
+	// and services.
+	// More info: http://kubernetes.io/docs/user-guide/labels
+	// +optional
+	Labels map[string]string `json:"labels,omitempty" protobuf:"bytes,11,rep,name=labels"`
+
+	// Annotations is an unstructured key value map stored with a resource that may be
+	// set by external tools to store and retrieve arbitrary metadata. They are not
+	// queryable and should be preserved when modifying objects.
+	// More info: http://kubernetes.io/docs/user-guide/annotations
+	// +optional
+	Annotations map[string]string `json:"annotations,omitempty" protobuf:"bytes,12,rep,name=annotations"`
 }
 
 type GatewaySpec struct {
@@ -194,9 +159,13 @@ type GatewayStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
 // +genclient
+// +k8s:openapi-gen=true
+// +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".spec.replicas",description="The number of desired replicas"
+// +kubebuilder:printcolumn:name="NodePort",type="integer",JSONPath=".spec.nodePort",description="The nodePort of Gateway service"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:subresource:status
 
 // Gateway is the Schema for the monitoring gateway API
 type Gateway struct {
@@ -287,9 +256,12 @@ type QueryStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
 // +genclient
+// +k8s:openapi-gen=true
+// +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".spec.replicas",description="The number of desired replicas"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:subresource:status
 
 // Query is the Schema for the monitoring query API
 type Query struct {
@@ -325,9 +297,13 @@ type RouterStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
 // +genclient
+// +k8s:openapi-gen=true
+// +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".spec.replicas",description="The number of desired replicas"
+// +kubebuilder:printcolumn:name="ReplicationFactor",type="integer",JSONPath=".spec.replicationFactor",description="How many times to replicate incoming write requests"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:subresource:status
 
 // Router is the Schema for the monitoring router API
 type Router struct {
@@ -385,9 +361,12 @@ type QueryFrontendStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
 // +genclient
+// +k8s:openapi-gen=true
+// +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".spec.replicas",description="The number of desired replicas"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:subresource:status
 
 // QueryFrontend is the Schema for the monitoring queryfrontend API
 type QueryFrontend struct {
@@ -514,9 +493,12 @@ type StoreStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
 // +genclient
+// +k8s:openapi-gen=true
+// +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".spec.replicas",description="The number of desired replicas"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:subresource:status
 
 // Store is the Schema for the Store API
 type Store struct {
@@ -542,6 +524,9 @@ type CompactorSpec struct {
 	// DisableDownsampling specifies whether to disable downsampling
 	DisableDownsampling *bool `json:"disableDownsampling,omitempty"`
 
+	// Retention configs how long to retain samples
+	Retention *Retention `json:"retention,omitempty"`
+
 	// DataVolume specifies how volume shall be used
 	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
 
@@ -555,9 +540,13 @@ type CompactorStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
 // +genclient
+// +k8s:openapi-gen=true
+// +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".spec.replicas",description="The number of desired replicas"
+// +kubebuilder:printcolumn:name="DisableDownsampling",type="boolean",JSONPath=".spec.disableDownsampling",description="The storage for service"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:subresource:status
 
 // Compactor is the Schema for the Compactor API
 type Compactor struct {
@@ -612,9 +601,13 @@ type IngesterTenantStatus struct {
 	Obsolete bool `json:"obsolete"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
 // +genclient
+// +k8s:openapi-gen=true
+// +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".spec.replicas",description="The number of desired replicas"
+// +kubebuilder:printcolumn:name="LocalTsdbRetention",type="string",JSONPath=".spec.localTsdbRetention",description="How long to retain raw samples on local storage."
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:subresource:status
 
 // Ingester is the Schema for the Ingester API
 type Ingester struct {
@@ -684,9 +677,12 @@ type RulerStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
 // +genclient
+// +k8s:openapi-gen=true
+// +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".spec.replicas",description="The number of desired replicas"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:subresource:status
 
 // Ruler is the Schema for the Ruler API
 type Ruler struct {
@@ -708,7 +704,6 @@ type RulerList struct {
 
 func init() {
 	SchemeBuilder = SchemeBuilder.
-		Register(&Service{}, &ServiceList{}).
 		Register(&Gateway{}, &GatewayList{}).
 		Register(&Query{}, &QueryList{}).
 		Register(&QueryFrontend{}, &QueryFrontendList{}).

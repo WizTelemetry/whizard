@@ -309,8 +309,8 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 	d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, queryContainer)
 	d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, envoyContainer)
 
-	if len(q.query.Spec.Containers) > 0 {
-		containers, err := k8sutil.MergePatchContainers(d.Spec.Template.Spec.Containers, q.query.Spec.Containers)
+	if len(q.query.Spec.EmbeddedContainers) > 0 {
+		containers, err := k8sutil.MergePatchContainers(d.Spec.Template.Spec.Containers, q.query.Spec.EmbeddedContainers)
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to merge containers spec: %w", err)
 		}

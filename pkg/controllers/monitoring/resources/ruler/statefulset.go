@@ -495,12 +495,13 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 
 	sort.Strings(container.Args[1:])
 
+	defautReloaderConfig := promoperator.DefaultConfig(r.Options.PrometheusConfigReloader.Resources.Limits.Cpu().String(), r.Options.PrometheusConfigReloader.Resources.Limits.Memory().String())
 	var reloaderConfig = promoperator.ContainerConfig{
-		Image:         r.Options.PrometheusConfigReloader.Image,
-		CPURequest:    r.Options.PrometheusConfigReloader.Resources.Requests.Cpu().String(),
-		MemoryRequest: r.Options.PrometheusConfigReloader.Resources.Requests.Memory().String(),
-		CPULimit:      r.Options.PrometheusConfigReloader.Resources.Limits.Cpu().String(),
-		MemoryLimit:   r.Options.PrometheusConfigReloader.Resources.Limits.Memory().String(),
+		Image:          r.Options.PrometheusConfigReloader.Image,
+		CPURequests:    defautReloaderConfig.ReloaderConfig.CPURequests,
+		MemoryRequests: defautReloaderConfig.ReloaderConfig.MemoryRequests,
+		CPULimits:      defautReloaderConfig.ReloaderConfig.CPULimits,
+		MemoryLimits:   defautReloaderConfig.ReloaderConfig.MemoryLimits,
 	}
 
 	var reloadContainer = promoperator.CreateConfigReloader(
@@ -526,8 +527,8 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 		sts.Spec.Template.Spec.ImagePullSecrets = r.ruler.Spec.ImagePullSecrets
 	}
 
-	if len(r.ruler.Spec.Containers) > 0 {
-		containers, err := k8sutil.MergePatchContainers(sts.Spec.Template.Spec.Containers, r.ruler.Spec.Containers)
+	if len(r.ruler.Spec.EmbeddedContainers) > 0 {
+		containers, err := k8sutil.MergePatchContainers(sts.Spec.Template.Spec.Containers, r.ruler.Spec.EmbeddedContainers)
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to merge containers spec: %w", err)
 		}
