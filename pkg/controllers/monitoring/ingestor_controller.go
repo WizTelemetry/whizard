@@ -18,19 +18,16 @@ package monitoring
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"strconv"
 	"time"
 
-	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/imdario/mergo"
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/ingester"
 	"github.com/kubesphere/whizard/pkg/util"
-	"github.com/prometheus/common/model"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -46,11 +43,9 @@ import (
 
 // IngesterReconciler reconciles a Ingester object
 type IngesterReconciler struct {
-	DefaulterValidator IngesterDefaulterValidator
 	client.Client
 	Scheme  *runtime.Scheme
 	Context context.Context
-	Options *options.IngesterOptions
 }
 
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=ingesters,verbs=get;list;watch;create;update;patch;delete
@@ -83,10 +78,24 @@ func (r *IngesterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, err
 	}
 
+	if instance.Labels == nil ||
+		instance.Labels[constants.ServiceLabelKey] == "" {
+		return ctrl.Result{}, nil
+	}
+
+	service := &monitoringv1alpha1.Service{}
+	if err := r.Get(ctx, *util.ServiceNamespacedName(&instance.ObjectMeta), service); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if _, err := r.applyConfigurationFromIngesterTemplateSpec(instance, resources.ApplyDefaults(service).Spec.IngesterTemplateSpec); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	// Add spec.tenants to status.tenants,
 	// so status.tenants will contain all tenants that have been configured.
 	// When the Tenant object is deleted, it will be removed from status.tenants too.
-	var desiredStatus v1alpha1.IngesterStatus
+	var desiredStatus monitoringv1alpha1.IngesterStatus
 	var tenantMap = make(map[string]struct{}, len(instance.Spec.Tenants))
 	for _, tenant := range instance.Spec.Tenants {
 		tenantMap[tenant] = struct{}{}
@@ -95,14 +104,14 @@ func (r *IngesterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	for _, tenant := range instance.Status.Tenants {
 		tenantStatusMap[tenant.Name] = struct{}{}
 		_, ok := tenantMap[tenant.Name]
-		desiredStatus.Tenants = append(desiredStatus.Tenants, v1alpha1.IngesterTenantStatus{
+		desiredStatus.Tenants = append(desiredStatus.Tenants, monitoringv1alpha1.IngesterTenantStatus{
 			Name:     tenant.Name,
 			Obsolete: !ok,
 		})
 	}
 	for _, tenant := range instance.Spec.Tenants {
 		if _, ok := tenantStatusMap[tenant]; !ok {
-			desiredStatus.Tenants = append(desiredStatus.Tenants, v1alpha1.IngesterTenantStatus{Name: tenant, Obsolete: false})
+			desiredStatus.Tenants = append(desiredStatus.Tenants, monitoringv1alpha1.IngesterTenantStatus{Name: tenant, Obsolete: false})
 		}
 	}
 	if !reflect.DeepEqual(desiredStatus, instance.Status) {
@@ -127,16 +136,6 @@ func (r *IngesterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 	}
 
-	instance, err = r.DefaulterValidator(instance)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	if instance.Labels == nil ||
-		instance.Labels[constants.ServiceLabelKey] == "" {
-		return ctrl.Result{}, nil
-	}
-
 	baseReconciler := resources.BaseReconciler{
 		Client:  r.Client,
 		Log:     l,
@@ -144,7 +143,7 @@ func (r *IngesterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		Context: ctx,
 	}
 
-	ingesterReconciler, err := ingester.New(baseReconciler, instance, r.Options)
+	ingesterReconciler, err := ingester.New(baseReconciler, instance)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -187,21 +186,9 @@ func (r *IngesterReconciler) mapFuncBySelectorFunc(fn func(metav1.Object) map[st
 	}
 }
 
-type IngesterDefaulterValidator func(ingester *monitoringv1alpha1.Ingester) (*monitoringv1alpha1.Ingester, error)
+func (r *IngesterReconciler) applyConfigurationFromIngesterTemplateSpec(ingester *monitoringv1alpha1.Ingester, ingesterTemplateSpec monitoringv1alpha1.IngesterTemplateSpec) (*monitoringv1alpha1.Ingester, error) {
 
-func CreateIngesterDefaulterValidator(opt *options.IngesterOptions) IngesterDefaulterValidator {
+	err := mergo.Merge(&ingester.Spec, ingesterTemplateSpec.IngesterSpec)
 
-	return func(ingester *monitoringv1alpha1.Ingester) (*monitoringv1alpha1.Ingester, error) {
-
-		opt.Override(&ingester.Spec)
-
-		if ingester.Spec.LocalTsdbRetention != "" {
-			_, err := model.ParseDuration(ingester.Spec.LocalTsdbRetention)
-			if err != nil {
-				return nil, fmt.Errorf("invalid localTsdbRetention: %v", err)
-			}
-		}
-
-		return ingester, nil
-	}
+	return ingester, err
 }

@@ -15,7 +15,6 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/kubesphere/whizard/pkg/client/k8s"
-	monitoring "github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
 )
 
 var (
@@ -96,13 +95,11 @@ func defaultConfig() *config {
 
 type Config struct {
 	KubernetesOptions *k8s.KubernetesOptions `json:"kubernetes,omitempty" yaml:"kubernetes,omitempty" mapstructure:"kubernetes"`
-	MonitoringOptions *monitoring.Options    `json:"monitoring,omitempty" yaml:"monitoring,omitempty" mapstructure:"monitoring"`
 }
 
 func New() *Config {
 	return &Config{
 		KubernetesOptions: k8s.NewKubernetesOptions(),
-		MonitoringOptions: monitoring.NewOptions(),
 	}
 }
 

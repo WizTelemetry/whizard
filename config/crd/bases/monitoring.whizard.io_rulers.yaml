@@ -1403,7 +1403,9 @@ spec:
                     type: object
                 type: object
               evaluationInterval:
-                description: Interval between consecutive evaluations.
+                default: 1m
+                description: "Interval between consecutive evaluations. \n Default:
+                  \"1m\""
                 pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
                 type: string
               flags:
@@ -1746,6 +1748,62 @@ spec:
                         type: object
                     type: object
                 type: object
+              rulerWriteProxy:
+                properties:
+                  image:
+                    description: Image is the envoy image with tag/version
+                    type: string
+                  resources:
+                    description: Define resources requests and limits for sidecar
+                      container.
+                    properties:
+                      claims:
+                        description: "Claims lists the names of resources, defined
+                          in spec.resourceClaims, that are used by this container.
+                          \n This is an alpha field and requires enabling the DynamicResourceAllocation
+                          feature gate. \n This field is immutable. It can only be
+                          set for containers."
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: Name must match the name of one entry in
+                                pod.spec.resourceClaims of the Pod where this field
+                                is used. It makes that resource available inside a
+                                container.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: 'Limits describes the maximum amount of compute
+                          resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: 'Requests describes the minimum amount of compute
+                          resources required. If Requests is omitted for a container,
+                          it defaults to Limits if that is explicitly specified, otherwise
+                          to an implementation-defined value. Requests cannot exceed
+                          Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                        type: object
+                    type: object
+                type: object
               secrets:
                 description: Secrets is a list of Secrets in the same namespace as
                   the component object, which shall be mounted into the Prometheus
@@ -1923,9 +1981,10 @@ spec:
                     type: object
                 type: object
               shards:
-                description: Number of shards to take the hash of fully qualified
+                default: 1
+                description: 'Number of shards to take the hash of fully qualified
                   name of the rule group in order to split rules. Each shard of rules
-                  will be bound to one separate statefulset.
+                  will be bound to one separate statefulset. Default: 1'
                 format: int32
                 type: integer
               tenant:

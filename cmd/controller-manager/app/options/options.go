@@ -12,16 +12,13 @@ import (
 
 	"github.com/kubesphere/whizard/pkg/client/k8s"
 	"github.com/kubesphere/whizard/pkg/controllers/config"
-	monitoring "github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
 )
 
 type ControllerManagerOptions struct {
 	KubernetesOptions *k8s.KubernetesOptions
-	MonitoringOptions *monitoring.Options
 
 	LeaderElect    bool
 	LeaderElection *leaderelection.LeaderElectionConfig
-	WebhookCertDir string
 
 	MetricsBindAddress     string
 	HealthProbeBindAddress string
@@ -30,15 +27,13 @@ type ControllerManagerOptions struct {
 func NewControllerManagerOptions() *ControllerManagerOptions {
 	return &ControllerManagerOptions{
 		KubernetesOptions: k8s.NewKubernetesOptions(),
-		MonitoringOptions: monitoring.NewOptions(),
 
 		LeaderElection: &leaderelection.LeaderElectionConfig{
 			LeaseDuration: 30 * time.Second,
 			RenewDeadline: 15 * time.Second,
 			RetryPeriod:   5 * time.Second,
 		},
-		LeaderElect:    false,
-		WebhookCertDir: "",
+		LeaderElect: false,
 
 		MetricsBindAddress:     ":8080",
 		HealthProbeBindAddress: ":8081",
@@ -48,19 +43,13 @@ func NewControllerManagerOptions() *ControllerManagerOptions {
 func (s *ControllerManagerOptions) Flags() cliflag.NamedFlagSets {
 	fss := cliflag.NamedFlagSets{}
 	s.KubernetesOptions.AddFlags(fss.FlagSet("kubernetes"), s.KubernetesOptions)
-	s.MonitoringOptions.AddFlags(fss.FlagSet("monitoring"), s.MonitoringOptions)
 
 	fs := fss.FlagSet("leaderelection")
 	s.bindLeaderElectionFlags(s.LeaderElection, fs)
 
 	fs.BoolVar(&s.LeaderElect, "leader-elect", s.LeaderElect, ""+
-		"Whether to enable leader election. This field should be enabled when controller manager"+
-		"deployed with multiple replicas.")
-
-	fs.StringVar(&s.WebhookCertDir, "webhook-cert-dir", s.WebhookCertDir, ""+
-		"Certificate directory used to setup webhooks, need tls.crt and tls.key placed inside."+
-		"if not set, webhook server would look up the server key and certificate in"+
-		"{TempDir}/k8s-webhook-server/serving-certs")
+		"Enable leader election for controller manager. "+
+		"Enabling this will ensure there is only one active controller manager.")
 
 	kfs := fss.FlagSet("klog")
 	local := flag.NewFlagSet("klog", flag.ExitOnError)
@@ -80,7 +69,7 @@ func (s *ControllerManagerOptions) Flags() cliflag.NamedFlagSets {
 func (s *ControllerManagerOptions) Validate() []error {
 	var errs []error
 	errs = append(errs, s.KubernetesOptions.Validate()...)
-	errs = append(errs, s.MonitoringOptions.Validate()...)
+
 	return errs
 }
 
@@ -107,7 +96,4 @@ func (s *ControllerManagerOptions) MergeConfig(cfg *config.Config) {
 		cfg.KubernetesOptions.ApplyTo(s.KubernetesOptions)
 	}
 
-	if cfg.MonitoringOptions != nil {
-		cfg.MonitoringOptions.ApplyTo(s.MonitoringOptions)
-	}
 }

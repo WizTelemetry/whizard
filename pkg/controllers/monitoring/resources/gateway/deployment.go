@@ -432,7 +432,7 @@ func (g *Gateway) queryAddress() (string, error) {
 		}
 
 		q := queryList.Items[0]
-		r, err := query.New(g.BaseReconciler, &q, nil)
+		r, err := query.New(g.BaseReconciler, &q)
 		if err != nil {
 			return "", err
 		}
@@ -458,7 +458,7 @@ func (g *Gateway) remoteWriteAddress() (string, error) {
 		}
 
 		o := routerList.Items[0]
-		r, err := router.New(g.BaseReconciler, &o, nil)
+		r, err := router.New(g.BaseReconciler, &o)
 		if err != nil {
 			return "", err
 		}

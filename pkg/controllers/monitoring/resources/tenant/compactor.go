@@ -111,7 +111,7 @@ func (t *Tenant) compactor() error {
 	needToCreate := true
 	compactor := &monitoringv1alpha1.Compactor{}
 	for _, item := range compactorList.Items {
-		if len(item.Spec.Tenants) < t.Options.Compactor.DefaultTenantsPerCompactor {
+		if len(item.Spec.Tenants) < t.Service.Spec.CompactorTemplateSpec.DefaultTenantsPerCompactor {
 			compactor = &item
 			compactor.Spec.Tenants = append(compactor.Spec.Tenants, t.tenant.Name)
 			needToCreate = false

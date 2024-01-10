@@ -1,5 +1,11 @@
 package constants
 
+import (
+	"github.com/prometheus/common/version"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+)
+
 const (
 	DefaultTenantHeader    = "WHIZARD-TENANT"
 	DefaultTenantId        = "default-tenant"
@@ -54,18 +60,6 @@ const (
 
 	LabelNameRulerShardSn = "monitoring.whizard.io/ruler-shard-sn"
 
-	ConfigPath     = "/etc/whizard/"
-	StorageDir     = "/whizard"
-	TSDBVolumeName = "tsdb"
-
-	WhizardConfigMountPath    = "/etc/whizard/config/"
-	WhizardWebConfigMountPath = "/etc/whizard/web_config/"
-	WhizardCertsMountPath     = "/etc/whizard/certs/"
-	EnvoyConfigMountPath      = "/etc/envoy/config/"
-	EnvoyCertsMountPath       = "/etc/envoy/certs/"
-	EnvoyConfigMapMountPath   = "/etc/envoy/configmap/"
-	EnvoySecretMountPath      = "/etc/envoy/secret/"
-
 	LabelNameStorageHash = "monitoring.whizard.io/storage-hash"
 	LabelNameTenantHash  = "monitoring.whizard.io/tenant-hash"
 	LabelNameConfigHash  = "monitoring.whizard.io/config-hash"
@@ -75,6 +69,24 @@ const (
 
 	IngesterStateDeleting = "deleting"
 	IngesterStateRunning  = "running"
+)
+
+// Mount path of config files in containers.
+const (
+	ConfigPath     = "/etc/whizard/"
+	StorageDir     = "/whizard"
+	TSDBVolumeName = "tsdb"
+
+	WhizardConfigMountPath     = "/etc/whizard/config/"
+	WhizardWebConfigMountPath  = "/etc/whizard/web_config/"
+	WhizardCertsMountPath      = "/etc/whizard/certs/"
+	WhizardConfigMapsMountPath = "/etc/whizard/configmaps/"
+	WhizardSecretsMountPath    = "/etc/whizard/secrets/"
+
+	EnvoyConfigMountPath    = "/etc/envoy/config/"
+	EnvoyCertsMountPath     = "/etc/envoy/certs/"
+	EnvoyConfigMapMountPath = "/etc/envoy/configmap/"
+	EnvoySecretMountPath    = "/etc/envoy/secret/"
 )
 
 const (
@@ -108,3 +120,40 @@ const (
 	CompactHTTPPort            = "10912"
 	QueryFrontendHTTPPort      = "10913"
 )
+
+const (
+	// The version is the same as thanos mod version
+	DefaultWhizardBaseImage = "thanosio/thanos:v0.33.0"
+	// The version is the same as prometheus-operator mod version
+	DefaultPrometheusConfigReloaderImage = "quay.io/prometheus-operator/prometheus-config-reloader:v0.68.0"
+
+	DefaultEnvoyImage               = "envoyproxy/envoy:v1.20.2"
+	DefaultRulerWriteProxyImage     = "kubesphere/cortex-tenant:v1.7.2"
+	DefaultIngesterTSDBCleanupImage = "bash:5.1.16"
+)
+
+var DefaultWhizardMonitoringGatewayImage = "kubesphere/whizard-monitoring-gateway:" + version.Version
+var DefaultWhizardBlockManagerImage = "kubesphere/whizard-monitoring-block-manager:" + version.Version
+
+var DefaultWhizardBaseResources = corev1.ResourceRequirements{
+	Requests: corev1.ResourceList{
+		corev1.ResourceCPU:    resource.MustParse("50m"),
+		corev1.ResourceMemory: resource.MustParse("50Mi"),
+	},
+	Limits: corev1.ResourceList{
+		corev1.ResourceCPU:    resource.MustParse("2"),
+		corev1.ResourceMemory: resource.MustParse("4Gi"),
+	},
+}
+
+// DefaultWhizardLargeResource for ingester and store
+var DefaultWhizardLargeResource = corev1.ResourceRequirements{
+	Requests: corev1.ResourceList{
+		corev1.ResourceCPU:    resource.MustParse("50m"),
+		corev1.ResourceMemory: resource.MustParse("50Mi"),
+	},
+	Limits: corev1.ResourceList{
+		corev1.ResourceCPU:    resource.MustParse("4"),
+		corev1.ResourceMemory: resource.MustParse("16Gi"),
+	},
+}

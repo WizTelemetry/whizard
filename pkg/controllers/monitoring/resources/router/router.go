@@ -5,7 +5,6 @@ import (
 
 	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -18,18 +17,16 @@ const (
 
 type Router struct {
 	resources.BaseReconciler
-	router  *v1alpha1.Router
-	Options *options.Options
+	router *v1alpha1.Router
 }
 
-func New(reconciler resources.BaseReconciler, r *v1alpha1.Router, o *options.Options) (*Router, error) {
+func New(reconciler resources.BaseReconciler, r *v1alpha1.Router) (*Router, error) {
 	if err := reconciler.SetService(r); err != nil {
 		return nil, err
 	}
 	return &Router{
 		BaseReconciler: reconciler,
 		router:         r,
-		Options:        o,
 	}, nil
 }
 

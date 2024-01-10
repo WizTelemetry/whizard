@@ -16,7 +16,7 @@ spec:
   versions:
   - additionalPrinterColumns:
     - description: The number of desired replicas
-      jsonPath: .spec.Node
+      jsonPath: .spec.replicas
       name: Replicas
       type: integer
     - description: The nodePort of Gateway service

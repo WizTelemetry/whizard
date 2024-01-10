@@ -19,9 +19,9 @@ package monitoring
 import (
 	"context"
 
+	"github.com/imdario/mergo"
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/query"
 	"github.com/kubesphere/whizard/pkg/util"
@@ -31,6 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -43,7 +44,6 @@ type QueryReconciler struct {
 	client.Client
 	Scheme  *runtime.Scheme
 	Context context.Context
-	Options *options.Options
 }
 
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=queries,verbs=get;list;watch;create;update;patch;delete
@@ -53,9 +53,8 @@ type QueryReconciler struct {
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=ingesters,verbs=get;list;watch
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=stores,verbs=get;list;watch
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=rulers,verbs=get;list;watch
-//+kubebuilder:rbac:groups=core,resources=services;configmaps;serviceaccounts,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=apps,resources=deployments;statefulsets,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=services;configmaps;secrets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -84,7 +83,15 @@ func (r *QueryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, nil
 	}
 
-	instance = r.validator(instance)
+	service := &monitoringv1alpha1.Service{}
+	if err := r.Get(ctx, *util.ServiceNamespacedName(&instance.ObjectMeta), service); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if _, err := r.applyConfigurationFromQueryTemplateSpec(instance, resources.ApplyDefaults(service).Spec.QueryTemplateSpec); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	queryReconciler, err := query.New(
 		resources.BaseReconciler{
 			Client:  r.Client,
@@ -93,7 +100,6 @@ func (r *QueryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			Context: ctx,
 		},
 		instance,
-		r.Options,
 	)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -142,7 +148,10 @@ func (r *QueryReconciler) mapFuncBySelectorFunc(fn func(metav1.Object) map[strin
 	}
 }
 
-func (r *QueryReconciler) validator(q *monitoringv1alpha1.Query) *monitoringv1alpha1.Query {
-	r.Options.Query.Override(&q.Spec)
-	return q
+func (r *QueryReconciler) applyConfigurationFromQueryTemplateSpec(query *monitoringv1alpha1.Query, queryTemplateSpec monitoringv1alpha1.QuerySpec) (*monitoringv1alpha1.Query, error) {
+
+	klog.Infof("applyConfigurationFromQueryTemplateSpec: \nqueryTemplateSpec: %v \nquerySpec: %v", queryTemplateSpec, query.Spec)
+	err := mergo.Merge(&query.Spec, queryTemplateSpec)
+	klog.Infof("query.Spec: %v", query.Spec)
+	return query, err
 }

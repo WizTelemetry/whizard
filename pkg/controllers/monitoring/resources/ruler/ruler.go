@@ -7,7 +7,6 @@ import (
 
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
@@ -26,20 +25,18 @@ var (
 
 type Ruler struct {
 	resources.BaseReconciler
-	ruler                    *monitoringv1alpha1.Ruler
-	Options                  *options.RulerOptions
+	ruler *monitoringv1alpha1.Ruler
+
 	shardsRuleConfigMapNames []map[string]struct{} // rule configmaps for each shard
 }
 
-func New(reconciler resources.BaseReconciler, ruler *monitoringv1alpha1.Ruler,
-	opt *options.RulerOptions) (*Ruler, error) {
+func New(reconciler resources.BaseReconciler, ruler *monitoringv1alpha1.Ruler) (*Ruler, error) {
 	if err := reconciler.SetService(ruler); err != nil {
 		return nil, err
 	}
 	return &Ruler{
 		BaseReconciler: reconciler,
 		ruler:          ruler,
-		Options:        opt,
 	}, nil
 }
 

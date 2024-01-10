@@ -149,7 +149,7 @@ func (t *Tenant) ingester() error {
 	for i := 0; i < len(ingesterMapping)+1; i++ {
 		name := t.createIngesterInstanceName(strconv.Itoa(i))
 		if ingesterItem, ok := ingesterMapping[name]; ok {
-			if len(ingesterItem.Spec.Tenants) < t.Options.Ingester.DefaultTenantsPerIngester {
+			if len(ingesterItem.Spec.Tenants) < t.Service.Spec.IngesterTemplateSpec.DefaultTenantsPerIngester {
 				ingester = ingesterItem
 				addTenantToIngesterInstance(t.tenant, ingester)
 				break
@@ -251,17 +251,19 @@ func (t *Tenant) removeTenantFromIngesterbyName(namespace, name string) error {
 				// When ingester uses object storage, the ingester retention period uses the DefaultIngesterRetentionPeriod.
 				// When it uses local storage, its retention period is the same as LocalTsdbRetention
 				if v, ok := ingester.Labels[constants.StorageLabelKey]; ok && v != constants.LocalStorage {
-					retentionPeriod = t.Options.Ingester.DefaultIngesterRetentionPeriod
+					period, _ := model.ParseDuration(string(t.Service.Spec.IngesterTemplateSpec.DefaultIngesterRetentionPeriod))
+					retentionPeriod = time.Duration(period)
 				} else {
 					if ingester.Spec.LocalTsdbRetention != "" {
 						period, _ := model.ParseDuration(ingester.Spec.LocalTsdbRetention)
 						retentionPeriod = time.Duration(period)
-					} else if t.Options.Ingester.LocalTsdbRetention != "" {
+					} else if t.Service.Spec.IngesterTemplateSpec.DefaultIngesterRetentionPeriod != "" {
 						period, _ := model.ParseDuration(ingester.Spec.LocalTsdbRetention)
 						retentionPeriod = time.Duration(period)
 					}
 					if retentionPeriod <= 0 {
-						retentionPeriod = t.Options.Ingester.DefaultIngesterRetentionPeriod
+						period, _ := model.ParseDuration(string(t.Service.Spec.IngesterTemplateSpec.DefaultIngesterRetentionPeriod))
+						retentionPeriod = time.Duration(period)
 					}
 				}
 

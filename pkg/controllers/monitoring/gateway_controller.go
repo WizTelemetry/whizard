@@ -19,9 +19,9 @@ package monitoring
 import (
 	"context"
 
+	"github.com/imdario/mergo"
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/gateway"
 	"github.com/kubesphere/whizard/pkg/util"
@@ -46,7 +46,6 @@ type GatewayReconciler struct {
 	client.Client
 	Scheme  *runtime.Scheme
 	Context context.Context
-	Options *options.GatewayOptions
 }
 
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=gateways,verbs=get;list;watch;create;update;patch;delete
@@ -87,7 +86,15 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, nil
 	}
 
-	instance = r.validator(instance)
+	service := &monitoringv1alpha1.Service{}
+	if err := r.Get(ctx, *util.ServiceNamespacedName(&instance.ObjectMeta), service); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if _, err := r.applyConfigurationFromGatewayTemplateSpec(instance, resources.ApplyDefaults(service).Spec.GatewayTemplateSpec); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	gatewayReconciler, err := gateway.New(
 		resources.BaseReconciler{
 			Client:  r.Client,
@@ -161,7 +168,9 @@ func (r *GatewayReconciler) mapFuncBySelectorFunc(fn func(metav1.Object) map[str
 	}
 }
 
-func (r *GatewayReconciler) validator(g *monitoringv1alpha1.Gateway) *monitoringv1alpha1.Gateway {
-	r.Options.Override(&g.Spec)
-	return g
+func (r *GatewayReconciler) applyConfigurationFromGatewayTemplateSpec(gateway *monitoringv1alpha1.Gateway, gatewayTemplateSpec monitoringv1alpha1.GatewaySpec) (*monitoringv1alpha1.Gateway, error) {
+
+	err := mergo.Merge(&gateway.Spec, gatewayTemplateSpec)
+
+	return gateway, err
 }

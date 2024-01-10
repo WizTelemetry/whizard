@@ -495,9 +495,9 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 
 	sort.Strings(container.Args[1:])
 
-	defautReloaderConfig := promoperator.DefaultConfig(r.Options.PrometheusConfigReloader.Resources.Limits.Cpu().String(), r.Options.PrometheusConfigReloader.Resources.Limits.Memory().String())
+	defautReloaderConfig := promoperator.DefaultConfig(r.ruler.Spec.PrometheusConfigReloader.Resources.Limits.Cpu().String(), r.ruler.Spec.PrometheusConfigReloader.Resources.Limits.Memory().String())
 	var reloaderConfig = promoperator.ContainerConfig{
-		Image:          r.Options.PrometheusConfigReloader.Image,
+		Image:          r.ruler.Spec.PrometheusConfigReloader.Image,
 		CPURequests:    defautReloaderConfig.ReloaderConfig.CPURequests,
 		MemoryRequests: defautReloaderConfig.ReloaderConfig.MemoryRequests,
 		CPULimits:      defautReloaderConfig.ReloaderConfig.CPULimits,
@@ -550,7 +550,7 @@ func (r *Ruler) remoteWriteAddress() (string, error) {
 		}
 
 		o := routerList.Items[0]
-		r, err := router.New(r.BaseReconciler, &o, nil)
+		r, err := router.New(r.BaseReconciler, &o)
 		if err != nil {
 			return "", err
 		}
@@ -601,7 +601,7 @@ func (r *Ruler) queryAddress() (string, error) {
 		}
 
 		o := queryList.Items[0]
-		r, err := query.New(r.BaseReconciler, &o, nil)
+		r, err := query.New(r.BaseReconciler, &o)
 		if err != nil {
 			return "", err
 		}
@@ -630,11 +630,11 @@ func (r *Ruler) addQueryProxyContainer(serviceSpec *monitoringv1alpha1.ServiceSp
 
 	queryProxyContainer := &corev1.Container{
 		Name:  "query-proxy",
-		Image: r.Options.RulerQueryProxy.Image,
+		Image: r.ruler.Spec.RulerQueryProxy.Image,
 		Args: []string{
 			"--http-address=127.0.0.1:9080",
 		},
-		Resources: r.Options.RulerQueryProxy.Resources,
+		Resources: r.ruler.Spec.RulerQueryProxy.Resources,
 	}
 	queryProxyContainer.Args = append(queryProxyContainer.Args, "--tenant.label-name="+serviceSpec.TenantLabelName)
 	queryProxyContainer.Args = append(queryProxyContainer.Args, "--tenant.header="+serviceSpec.TenantHeader)
@@ -746,11 +746,11 @@ func (r *Ruler) addWriteProxyContainer(serviceSpec *monitoringv1alpha1.ServiceSp
 
 	writeProxyContainer = &corev1.Container{
 		Name:  "write-proxy",
-		Image: r.Options.RulerWriteProxy.Image,
+		Image: r.ruler.Spec.RulerWriteProxy.Image,
 		Args: []string{
 			"--config-content=" + string(cfgContent),
 		},
-		Resources: r.Options.RulerWriteProxy.Resources,
+		Resources: r.ruler.Spec.RulerWriteProxy.Resources,
 	}
 	return writeProxyContainer, nil
 }

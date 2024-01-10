@@ -221,12 +221,7 @@ func (r *Compactor) megerArgs() ([]string, error) {
 		defaultArgs = append(defaultArgs, "--downsampling.disable")
 	}
 
-	var retention *v1alpha1.Retention
-	if r.Service.Spec.Retention != nil {
-		retention = r.Service.Spec.Retention
-	} else if r.option.Retention != nil {
-		retention = r.option.Retention
-	}
+	retention := r.compactor.Spec.Retention
 
 	if retention != nil {
 		if retention.RetentionRaw != "" {

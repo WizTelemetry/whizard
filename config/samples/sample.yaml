@@ -3,57 +3,88 @@
 apiVersion: monitoring.whizard.io/v1alpha1
 kind: Service
 metadata:
-  name: central
+  name: whizard
   namespace: kubesphere-monitoring-system
 spec:
   tenantHeader: "WHIZARD-TENANT"
   defaultTenantId: "default-tenant"
   tenantLabelName: "tenant_id"
+  compactorTemplateSpec:
+    securityContext:
+      fsGroup: 0
+    dataVolume:
+      emptyDir: {}
+    image: thanosio/thanos:v0.33.0
+  gatewayTemplateSpec: {}
+  ingesterTemplateSpec: 
+    securityContext:
+      fsGroup: 0
+    dataVolume:
+      emptyDir: {}
+  queryTemplateSpec:
+    image: thanosio/thanos:v0.33.0
+  queryFrontendTemplateSpec:
+    image: thanosio/thanos:v0.33.0
+  routerTemplateSpec:
+    image: thanosio/thanos:v0.33.0
+  rulerTemplateSpec:
+    securityContext:
+      fsGroup: 0
+    image: thanosio/thanos:v0.33.0
+  storeTemplateSpec:
+    securityContext:
+      fsGroup: 0
+    dataVolume:
+      emptyDir: {}
+    image: thanosio/thanos:v0.33.0
 
 ---
 apiVersion: monitoring.whizard.io/v1alpha1
 kind: Gateway
 metadata:
-  name: central
+  name: whizard
   namespace: kubesphere-monitoring-system
   labels:
-    monitoring.whizard.io/service: kubesphere-monitoring-system.central
+    monitoring.whizard.io/service: kubesphere-monitoring-system.whizard
 spec: {}
 
 ---
 apiVersion: monitoring.whizard.io/v1alpha1
 kind: Query
 metadata:
-  name: central
+  name: whizard
   namespace: kubesphere-monitoring-system
   labels:
-    monitoring.whizard.io/service: kubesphere-monitoring-system.central
+    monitoring.whizard.io/service: kubesphere-monitoring-system.whizard
 spec:
   replicaLabelNames:
     - prometheus_replica
     - receive_replica
     - ruler_replica
+  image: thanosio/thanos:v0.32.5
 
 ---
 apiVersion: monitoring.whizard.io/v1alpha1
 kind: QueryFrontend
 metadata:
-  name: central
+  name: whizard
   namespace: kubesphere-monitoring-system
   labels:
-    monitoring.whizard.io/service: kubesphere-monitoring-system.central
+    monitoring.whizard.io/service: kubesphere-monitoring-system.whizard
 spec: {}
 
 ---
 apiVersion: monitoring.whizard.io/v1alpha1
 kind: Router
 metadata:
-  name: central
+  name: whizard
   namespace: kubesphere-monitoring-system
   labels:
-    monitoring.whizard.io/service: kubesphere-monitoring-system.central
+    monitoring.whizard.io/service: kubesphere-monitoring-system.whizard
 spec:
   replicationFactor: 2
+
+
 
 ---
 ### global alert ruler
@@ -61,8 +92,8 @@ apiVersion: monitoring.whizard.io/v1alpha1
 kind: Ruler
 metadata:
   labels:
-    monitoring.whizard.io/service: kubesphere-monitoring-system.central
-  name: central
+    monitoring.whizard.io/service: kubesphere-monitoring-system.whizard
+  name: whizard
   namespace: kubesphere-monitoring-system
 spec:
   alertmanagersUrl:
@@ -79,3 +110,14 @@ spec:
       values:
       - global
   shards: 1
+
+---
+apiVersion: monitoring.whizard.io/v1alpha1
+kind: Tenant
+metadata:
+  labels:
+    monitoring.whizard.io/service: kubesphere-monitoring-system.whizard
+    monitoring.whizard.io/storage: default
+  name: test
+spec: 
+  tenant: test

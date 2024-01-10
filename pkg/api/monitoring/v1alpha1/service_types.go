@@ -52,7 +52,7 @@ type ServiceSpec struct {
 	GatewayTemplateSpec       GatewaySpec           `json:"gatewayTemplateSpec"`
 	QueryFrontendTemplateSpec QueryFrontendSpec     `json:"queryFrontendTemplateSpec"`
 	QueryTemplateSpec         QuerySpec             `json:"queryTemplateSpec"`
-	RulerTemplateSpec         RulerSpec             `json:"rulerTemplateSpec"`
+	RulerTemplateSpec         RulerTemplateSpec     `json:"rulerTemplateSpec"`
 	RouterTemplateSpec        RouterSpec            `json:"routerTemplateSpec"`
 	IngesterTemplateSpec      IngesterTemplateSpec  `json:"ingesterTemplateSpec"`
 	StoreTemplateSpec         StoreSpec             `json:"storeTemplateSpec"`
@@ -72,6 +72,22 @@ type IngesterTemplateSpec struct {
 	// Default: "3h"
 	// +kubebuilder:default:="3h"
 	DefaultIngesterRetentionPeriod Duration `json:"defaultIngesterRetentionPeriod,omitempty"`
+	// DisableTSDBCleanup Disable the TSDB cleanup of ingester.
+	// The cleanup will delete the blocks that belong to deleted tenants in the data directory of ingester TSDB.
+	//
+	// Default: true
+	// +kubebuilder:default:=true
+	DisableTSDBCleanup *bool `json:"disableTsdbCleanup,omitempty"`
+}
+
+type RulerTemplateSpec struct {
+	RulerSpec `json:",inline"`
+
+	// DisableAlertingRulesAutoSelection disable auto select alerting rules in tenant ruler
+	//
+	// Default: false
+	// +kubebuilder:default:=false
+	DisableAlertingRulesAutoSelection *bool `json:"disableAlertingRulesAutoSelection,omitempty"`
 }
 
 type CompactorTemplateSpec struct {

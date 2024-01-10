@@ -78,9 +78,10 @@ func (t *Tenant) createOrUpdateRulerinstance() *monitoringv1alpha1.Ruler {
 
 	var ruleSelectors []*metav1.LabelSelector
 	// add default rule selectors. (mainly used to select recording rules)
-	ruleSelectors = append(ruleSelectors, t.Options.Ruler.RuleSelectors...)
-	if t.Options.Ruler.DisableAlertingRulesAutoSelection == nil ||
-		!*t.Options.Ruler.DisableAlertingRulesAutoSelection {
+	ruleSelectors = append(ruleSelectors, t.Service.Spec.RulerTemplateSpec.RuleSelectors...)
+
+	if t.Service.Spec.RulerTemplateSpec.DisableAlertingRulesAutoSelection == nil ||
+		!*t.Service.Spec.RulerTemplateSpec.DisableAlertingRulesAutoSelection {
 		// select alerting rules associated with this tenant(cluster)
 		ruleSelectors = append(ruleSelectors, &metav1.LabelSelector{
 			MatchLabels: map[string]string{
