@@ -19,9 +19,9 @@ package monitoring
 import (
 	"context"
 
+	"github.com/imdario/mergo"
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/queryfrontend"
 	"github.com/kubesphere/whizard/pkg/util"
@@ -43,7 +43,6 @@ type QueryFrontendReconciler struct {
 	client.Client
 	Scheme  *runtime.Scheme
 	Context context.Context
-	Options *options.QueryFrontendOptions
 }
 
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=queryfrontends,verbs=get;list;watch;create;update;patch;delete
@@ -52,9 +51,8 @@ type QueryFrontendReconciler struct {
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=services,verbs=get;list;watch
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=queries,verbs=get;list;watch
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=tenants,verbs=get;list;watch
-//+kubebuilder:rbac:groups=core,resources=services;configmaps;serviceaccounts,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=apps,resources=deployments;statefulsets,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=services;configmaps;secrets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -83,7 +81,15 @@ func (r *QueryFrontendReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 
-	instance = r.Validator(instance)
+	service := &monitoringv1alpha1.Service{}
+	if err := r.Get(ctx, *util.ServiceNamespacedName(&instance.ObjectMeta), service); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if _, err := r.applyConfigurationFromQueryFrontendTemplateSpec(instance, resources.ApplyDefaults(service).Spec.QueryFrontendTemplateSpec); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	queryFrontendReconciler, err := queryfrontend.New(
 		resources.BaseReconciler{
 			Client:  r.Client,
@@ -138,8 +144,9 @@ func (r *QueryFrontendReconciler) mapFuncBySelectorFunc(fn func(metav1.Object) m
 	}
 }
 
-func (r *QueryFrontendReconciler) Validator(q *monitoringv1alpha1.QueryFrontend) *monitoringv1alpha1.QueryFrontend {
-	r.Options.Override(&q.Spec)
-	return q
+func (r *QueryFrontendReconciler) applyConfigurationFromQueryFrontendTemplateSpec(queryFrontend *monitoringv1alpha1.QueryFrontend, queryFrontendTemplateSpec monitoringv1alpha1.QueryFrontendSpec) (*monitoringv1alpha1.QueryFrontend, error) {
 
+	err := mergo.Merge(&queryFrontend.Spec, queryFrontendTemplateSpec)
+
+	return queryFrontend, err
 }

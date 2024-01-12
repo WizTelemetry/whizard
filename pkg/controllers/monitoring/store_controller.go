@@ -19,15 +19,16 @@ package monitoring
 import (
 	"context"
 
+	"github.com/imdario/mergo"
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/store"
 	"github.com/kubesphere/whizard/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -39,17 +40,15 @@ import (
 
 // StoreReconciler reconciles a Store object
 type StoreReconciler struct {
-	DefaulterValidator StoreDefaulterValidator
 	client.Client
 	Scheme  *runtime.Scheme
 	Context context.Context
-
-	Options *options.StoreOptions
 }
 
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=stores,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=stores/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=stores/finalizers,verbs=update
+//+kubebuilder:rbac:groups=monitoring.whizard.io,resources=services,verbs=get;list;watch
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=storages,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
@@ -77,15 +76,19 @@ func (r *StoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, err
 	}
 
-	instance, err = r.DefaulterValidator(instance)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
 	if instance.Labels == nil ||
 		instance.Labels[constants.ServiceLabelKey] == "" ||
 		instance.Labels[constants.StorageLabelKey] == "" {
 		return ctrl.Result{}, nil
+	}
+
+	service := &monitoringv1alpha1.Service{}
+	if err := r.Get(ctx, *util.ServiceNamespacedName(&instance.ObjectMeta), service); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if _, err := r.applyConfigurationFromStoreTemplateSpec(instance, resources.ApplyDefaults(service).Spec.StoreTemplateSpec); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	baseReconciler := resources.BaseReconciler{
@@ -95,7 +98,7 @@ func (r *StoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		Context: ctx,
 	}
 
-	if err := store.New(baseReconciler, instance, r.Options).Reconcile(); err != nil {
+	if err := store.New(baseReconciler, instance).Reconcile(); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -106,42 +109,41 @@ func (r *StoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 func (r *StoreReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&monitoringv1alpha1.Store{}).
+		Watches(&monitoringv1alpha1.Service{},
+			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(util.ManagedLabelByService))).
 		Watches(&monitoringv1alpha1.Storage{},
-			handler.EnqueueRequestsFromMapFunc(r.reconcileRequestFromStorage)).
+			handler.EnqueueRequestsFromMapFunc(r.mapFuncBySelectorFunc(util.ManagedLabelByStorage))).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Service{}).
 		// Owns(&autoscalingv2beta2.HorizontalPodAutoscaler{}).
 		Complete(r)
 }
 
-func (r *StoreReconciler) reconcileRequestFromStorage(ctx context.Context, o client.Object) []reconcile.Request {
-	storeList := &monitoringv1alpha1.StoreList{}
-	if err := r.Client.List(r.Context, storeList, client.MatchingLabels(util.ManagedLabelByStorage(o))); err != nil {
-		log.FromContext(r.Context).WithValues("storeList", "").Error(err, "")
-		return nil
-	}
+func (r *StoreReconciler) mapFuncBySelectorFunc(fn func(metav1.Object) map[string]string) handler.MapFunc {
+	return func(ctx context.Context, o client.Object) []reconcile.Request {
+		storeList := &monitoringv1alpha1.StoreList{}
+		if err := r.Client.List(r.Context, storeList, client.MatchingLabels(fn(o))); err != nil {
+			log.FromContext(r.Context).WithValues("storeList", "").Error(err, "")
+			return nil
+		}
 
-	var reqs []reconcile.Request
-	for _, item := range storeList.Items {
-		reqs = append(reqs, reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Namespace: item.Namespace,
-				Name:      item.Name,
-			},
-		})
-	}
+		var reqs []reconcile.Request
+		for _, item := range storeList.Items {
+			reqs = append(reqs, reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Namespace: item.Namespace,
+					Name:      item.Name,
+				},
+			})
+		}
 
-	return reqs
+		return reqs
+	}
 }
 
-type StoreDefaulterValidator func(store *monitoringv1alpha1.Store) (*monitoringv1alpha1.Store, error)
+func (r *StoreReconciler) applyConfigurationFromStoreTemplateSpec(store *monitoringv1alpha1.Store, storeTemplateSpec monitoringv1alpha1.StoreSpec) (*monitoringv1alpha1.Store, error) {
 
-func CreateStoreDefaulterValidator(opt *options.StoreOptions) StoreDefaulterValidator {
+	err := mergo.Merge(&store.Spec, storeTemplateSpec)
 
-	return func(store *monitoringv1alpha1.Store) (*monitoringv1alpha1.Store, error) {
-
-		opt.Override(&store.Spec)
-
-		return store, nil
-	}
+	return store, err
 }

@@ -19,9 +19,9 @@ package monitoring
 import (
 	"context"
 
+	"github.com/imdario/mergo"
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/ruler"
 	"github.com/kubesphere/whizard/pkg/util"
@@ -42,8 +42,6 @@ import (
 
 // RulerReconciler reconciles a Ruler object
 type RulerReconciler struct {
-	DefaulterValidator RulerDefaulterValidator
-	Option             *options.RulerOptions
 	client.Client
 	Scheme  *runtime.Scheme
 	Context context.Context
@@ -80,14 +78,18 @@ func (r *RulerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, err
 	}
 
-	instance, err = r.DefaulterValidator(instance)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
 	if instance.Labels == nil ||
 		instance.Labels[constants.ServiceLabelKey] == "" {
 		return ctrl.Result{}, nil
+	}
+
+	service := &monitoringv1alpha1.Service{}
+	if err := r.Get(ctx, *util.ServiceNamespacedName(&instance.ObjectMeta), service); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if _, err := r.applyConfigurationFromRulerTemplateSpec(instance, resources.ApplyDefaults(service).Spec.RulerTemplateSpec); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	baseReconciler := resources.BaseReconciler{
@@ -97,7 +99,7 @@ func (r *RulerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		Context: ctx,
 	}
 
-	rulerReconcile, err := ruler.New(baseReconciler, instance, r.Option)
+	rulerReconcile, err := ruler.New(baseReconciler, instance)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -211,18 +213,9 @@ func (r *RulerReconciler) mapToRulerFunc(ctx context.Context, o client.Object) [
 	return reqs
 }
 
-type RulerDefaulterValidator func(ruler *monitoringv1alpha1.Ruler) (*monitoringv1alpha1.Ruler, error)
+func (r *RulerReconciler) applyConfigurationFromRulerTemplateSpec(ruler *monitoringv1alpha1.Ruler, rulerTemplateSpec monitoringv1alpha1.RulerTemplateSpec) (*monitoringv1alpha1.Ruler, error) {
 
-func CreateRulerDefaulterValidator(opt *options.RulerOptions) RulerDefaulterValidator {
+	err := mergo.Merge(&ruler.Spec, rulerTemplateSpec.RulerSpec)
 
-	return func(ruler *monitoringv1alpha1.Ruler) (*monitoringv1alpha1.Ruler, error) {
-
-		opt.Override(&ruler.Spec)
-
-		if ruler.Spec.Shards == nil || *ruler.Spec.Shards < 0 {
-			ruler.Spec.Shards = opt.Shards
-		}
-
-		return ruler, nil
-	}
+	return ruler, err
 }

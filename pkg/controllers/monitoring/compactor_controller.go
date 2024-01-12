@@ -19,9 +19,9 @@ package monitoring
 import (
 	"context"
 
+	"github.com/imdario/mergo"
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/compactor"
 	"github.com/kubesphere/whizard/pkg/util"
@@ -41,8 +41,6 @@ import (
 
 // CompactorReconciler reconciles a compactor object
 type CompactorReconciler struct {
-	DefaulterValidator CompactorDefaulterValidator
-	Options            *options.CompactorOptions
 	client.Client
 	Scheme  *runtime.Scheme
 	Context context.Context
@@ -84,6 +82,15 @@ func (r *CompactorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
+	service := &monitoringv1alpha1.Service{}
+	if err := r.Get(ctx, *util.ServiceNamespacedName(&instance.ObjectMeta), service); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if _, err := r.applyConfigurationFromCompactorTemplateSpec(instance, resources.ApplyDefaults(service).Spec.CompactorTemplateSpec); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	if instance.GetDeletionTimestamp().IsZero() {
 		if len(instance.Finalizers) == 0 {
 			instance.Finalizers = append(instance.Finalizers, constants.FinalizerDeletePVC)
@@ -97,7 +104,6 @@ func (r *CompactorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, r.Client.Update(r.Context, instance)
 	}
 
-	r.DefaulterValidator(instance)
 	if len(instance.Spec.Tenants) == 0 {
 		klog.V(3).Infof("ignore compactor %s/%s because of empty tenants", instance.Name, instance.Namespace)
 		return ctrl.Result{}, nil
@@ -110,7 +116,7 @@ func (r *CompactorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		Context: ctx,
 	}
 
-	compactorReconciler, err := compactor.New(baseReconciler, instance, r.Options)
+	compactorReconciler, err := compactor.New(baseReconciler, instance)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -153,10 +159,9 @@ func (r *CompactorReconciler) mapFuncBySelectorFunc(fn func(metav1.Object) map[s
 	}
 }
 
-type CompactorDefaulterValidator func(compactor *monitoringv1alpha1.Compactor)
+func (r *CompactorReconciler) applyConfigurationFromCompactorTemplateSpec(compactor *monitoringv1alpha1.Compactor, compactorTemplateSpec monitoringv1alpha1.CompactorTemplateSpec) (*monitoringv1alpha1.Compactor, error) {
 
-func CreateCompactorDefaulterValidator(opt *options.CompactorOptions) CompactorDefaulterValidator {
-	return func(compactor *monitoringv1alpha1.Compactor) {
-		opt.Override(&compactor.Spec)
-	}
+	err := mergo.Merge(&compactor.Spec, compactorTemplateSpec.CompactorSpec)
+
+	return compactor, err
 }

@@ -181,8 +181,7 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 		return nil, resources.OperationCreateOrUpdate, err
 	}
 	for _, item := range ingesterList.Items {
-		q.Options.Ingester.Override(&item.Spec)
-		ingesterInstance, err := ingester.New(q.BaseReconciler, &item, q.Options.Ingester)
+		ingesterInstance, err := ingester.New(q.BaseReconciler, &item)
 		if err != nil {
 			return nil, "", err
 		}
@@ -199,7 +198,6 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 		return nil, resources.OperationCreateOrUpdate, err
 	}
 	for _, item := range storeList.Items {
-		q.Options.Store.Override(&item.Spec)
 		timeRanges := item.Spec.TimeRanges
 		if len(timeRanges) == 0 {
 			timeRanges = append(timeRanges, v1alpha1.TimeRange{

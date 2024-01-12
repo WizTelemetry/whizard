@@ -99,8 +99,10 @@ type CommonSpec struct {
 
 	// Log filtering level. Possible options: error, warn, info, debug.
 	LogLevel string `json:"logLevel,omitempty"`
+
 	// Log format to use. Possible options: logfmt or json.
 	LogFormat string `json:"logFormat,omitempty"`
+
 	// Flags is the flags of component.
 	Flags []string `json:"flags,omitempty"`
 }
@@ -570,6 +572,8 @@ type CompactorList struct {
 type IngesterSpec struct {
 	CommonSpec `json:",inline"`
 
+	IngesterTSDBCleanUp SidecarSpec `json:"ingesterTsdbCleanup,omitempty"`
+
 	// Tenants if not empty indicates current config is for hard tenants; otherwise, it is for soft tenants.
 	Tenants []string `json:"tenants,omitempty"`
 
@@ -632,6 +636,7 @@ type RulerSpec struct {
 	CommonSpec `json:",inline"`
 
 	RulerQueryProxy SidecarSpec `json:"rulerQueryProxy,omitempty"`
+	RulerWriteProxy SidecarSpec `json:"rulerWriteProxy,omitempty"`
 
 	Envoy SidecarSpec `json:"envoy,omitempty"`
 
@@ -646,6 +651,8 @@ type RulerSpec struct {
 
 	// Number of shards to take the hash of fully qualified name of the rule group in order to split rules.
 	// Each shard of rules will be bound to one separate statefulset.
+	// Default: 1
+	// +kubebuilder:default:=1
 	Shards *int32 `json:"shards,omitempty"`
 
 	// Tenant if not empty indicates which tenant's data is evaluated for the selected rules;
@@ -665,6 +672,9 @@ type RulerSpec struct {
 	// Define configuration for connecting to alertmanager. Maps to the `alertmanagers.config` arg.
 	AlertmanagersConfig *corev1.SecretKeySelector `json:"alertmanagersConfig,omitempty"`
 	// Interval between consecutive evaluations.
+	//
+	// Default: "1m"
+	// +kubebuilder:default:="1m"
 	EvaluationInterval Duration `json:"evaluationInterval,omitempty"`
 
 	// DataVolume specifies how volume shall be used

@@ -19,9 +19,9 @@ package monitoring
 import (
 	"context"
 
+	"github.com/imdario/mergo"
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/router"
 	"github.com/kubesphere/whizard/pkg/util"
@@ -43,7 +43,6 @@ type RouterReconciler struct {
 	client.Client
 	Scheme  *runtime.Scheme
 	Context context.Context
-	Options *options.Options
 }
 
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=routers,verbs=get;list;watch;create;update;patch;delete
@@ -51,9 +50,8 @@ type RouterReconciler struct {
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=routers/finalizers,verbs=update
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=services,verbs=get;list;watch
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=ingesters,verbs=get;list;watch
-//+kubebuilder:rbac:groups=core,resources=services;configmaps;serviceaccounts,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=apps,resources=deployments;statefulsets,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=services;configmaps;secrets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -82,7 +80,15 @@ func (r *RouterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, nil
 	}
 
-	instance = r.validator(instance)
+	service := &monitoringv1alpha1.Service{}
+	if err := r.Get(ctx, *util.ServiceNamespacedName(&instance.ObjectMeta), service); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if _, err := r.applyConfigurationFromRouterTemplateSpec(instance, resources.ApplyDefaults(service).Spec.RouterTemplateSpec); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	routerReconciler, err := router.New(
 		resources.BaseReconciler{
 			Client:  r.Client,
@@ -91,7 +97,6 @@ func (r *RouterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			Context: ctx,
 		},
 		instance,
-		r.Options,
 	)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -136,8 +141,9 @@ func (r *RouterReconciler) mapFuncBySelectorFunc(fn func(metav1.Object) map[stri
 	}
 }
 
-func (r *RouterReconciler) validator(router *monitoringv1alpha1.Router) *monitoringv1alpha1.Router {
-	r.Options.Router.Override(&router.Spec)
-	return router
+func (r *RouterReconciler) applyConfigurationFromRouterTemplateSpec(router *monitoringv1alpha1.Router, routerTemplateSpec monitoringv1alpha1.RouterSpec) (*monitoringv1alpha1.Router, error) {
 
+	err := mergo.Merge(&router.Spec, routerTemplateSpec)
+
+	return router, err
 }

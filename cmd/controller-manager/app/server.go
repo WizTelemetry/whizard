@@ -18,7 +18,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/kubesphere/whizard/cmd/controller-manager/app/options"
 	"github.com/kubesphere/whizard/pkg/apis"
@@ -39,9 +38,6 @@ func NewControllerManagerCommand() *cobra.Command {
 			conf.KubernetesOptions.ApplyTo(s.KubernetesOptions)
 		}
 
-		if conf.MonitoringOptions != nil {
-			conf.MonitoringOptions.ApplyTo(s.MonitoringOptions)
-		}
 	} else {
 		klog.Fatal("Failed to load configuration from disk", err)
 	}
@@ -142,10 +138,6 @@ func run(s *options.ControllerManagerOptions, ctx context.Context) error {
 		Metrics: metricsserver.Options{
 			BindAddress: s.MetricsBindAddress,
 		},
-		WebhookServer: webhook.NewServer(webhook.Options{
-			CertDir: s.WebhookCertDir,
-			Port:    8443,
-		}),
 	}
 
 	if s.LeaderElect {
@@ -173,8 +165,6 @@ func run(s *options.ControllerManagerOptions, ctx context.Context) error {
 
 	if err = addControllers(mgr,
 		kubernetesClient,
-		informerFactory,
-		s,
 		ctx); err != nil {
 		return fmt.Errorf("unable to register controllers to the manager: %v", err)
 	}

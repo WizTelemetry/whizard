@@ -21,7 +21,6 @@ import (
 
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/tenant"
 	"github.com/kubesphere/whizard/pkg/util"
@@ -37,12 +36,9 @@ import (
 
 // TenantReconciler reconciles a Tenant object
 type TenantReconciler struct {
-	DefaulterValidator TenantDefaulterValidator
 	client.Client
 	Scheme  *runtime.Scheme
 	Context context.Context
-
-	Options *options.Options
 }
 
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=tenants,verbs=get;list;watch;create;update;patch;delete
@@ -89,7 +85,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		Scheme:  r.Scheme,
 		Context: ctx,
 	}
-	t, err := tenant.New(baseReconciler, instance, r.Options)
+	t, err := tenant.New(baseReconciler, instance)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -192,14 +188,6 @@ func (r *TenantReconciler) mapToTenantByStore(ctx context.Context, _ client.Obje
 	}
 
 	return reqs
-}
-
-type TenantDefaulterValidator func(tenant *monitoringv1alpha1.Tenant) (*monitoringv1alpha1.Tenant, error)
-
-func CreateTenantDefaulterValidator(_ options.Options) TenantDefaulterValidator {
-	return func(tenant *monitoringv1alpha1.Tenant) (*monitoringv1alpha1.Tenant, error) {
-		return tenant, nil
-	}
 }
 
 func (r *TenantReconciler) tenantValidator(tenant *monitoringv1alpha1.Tenant) *monitoringv1alpha1.Tenant {

@@ -17,7 +17,6 @@ import (
 	"context"
 
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/options"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/storage"
 	appsv1 "k8s.io/api/apps/v1"
@@ -37,8 +36,6 @@ type StorageReconciler struct {
 	client.Client
 	Scheme  *runtime.Scheme
 	Context context.Context
-
-	Options *options.StorageOptions
 }
 
 //+kubebuilder:rbac:groups=monitoring.whizard.io,resources=storages,verbs=get;list;watch;create;update;patch;delete
@@ -68,7 +65,6 @@ func (r *StorageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 		return ctrl.Result{}, err
 	}
-	instance = r.validate(instance)
 
 	baseReconciler := resources.BaseReconciler{
 		Client:  r.Client,
@@ -124,13 +120,4 @@ func (r *StorageReconciler) mapToStoragebySecretRefFunc(ctx context.Context, o c
 	}
 
 	return reqs
-}
-
-func (r *StorageReconciler) validate(storage *monitoringv1alpha1.Storage) *monitoringv1alpha1.Storage {
-
-	if storage.Spec.BlockManager != nil && storage.Spec.BlockManager.Enable != nil && *(storage.Spec.BlockManager.Enable) {
-		r.Options.Override(&storage.Spec)
-	}
-
-	return storage
 }

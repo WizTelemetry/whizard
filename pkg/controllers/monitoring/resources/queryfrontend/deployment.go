@@ -236,7 +236,7 @@ func (q *QueryFrontend) queryAddress() (string, error) {
 		}
 
 		o := queryList.Items[0]
-		r, err := query.New(q.BaseReconciler, &o, nil)
+		r, err := query.New(q.BaseReconciler, &o)
 		if err != nil {
 			return "", err
 		}
