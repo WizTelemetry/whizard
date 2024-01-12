@@ -6,9 +6,10 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/kubesphere/whizard/pkg/client/k8s"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"sigs.k8s.io/yaml"
+
+	"github.com/kubesphere/whizard/pkg/client/k8s"
 )
 
 func newTestConfig() (*Config, error) {

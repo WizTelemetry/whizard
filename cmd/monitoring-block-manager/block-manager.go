@@ -3,12 +3,14 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/kubesphere/whizard/pkg/block"
+	"os"
+	"time"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"k8s.io/klog/v2"
-	"os"
-	"time"
+
+	"github.com/kubesphere/whizard/pkg/block"
 )
 
 var (

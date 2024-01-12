@@ -9,9 +9,6 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
-	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/whizard/pkg/constants"
-	"github.com/kubesphere/whizard/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/prometheus-operator/prometheus-operator/pkg/k8sutil"
 	"gopkg.in/yaml.v3"
@@ -24,6 +21,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/util"
 )
 
 type Operation string
