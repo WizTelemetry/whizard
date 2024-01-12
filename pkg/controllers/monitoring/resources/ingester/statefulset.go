@@ -6,9 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kubesphere/whizard/pkg/constants"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/whizard/pkg/util"
 	"github.com/prometheus-operator/prometheus-operator/pkg/k8sutil"
 	"github.com/prometheus/common/model"
 	appsv1 "k8s.io/api/apps/v1"
@@ -17,6 +14,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/util"
 )
 
 const (

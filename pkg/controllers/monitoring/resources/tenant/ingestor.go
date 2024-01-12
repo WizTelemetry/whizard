@@ -7,10 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
-	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/whizard/pkg/constants"
-	"github.com/kubesphere/whizard/pkg/util"
 	"github.com/prometheus/common/model"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,6 +14,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/util"
 )
 
 func (t *Tenant) ingester() error {

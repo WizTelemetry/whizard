@@ -20,11 +20,6 @@ import (
 	"context"
 
 	"github.com/imdario/mergo"
-	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/whizard/pkg/constants"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/ruler"
-	"github.com/kubesphere/whizard/pkg/util"
 	promv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -38,6 +33,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/ruler"
+	"github.com/kubesphere/whizard/pkg/util"
 )
 
 // RulerReconciler reconciles a Ruler object

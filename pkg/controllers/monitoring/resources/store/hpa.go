@@ -1,15 +1,16 @@
 package store
 
 import (
-	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/whizard/pkg/constants"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/whizard/pkg/util"
 	"k8s.io/api/autoscaling/v2beta2"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/util"
 )
 
 func (r *Store) horizontalPodAutoscalers() (retResources []resources.Resource) {

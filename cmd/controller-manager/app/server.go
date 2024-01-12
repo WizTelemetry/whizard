@@ -6,6 +6,7 @@ import (
 	"os"
 
 	promv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	"github.com/prometheus/common/version"
 	"github.com/spf13/cobra"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,7 +25,6 @@ import (
 	"github.com/kubesphere/whizard/pkg/client/k8s"
 	"github.com/kubesphere/whizard/pkg/controllers/config"
 	"github.com/kubesphere/whizard/pkg/informers"
-	"github.com/prometheus/common/version"
 )
 
 func NewControllerManagerCommand() *cobra.Command {

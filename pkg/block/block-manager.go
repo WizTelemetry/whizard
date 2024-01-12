@@ -13,8 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/whizard/pkg/util"
 	"github.com/oklog/ulid"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -24,6 +22,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	kconfig "sigs.k8s.io/controller-runtime/pkg/client/config"
+
+	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/util"
 )
 
 const (

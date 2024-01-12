@@ -11,15 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
-	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/whizard/pkg/constants"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/query"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/queryfrontend"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/router"
-	monitoringgateway "github.com/kubesphere/whizard/pkg/monitoring-gateway"
-	"github.com/kubesphere/whizard/pkg/util"
 	"github.com/prometheus-operator/prometheus-operator/pkg/k8sutil"
 	promoperator "github.com/prometheus-operator/prometheus-operator/pkg/operator"
 	promcommonconfig "github.com/prometheus/common/config"
@@ -36,6 +27,16 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/kubesphere/whizard/pkg/constants"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/query"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/queryfrontend"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/router"
+	monitoringgateway "github.com/kubesphere/whizard/pkg/monitoring-gateway"
+	"github.com/kubesphere/whizard/pkg/util"
 )
 
 var (

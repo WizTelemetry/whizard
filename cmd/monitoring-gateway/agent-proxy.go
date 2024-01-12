@@ -7,7 +7,6 @@ import (
 
 	extflag "github.com/efficientgo/tools/extkingpin"
 	"github.com/go-kit/log"
-	monitoringgateway "github.com/kubesphere/whizard/pkg/monitoring-gateway"
 	"github.com/oklog/run"
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
@@ -23,6 +22,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	monitoringagentproxy "github.com/kubesphere/whizard/pkg/monitoring-agent-proxy"
+	monitoringgateway "github.com/kubesphere/whizard/pkg/monitoring-gateway"
 )
 
 type agentProxyConfig struct {

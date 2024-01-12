@@ -4,10 +4,11 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/kubesphere/whizard/pkg/constants"
 	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+
+	"github.com/kubesphere/whizard/pkg/constants"
 )
 
 func AppendLabel(m1, m2 map[string]string) {

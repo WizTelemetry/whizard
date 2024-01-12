@@ -3,10 +3,11 @@ package app
 import (
 	"context"
 
-	"github.com/kubesphere/whizard/pkg/client/k8s"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	"github.com/kubesphere/whizard/pkg/client/k8s"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring"
 )
 
 func addControllers(mgr manager.Manager, client k8s.Client, ctx context.Context) error {
