@@ -14,6 +14,11 @@ spec:
       fsGroup: 0
     dataVolume:
       emptyDir: {}
+    flags:
+      - --block-files-concurrency=20
+      - --compact.blocks-fetch-concurrency=5
+      - --web.disable
+      - --compact.enable-vertical-compaction
     image: thanosio/thanos:v0.33.0
   gatewayTemplateSpec: {}
   ingesterTemplateSpec: 
@@ -21,8 +26,12 @@ spec:
       fsGroup: 0
     dataVolume:
       emptyDir: {}
+    flags:
+      - --tsdb.out-of-order.time-window=10m
   queryTemplateSpec:
     image: thanosio/thanos:v0.33.0
+    flags: 
+      - --query.max-concurrent=200
   queryFrontendTemplateSpec:
     image: thanosio/thanos:v0.33.0
   routerTemplateSpec:
@@ -30,6 +39,24 @@ spec:
   rulerTemplateSpec:
     securityContext:
       fsGroup: 0
+    dataVolume:
+      emptyDir: {}
+    ruleSelectors:
+      - matchLabels:
+          role: alert-rules
+    flags:
+      - |
+        --alert.relabel-config=
+          - source_labels: ['job','namespace']
+            separator: ;
+            regex: '(node-exporter);.*'
+            target_label: 'namespace'
+            replacement: '$2'
+          - source_labels: ['job','pod']
+            separator: ;
+            regex: '(node-exporter);.*'
+            target_label: 'pod'
+            replacement: '$2'
     image: thanosio/thanos:v0.33.0
   storeTemplateSpec:
     securityContext:
@@ -37,7 +64,9 @@ spec:
     dataVolume:
       emptyDir: {}
     image: thanosio/thanos:v0.33.0
-
+    flags:
+      - --web.disable
+      - --no-cache-index-header  
 ---
 apiVersion: monitoring.whizard.io/v1alpha1
 kind: Gateway
@@ -61,7 +90,6 @@ spec:
     - prometheus_replica
     - receive_replica
     - ruler_replica
-  image: thanosio/thanos:v0.32.5
 
 ---
 apiVersion: monitoring.whizard.io/v1alpha1
@@ -81,8 +109,7 @@ metadata:
   namespace: kubesphere-monitoring-system
   labels:
     monitoring.whizard.io/service: kubesphere-monitoring-system.whizard
-spec:
-  replicationFactor: 2
+spec: {}
 
 
 
@@ -99,7 +126,6 @@ spec:
   alertmanagersUrl:
   - dnssrv+http://alertmanager-operated.kubesphere-monitoring-system.svc:9093
   evaluationInterval: 1m
-  image: kubesphere/thanos:v0.28.5
   logFormat: logfmt
   logLevel: info
   replicas: 1

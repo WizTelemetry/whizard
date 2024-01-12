@@ -31,7 +31,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -150,8 +149,6 @@ func (r *QueryReconciler) mapFuncBySelectorFunc(fn func(metav1.Object) map[strin
 
 func (r *QueryReconciler) applyConfigurationFromQueryTemplateSpec(query *monitoringv1alpha1.Query, queryTemplateSpec monitoringv1alpha1.QuerySpec) (*monitoringv1alpha1.Query, error) {
 
-	klog.Infof("applyConfigurationFromQueryTemplateSpec: \nqueryTemplateSpec: %v \nquerySpec: %v", queryTemplateSpec, query.Spec)
 	err := mergo.Merge(&query.Spec, queryTemplateSpec)
-	klog.Infof("query.Spec: %v", query.Spec)
 	return query, err
 }

@@ -138,7 +138,7 @@ var DefaultWhizardBlockManagerImage = "kubesphere/whizard-monitoring-block-manag
 var DefaultWhizardBaseResources = corev1.ResourceRequirements{
 	Requests: corev1.ResourceList{
 		corev1.ResourceCPU:    resource.MustParse("50m"),
-		corev1.ResourceMemory: resource.MustParse("50Mi"),
+		corev1.ResourceMemory: resource.MustParse("64Mi"),
 	},
 	Limits: corev1.ResourceList{
 		corev1.ResourceCPU:    resource.MustParse("2"),
@@ -150,7 +150,7 @@ var DefaultWhizardBaseResources = corev1.ResourceRequirements{
 var DefaultWhizardLargeResource = corev1.ResourceRequirements{
 	Requests: corev1.ResourceList{
 		corev1.ResourceCPU:    resource.MustParse("50m"),
-		corev1.ResourceMemory: resource.MustParse("50Mi"),
+		corev1.ResourceMemory: resource.MustParse("64Mi"),
 	},
 	Limits: corev1.ResourceList{
 		corev1.ResourceCPU:    resource.MustParse("4"),

@@ -97,11 +97,11 @@ func ApplyDefaults(service *monitoringv1alpha1.Service) *monitoringv1alpha1.Serv
 		service.Spec.RulerTemplateSpec.PrometheusConfigReloader.Resources = corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
 				corev1.ResourceCPU:    resource.MustParse("100m"),
-				corev1.ResourceMemory: resource.MustParse("0.1Gi"),
+				corev1.ResourceMemory: resource.MustParse("128Mi"),
 			},
 			Limits: corev1.ResourceList{
 				corev1.ResourceCPU:    resource.MustParse("100m"),
-				corev1.ResourceMemory: resource.MustParse("0.1Gi"),
+				corev1.ResourceMemory: resource.MustParse("128Mi"),
 			},
 		}
 	}
