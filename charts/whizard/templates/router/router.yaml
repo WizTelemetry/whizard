@@ -12,41 +12,6 @@ metadata:
     {{- end }}
     {{- include "whizard.labels" . | nindent 4 }}
 spec:
-  {{- if .Values.router.image }}
-  image: "{{ .Values.router.image.repository }}:{{ .Values.router.image.tag }}"
-  {{- else }}
-  image: "{{ .Values.global.whizard.image.repository }}:{{ .Values.global.whizard.image.tag }}"
-  {{- end }}
-  replicas: {{ .Values.router.replicas }}
-
-  {{- with .Values.router.nodeSelector }}
-  nodeSelector:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
-  {{- with .Values.router.affinity }}
-  affinity:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
-  {{- with .Values.router.tolerations }}
-  tolerations:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
-  {{- with .Values.router.resources }}
-  resources:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
-  {{- with .Values.router.securityContext }}
-  securityContext:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}  
-
-  logLevel: {{ .Values.global.whizard.log.level }}
-  logFormat: {{ .Values.global.whizard.log.format }}
-  replicationFactor: {{ .Values.router.replicationFactor }}
-  {{- with .Values.router.additionalFlags }}
-  flags:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
   {{ if .Values.router.genSignedCert }}
   httpServerTLSConfig:
     certSecret:
@@ -61,4 +26,10 @@ spec:
     {{- toYaml . | nindent 4 }}
   {{- end }}
   {{- end }}
+{{- with .Values.router.additionalConfig }}
+  {{- tpl (toYaml .) $ | nindent 2 }}
+{{- end }}
+{{- with .Values.router.additionalConfigString }}
+  {{- tpl . $ | nindent 2 }}
+{{- end }}
 {{- end }}
