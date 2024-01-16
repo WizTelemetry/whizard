@@ -1,4 +1,5 @@
 {{- if .Values.service.enabled -}}
+{{- $baseImage := printf "%s/%s:%s" (default .Values.global.imageRegistry .Values.global.whizard.image.registry) .Values.global.whizard.image.repository  .Values.global.whizard.image.tag }}
 apiVersion: monitoring.whizard.io/v1alpha1
 kind: Service
 metadata:
@@ -26,4 +27,332 @@ spec:
   remoteQuery:
     {{- toYaml .Values.service.remoteQuery | nindent 4 }}
   {{- end }}
+
+  compactorTemplateSpec:
+    {{- $compactor := .Values.service.compactorTemplateSpec }}
+    {{- if and $compactor.image.repository $compactor.image.tag }}
+    image: {{ .Values.global.imageRegistry | default $compactor.image.registry }}/{{ $compactor.image.repository }}:{{ $compactor.image.tag }}
+    {{- else }}
+    image: {{ $baseImage }}
+    {{- end }}
+    {{- if .Values.global.imagePullSecrets }}
+    imagePullSecrets:
+    {{- include "whizard.imagePullSecrets" . | indent 6 }}
+    {{- end }}
+    {{- with $compactor.resources }}
+    resources:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+
+    {{- with $compactor.securityContext }}
+    securityContext:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with $compactor.dataVolume }}
+    dataVolume:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+
+    {{- with $compactor.retention }}
+    retention:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+
+    {{- with $compactor.additionalFlags }}
+    flags:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with $compactor.additionalConfig }}
+      {{- tpl (toYaml .) $ | nindent 4 }}
+    {{- end }}
+
+  gatewayTemplateSpec:
+    {{- $gateway := .Values.service.gatewayTemplateSpec }}
+    image: {{ .Values.global.imageRegistry | default $gateway.image.registry }}/{{ $gateway.image.repository }}:{{ $gateway.image.tag | default .Chart.AppVersion }}
+    {{- if .Values.global.imagePullSecrets }}
+    imagePullSecrets:
+    {{- include "whizard.imagePullSecrets" . | indent 6 }}
+    {{- end }}
+    {{- with $gateway.resources }}
+    resources:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+
+    {{- with $gateway.securityContext }}
+    securityContext:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with $gateway.dataVolume }}
+    dataVolume:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+
+    {{- with $gateway.additionalFlags }}
+    flags:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with $gateway.additionalConfig }}
+      {{- tpl (toYaml .) $ | nindent 4 }}
+    {{- end }}    
+
+  ingesterTemplateSpec:
+    {{- $ingester := .Values.service.ingesterTemplateSpec }}
+    {{- if and $ingester.image.repository $ingester.image.tag  }}
+    image: {{ .Values.global.imageRegistry | default $ingester.image.registry }}/{{ $ingester.image.repository }}:{{ $ingester.image.tag }}
+    {{- else }}
+    image: {{ $baseImage }}
+    {{- end }}
+    {{- if .Values.global.imagePullSecrets }}
+    imagePullSecrets:
+    {{- include "whizard.imagePullSecrets" . | indent 6 }}
+    {{- end }}
+    {{- with $ingester.resources }}
+    resources:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+
+    {{- with $ingester.securityContext }}
+    securityContext:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with $ingester.dataVolume }}
+    dataVolume:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  
+    {{- with $ingester.additionalFlags }}
+    flags:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with $ingester.additionalConfig }}
+      {{- tpl (toYaml .) $ | nindent 4 }}
+    {{- end }} 
+
+  queryTemplateSpec:
+    {{- $query := .Values.service.queryTemplateSpec }}
+    {{- if and $query.image.repository $query.image.tag }}
+    image: {{ .Values.global.imageRegistry | default $query.image.registry }}/{{ $query.image.repository }}:{{ $query.image.tag }}
+    {{- else }}
+    image: {{ $baseImage }}
+    {{- end }}
+    {{- if .Values.global.imagePullSecrets }}
+    imagePullSecrets:
+    {{- include "whizard.imagePullSecrets" . | indent 6 }}
+    {{- end }}
+    {{- with $query.resources }}
+    resources:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+
+    {{- with $query.securityContext }}
+    securityContext:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with $query.dataVolume }}
+    dataVolume:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+
+    {{- with $query.replicaLabelNames }}
+    replicaLabelNames:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  
+    {{- with $query.additionalFlags }}
+    flags:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with $query.additionalConfig }}
+      {{- tpl (toYaml .) $ | nindent 4 }}
+    {{- end }} 
+
+    envoy: 
+      image: {{ .Values.global.imageRegistry | default $query.envoy.image.registry }}/{{ $query.envoy.image.repository }}:{{ $query.envoy.image.tag }}
+      {{- with $query.envoy.resources }}
+      resources:
+        {{- toYaml . | nindent 6 }}
+      {{- end }}
+
+  queryFrontendTemplateSpec:
+    {{- $queryFrontend := .Values.service.queryFrontendTemplateSpec }}
+    {{- if and $queryFrontend.image.repository $queryFrontend.image.tag }}
+    image: {{ .Values.global.imageRegistry | default $queryFrontend.image.registry }}/{{ $queryFrontend.image.repository }}:{{ $queryFrontend.image.tag }}
+    {{- else }}
+    image: {{ $baseImage }}
+    {{- end }}
+    {{- if .Values.global.imagePullSecrets }}
+    imagePullSecrets:
+    {{- include "whizard.imagePullSecrets" . | indent 6 }}
+    {{- end }}
+    {{- with $queryFrontend.resources }}
+    resources:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+
+    {{- with $queryFrontend.securityContext }}
+    securityContext:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}  
+    {{- with $queryFrontend.dataVolume }}
+    dataVolume:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+
+    {{- with $queryFrontend.cacheConfig }}
+    cacheConfig:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+
+    {{- with $queryFrontend.additionalFlags }}
+    flags:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with $queryFrontend.additionalConfig }}
+      {{- tpl (toYaml .) $ | nindent 4 }}
+    {{- end }} 
+
+  routerTemplateSpec:
+    {{- $router := .Values.service.routerTemplateSpec }}
+    {{- if and $router.image.registry $router.image.tag }}
+    image: {{ .Values.global.imageRegistry | default $router.image.registry }}/{{ $router.image.repository }}:{{ $router.image.tag }}
+    {{- else }}
+    image: {{ $baseImage }}
+    {{- end }}
+    {{- if .Values.global.imagePullSecrets }}
+    imagePullSecrets:
+    {{- include "whizard.imagePullSecrets" . | indent 6 }}
+    {{- end }}
+    {{- with $router.resources }}
+    resources:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+
+    {{- with $router.securityContext }}
+    securityContext:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with $router.dataVolume }}
+    dataVolume:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+
+    {{- with $router.additionalFlags }}
+    flags:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with $router.additionalConfig }}
+      {{- tpl (toYaml .) $ | nindent 4 }}
+    {{- end }} 
+
+  rulerTemplateSpec:
+    {{ $ruler := .Values.service.rulerTemplateSpec }}
+    {{- if and $ruler.image.repository $ruler.image.tag }}
+    image: {{ .Values.global.imageRegistry | default $ruler.image.registry }}/{{ $ruler.image.repository }}:{{ $ruler.image.tag }}
+    {{- else }}
+    image: {{ $baseImage }}
+    {{- end }}
+    {{- if .Values.global.imagePullSecrets }}
+    imagePullSecrets:
+    {{- include "whizard.imagePullSecrets" . | indent 6 }}
+    {{- end }}
+    {{- with $ruler.resources }}
+    resources:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+
+
+    {{- with $ruler.securityContext }}
+    securityContext:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with $ruler.dataVolume }}
+    dataVolume:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+
+
+
+    {{- with $ruler.ruleSelectors }}
+    ruleSelectors:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+
+    {{- with $ruler.additionalFlags }}
+    flags:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with $ruler.additionalConfig }}
+      {{- tpl (toYaml .) $ | nindent 4 }}
+    {{- end }} 
+
+    prometheusConfigReloader:
+      image: {{ .Values.global.imageRegistry | default $ruler.prometheusConfigReloader.image.registry }}/{{ $ruler.prometheusConfigReloader.image.repository }}:{{ $ruler.prometheusConfigReloader.image.tag }}
+      {{- with $ruler.prometheusConfigReloader.resources }}
+      resources:
+        {{- toYaml . | nindent 6 }}
+      {{- end }}
+
+    rulerWriteProxy:
+      image: {{ .Values.global.imageRegistry | default $ruler.rulerWriteProxy.image.registry }}/{{ $ruler.rulerWriteProxy.image.repository }}:{{ $ruler.rulerWriteProxy.image.tag }}
+      {{- with $ruler.rulerWriteProxy.resources }}
+      resources:
+        {{- toYaml . | nindent 6 }}
+      {{- end }}
+    
+    rulerQueryProxy:
+      image: {{ .Values.global.imageRegistry | default $ruler.rulerQueryProxy.image.registry }}/{{ $ruler.rulerQueryProxy.image.repository }}:{{ $ruler.rulerQueryProxy.image.tag | default .Chart.AppVersion  }}
+      {{- with $ruler.rulerQueryProxy.resources }}
+      resources:
+        {{- toYaml . | nindent 6 }}
+      {{- end }}
+
+  storeTemplateSpec:
+    {{- $store := .Values.service.storeTemplateSpec }}
+    {{- if and $store.image.repository $store.image.tag }}
+    image: {{ .Values.global.imageRegistry | default $store.image.registry }}/{{ $store.image.repository }}:{{ $store.image.tag }}
+    {{- else }}
+    image: {{ $baseImage }}
+    {{- end }}
+    {{- if .Values.global.imagePullSecrets }}
+    imagePullSecrets:
+    {{- include "whizard.imagePullSecrets" . | indent 6 }}
+    {{- end }}
+    {{- with $store.resources }}
+    resources:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+
+    {{- with $store.securityContext }}
+    securityContext:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with $store.dataVolume }}
+    dataVolume:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+
+    {{- with $store.timeRanges }}
+    timeRanges:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with $store.indexCacheConfig }}
+    indexCacheConfig:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+
+
+    {{- with $store.additionalFlags }}
+    flags:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with $store.additionalConfig }}
+      {{- tpl (toYaml .) $ | nindent 4 }}
+    {{- end }} 
+
+{{- with .Values.service.additionalConfig }}
+  {{- tpl (toYaml .) $ | nindent 2 }}
+{{- end }}
+{{- with .Values.service.additionalConfigString }}
+  {{- tpl . $ | nindent 2 }}
+{{- end }}
 {{- end }}

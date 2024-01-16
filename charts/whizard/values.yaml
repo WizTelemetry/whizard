@@ -8,41 +8,30 @@ fullnameOverride: ""
 namespaceOverride: ""
 
 global:
+  # To help compatibility with other charts which use global.imagePullSecrets.
+  # Allow either an array of {name: pullSecret} maps (k8s-style), or an array of strings (more common helm-style).
+  imagePullSecrets: []
+  #
+  # Allow parent charts to override registry hostname
+  imageRegistry: ""
 
   whizard:
     image:
-      repository: kubesphere/thanos
-      tag: v0.32.6
-    log:
-      level: info             # Possible options: error, warn, info, debug.
-      format: logfmt          # Possible options: logfmt or json.
-  imagePullSecrets: []
+      registry: docker.io
+      repository: thanosio/thanos
+      tag: v0.33.0
+
+hook:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: kubesphere/kubectl
+    tag: v1.21.0
+    pullPolicy: IfNotPresent
+  backoffLimit: 3
 
 monitoring:
   enabled: false
-  components:
-    - compactor
-    - query
-    - ingester
-    - store
-    - ruler
-
-# Create a Storage instance
-storage:
-  create: false
-  blockManager:
-    enable: true
-    ## If null or unset, the global.whizardImage is used.
-    image: null
-    # repository: thanosio/thanos
-    # tag: v0.28.0
-    serviceAccountName: ""          # If null or unset, the created controllerManager serviceAccountName is used.
-    gc:
-      image:
-        repository: kubesphere/whizard-monitoring-block-manager
-        # Overrides the image tag whose default is the chart appVersion.
-        tag: ""
-  S3: {}
 
 ## Manages Service, Query, QueryFrontend, Router, Ingester, Store, Compactor and Ruler instances and components
 ##
@@ -71,6 +60,7 @@ controllerManager:
   affinity: {}
 
   image:
+    registry: docker.io
     repository: kubesphere/whizard-controller-manager
     # Overrides the image tag whose default is the chart appVersion.
     tag: ""
@@ -89,251 +79,10 @@ controllerManager:
 
   config:
     create: true
-
-    storage:
-      blockManager:
-        enable: true
-        ## If null or unset, the global.whizardImage is used.
-        image: null
-        # repository: thanosio/thanos
-        # tag: v0.28.0
-        serviceAccountName: ""          # If null or unset, the created controllerManager serviceAccountName is used.
-        gc:
-          image:
-            repository: kubesphere/whizard-monitoring-block-manager
-            # Overrides the image tag whose default is the chart appVersion.
-            tag: ""
-
-    gateway:
-      image:
-        repository: kubesphere/whizard-monitoring-gateway
-        # Overrides the image tag whose default is the chart appVersion.
-        tag: ""
-
-      replicas: 2
-      resources:
-        limits:
-          cpu: "2"
-          memory: 4Gi
-        requests:
-          cpu: 50m
-          memory: 50Mi
-
-    router:
-      ## If null or unset, the global.whizardImage is used.
-      image: null
-      # repository: thanosio/thanos
-      # tag: v0.28.0
-
-      replicas: 2
-
-      replicationFactor: 1
-      resources:
-        limits:
-          cpu: "2"
-          memory: 4Gi
-        requests:
-          cpu: 50m
-          memory: 50Mi
-
-    queryFrontend:
-      ## If null or unset, the global.whizardImage is used.
-      image: null
-      # repository: thanosio/thanos
-      # tag: v0.28.0
-
-      replicas: 2
-      resources:
-        limits:
-          cpu: "2"
-          memory: 4Gi
-        requests:
-          cpu: 50m
-          memory: 50Mi
-
-      cacheConfig: {}
-
-    query:
-      ## If null or unset, the global.whizardImage is used.
-      image: null
-      #  repository: kubesphere/thanos
-      #  tag: v0.30.2
-
-      replicas: 3
-      resources:
-        limits:
-          cpu: "2"
-          memory: 4Gi
-        requests:
-          cpu: 50m
-          memory: 50Mi
-
-      additionalFlags:
-      - --query.max-concurrent=200
-
-      envoy:
-        image:
-          repository: envoyproxy/envoy
-          tag: v1.20.2
-
-    ingester:
-      ## If null or unset, the global.whizardImage is used.
-      image: null
-      # repository: thanosio/thanos
-      # tag: v0.28.0
-
-      replicas: 2
-      resources:
-        limits:
-          cpu: "4"
-          memory: 16Gi
-        requests:
-          cpu: 50m
-          memory: 50Mi
-      securityContext:
-        fsGroup: 0
-
-      ## how long to retain raw samples on local storage.
-      localTsdbRetention: 7d
-
-      dataVolume:
-        emptyDir: {}
-        # persistentVolumeClaim:
-        #   spec:
-        #     resources:
-        #       requests:
-        #         storage: 20Gi
-        # # persistentVolumeClaimRetentionPolicy requires the kubernetes version >= 1.23
-        # # and its StatefulSetAutoDeletePVC feature gate to be enabled.
-        # persistentVolumeClaimRetentionPolicy:
-        #   whenDeleted: Retain # must be one of Retain and Delete, to specify whether to delete pvc when statefulset is deleted.
-        #   whenScaled: Retain # must be one of Retain and Delete, to spefify whether to delete pvc when statefulset is scaled down.
-
-
-      additionalFlags:
-      - --tsdb.out-of-order.time-window=10m         # Receive: Added parameter `--tsdb.out-of-order.time-window` to set time window for experimental out-of-order samples ingestion. Disabled by default (set to 0s). Please note if you enable this option and you use compactor, make sure you set the `--enable-vertical-compaction` flag, otherwise you might risk compactor halt.
-
-      # if disableTSDBCleanup is false, will delete the blocks
-      # that belong to deleted tenants in the data directory of ingester TSDB.
-      disableTSDBCleanup: true
-      tsdbCleanupImage:
-        repository: bash
-        tag: 5.1.16
-
-    store:
-      ## If null or unset, the global.whizardImage is used.
-      image: null
-      # repository: thanosio/thanos
-      # tag: v0.28.0
-      resources:
-        limits:
-          cpu: "1"
-          memory: 4Gi
-        requests:
-          cpu: 100m
-          memory: 500Mi
-      securityContext:
-        fsGroup: 0
-      indexCacheConfig: {}
-
-      timeRanges:
-      - maxTime: -36h
-
-      additionalFlags:
-      - --web.disable                   # Disable Block Viewer UI.
-      - --no-cache-index-header         # Support disabling cache index header file. When toggled, Stores can run without needing persistent disks.
-      # - --min-time=-14d               # Optional, time based partitioning
-
-      dataVolume:
-        emptyDir: {}
-        # persistentVolumeClaim:
-        #   spec:
-        #     resources:
-        #       requests:
-        #         storage: 20Gi
-        # # persistentVolumeClaimRetentionPolicy requires the kubernetes version >= 1.23
-        # # and its StatefulSetAutoDeletePVC feature gate to be enabled.
-        # persistentVolumeClaimRetentionPolicy:
-        #   whenDeleted: Retain # must be one of Retain and Delete, to specify whether to delete pvc when statefulset is deleted.
-        #   whenScaled: Retain # must be one of Retain and Delete, to spefify whether to delete pvc when statefulset is scaled down.
-
-    compactor:
-      ## If null or unset, the global.whizardImage is used.
-      image: null
-      # repository: thanosio/thanos
-      # tag: v0.28.0
-      retention:
-        retentionRaw: 60d
-        retention5m: 180d
-        retention1h: 360d
-      additionalFlags:
-      - --block-files-concurrency=20
-      - --compact.blocks-fetch-concurrency=5
-      - --web.disable                                 # Disable Block Viewer UI.
-      - --compact.enable-vertical-compaction
-
-      resources:
-        limits:
-          cpu: "2"
-          memory: 4Gi
-        requests:
-          cpu: 50m
-          memory: 50Mi
-      securityContext:
-        fsGroup: 0
-      dataVolume:
-        emptyDir: {}
-        # persistentVolumeClaim:
-        #   spec:
-        #     resources:
-        #       requests:
-        #         storage: 20Gi
-        # # persistentVolumeClaimRetentionPolicy requires the kubernetes version >= 1.23
-        # # and its StatefulSetAutoDeletePVC feature gate to be enabled.
-        # persistentVolumeClaimRetentionPolicy:
-        #   whenDeleted: Retain # must be one of Retain and Delete, to specify whether to delete pvc when statefulset is deleted.
-        #   whenScaled: Retain # must be one of Retain and Delete, to spefify whether to delete pvc when statefulset is scaled down.
-
-    ruler:
-      ## If null or unset, the global.whizardImage is used.
-      image: null
-      # repository: thanosio/thanos
-      # tag: v0.28.0
-
-      replicas: 1
-      resources:
-        limits:
-          cpu: "2"
-          memory: 4Gi
-        requests:
-          cpu: 50m
-          memory: 50Mi
-
-      shards: 1
-
-      evaluationInterval: 1m
-      ruleSelectors: []
-      alertmanagersUrl: []
-
-      securityContext:
-        fsGroup: 0
-
-      dataVolume:
-        emptyDir: 
-          sizeLimit: 500Mi            # The size limit of emptyDir volume.
-
-      prometheusConfigReloader:
-        image:
-          repository: kubesphere/prometheus-config-reloader
-          tag: v0.55.1
-
-      writeProxy:
-        image:
-          repository: kubesphere/cortex-tenant
-          tag: v1.7.2
+    config: {}
 
 adapter:
-  enabled: false
+  enabled: true
 
   resources:
     limits:
@@ -359,6 +108,7 @@ adapter:
     create: true
 
   image:
+    registry: docker.io
     repository: kubesphere/whizard-adapter
     # Overrides the image tag whose default is the chart appVersion.
     tag: ""
@@ -396,6 +146,321 @@ service:
   ## Set remote query
   remoteQuery:
     # url: remote_query_address
+  
+  compactorTemplateSpec:
+    image: {}
+    # registry: docker.io
+    # repository: thanosio/thanos
+    # tag: v0.35.0
+
+    resources: {}
+    # limits:
+    #   cpu: "2"
+    #   memory: 4Gi
+    # requests:
+    #   cpu: 50m
+    #   memory: 64Mi
+
+    securityContext:
+      fsGroup: 0
+    dataVolume:
+      emptyDir: {}
+      # persistentVolumeClaim:
+      #   spec:
+      #     resources:
+      #       requests:
+      #         storage: 20Gi
+      # # persistentVolumeClaimRetentionPolicy requires the kubernetes version >= 1.23
+      # # and its StatefulSetAutoDeletePVC feature gate to be enabled.
+      # persistentVolumeClaimRetentionPolicy:
+      #   whenDeleted: Retain # must be one of Retain and Delete, to specify whether to delete pvc when statefulset is deleted.
+      #   whenScaled: Retain # must be one of Retain and Delete, to spefify whether to delete pvc when statefulset is scaled down.
+
+    retention: {}
+    # retentionRaw: 60d
+    # retention5m: 180d
+    # retention1h: 360d
+
+    additionalFlags:
+     - --block-files-concurrency=20
+     - --compact.blocks-fetch-concurrency=5
+     - --web.disable                                 # Disable Block Viewer UI.
+     - --compact.enable-vertical-compaction
+    ## Additional configuration which is not covered by the properties above. (passed through tpl)
+    additionalConfig: {}
+
+  gatewayTemplateSpec:
+    image: 
+      registry: docker.io
+      repository: kubesphere/whizard-monitoring-gateway
+      tag: ""
+    
+    resources: {}
+    # limits:
+    #   cpu: "2"
+    #   memory: 4Gi
+    # requests:
+    #   cpu: 50m
+    #   memory: 64Mi
+
+
+    securityContext: {}
+    dataVolume: {}
+
+    additionalFlags: []
+
+    ## Additional configuration which is not covered by the properties above. (passed through tpl)
+    additionalConfig: {}
+  
+  ingesterTemplateSpec:
+    image: {}
+    # registry: docker.io
+    # repository: thanosio/thanos
+    # tag: v0.35.0
+
+    resources: {}
+    # limits:
+    #   cpu: "2"
+    #   memory: 4Gi
+    # requests:
+    #   cpu: 50m
+    #   memory: 64Mi
+
+    securityContext:
+      fsGroup: 0
+    dataVolume:
+      emptyDir: {}
+      # persistentVolumeClaim:
+      #   spec:
+      #     resources:
+      #       requests:
+      #         storage: 20Gi
+      # # persistentVolumeClaimRetentionPolicy requires the kubernetes version >= 1.23
+      # # and its StatefulSetAutoDeletePVC feature gate to be enabled.
+      # persistentVolumeClaimRetentionPolicy:
+      #   whenDeleted: Retain # must be one of Retain and Delete, to specify whether to delete pvc when statefulset is deleted.
+      #   whenScaled: Retain # must be one of Retain and Delete, to spefify whether to delete pvc when statefulset is scaled down.
+
+
+    additionalFlags:
+      - --tsdb.out-of-order.time-window=10m         # Receive: Added parameter `--tsdb.out-of-order.time-window` to set time window for experimental out-of-order samples ingestion. Disabled by default (set to 0s). Please note if you enable this option and you use compactor, make sure you set the `--enable-vertical-compaction` flag, otherwise you might risk compactor halt.
+
+    ## Additional configuration which is not covered by the properties above. (passed through tpl)
+    additionalConfig: {}
+
+
+  queryTemplateSpec:
+    image: {}
+    # registry: docker.io
+    # repository: thanosio/thanos
+    # tag: v0.35.0
+
+    resources: {}
+    # limits:
+    #   cpu: "2"
+    #   memory: 4Gi
+    # requests:
+    #   cpu: 50m
+    #   memory: 64Mi
+
+    securityContext: {}
+    dataVolume: {}
+
+    replicaLabelNames:
+      - prometheus_replica
+      - receive_replica
+      - ruler_replica
+
+    additionalFlags:
+      - --query.max-concurrent=200
+
+    ## Additional configuration which is not covered by the properties above. (passed through tpl)
+    additionalConfig: {}
+
+    envoy:
+      image:
+        registry: docker.io
+        repository: envoyproxy/envoy
+        tag: v1.20.2
+      resources: {}
+      # limits:
+      #   cpu: "2"
+      #   memory: 4Gi
+      # requests:
+      #   cpu: 50m
+      #   memory: 64Mi
+
+  queryFrontendTemplateSpec:
+    image: {}
+    # registry: docker.io
+    # repository: thanosio/thanos
+    # tag: v0.35.0
+
+    resources: {}
+    # limits:
+    #   cpu: "2"
+    #   memory: 4Gi
+    # requests:
+    #   cpu: 50m
+    #   memory: 64Mi
+
+    securityContext: {}
+    dataVolume: {}
+
+    cacheConfig: {}
+
+    additionalFlags: 
+      - --no-query-range.align-range-with-step          # Disable query-range.align-range-with-step, the incoming query parameter remains the same (as required by the frontend), although it may reduce the cache-ability.
+    ## Additional configuration which is not covered by the properties above. (passed through tpl)
+    additionalConfig: {}
+
+  routerTemplateSpec:
+    image: {}
+    # registry: docker.io
+    # repository: thanosio/thanos
+    # tag: v0.35.0
+
+    resources: {}
+    # limits:
+    #   cpu: "2"
+    #   memory: 4Gi
+    # requests:
+    #   cpu: 50m
+    #   memory: 64Mi  
+
+    securityContext: {}
+    dataVolume: {}
+
+    additionalFlags: []
+    ## Additional configuration which is not covered by the properties above. (passed through tpl)
+    additionalConfig: {}
+
+  rulerTemplateSpec:
+    image: {}
+    # registry: docker.io
+    # repository: thanosio/thanos
+    # tag: v0.35.0
+
+    resources: {}
+    # limits:
+    #   cpu: "2"
+    #   memory: 4Gi
+    # requests:
+    #   cpu: 50m
+    #   memory: 64Mi 
+
+    securityContext:
+      fsGroup: 0
+    dataVolume:
+      emptyDir: {}
+
+    ruleSelectors: 
+      - matchLabels:
+          role: alert-rules
+
+    additionalFlags: []
+    ## Additional configuration which is not covered by the properties above. (passed through tpl)
+    additionalConfig: {}
+
+    prometheusConfigReloader:
+      image:
+        registry: quay.io
+        repository: prometheus-operator/prometheus-config-reloader
+        tag: v0.68.0
+      resources: {}
+      # limits:
+      #   cpu: "2"
+      #   memory: 4Gi
+      # requests:
+      #   cpu: 50m
+      #   memory: 64Mi
+ 
+    rulerWriteProxy:
+      image:
+        registry: docker.io
+        repository: kubesphere/cortex-tenant
+        tag: v1.7.2  
+      
+      resources: {}
+      # limits:
+      #   cpu: "2"
+      #   memory: 4Gi
+      # requests:
+      #   cpu: 50m
+      #   memory: 64Mi  
+
+    rulerQueryProxy:
+      image:
+        registry: docker.io
+        repository: kubesphere/whizard-monitoring-gateway
+        tag: ""
+      resources: {}
+      # limits:
+      #   cpu: "2"
+      #   memory: 4Gi
+      # requests:
+      #   cpu: 50m
+      #   memory: 64Mi  
+
+  storeTemplateSpec: 
+    image: {}
+    # registry: docker.io
+    # repository: thanosio/thanos
+    # tag: v0.35.0
+
+    resources: {}
+    # limits:
+    #   cpu: "2"
+    #   memory: 4Gi
+    # requests:
+    #   cpu: 50m
+    #   memory: 64Mi  
+    securityContext:
+      fsGroup: 0
+    dataVolume:
+      emptyDir: {}
+      # persistentVolumeClaim:
+      #   spec:
+      #     resources:
+      #       requests:
+      #         storage: 20Gi
+      # # persistentVolumeClaimRetentionPolicy requires the kubernetes version >= 1.23
+      # # and its StatefulSetAutoDeletePVC feature gate to be enabled.
+      # persistentVolumeClaimRetentionPolicy:
+      #   whenDeleted: Retain # must be one of Retain and Delete, to specify whether to delete pvc when statefulset is deleted.
+      #   whenScaled: Retain # must be one of Retain and Delete, to spefify whether to delete pvc when statefulset is scaled down.
+    
+    indexCacheConfig: {}
+    timeRanges:
+      - maxTime: -36h
+
+    additionalFlags:
+      - --web.disable                   # Disable Block Viewer UI.
+      - --no-cache-index-header         # Support disabling cache index header file. When toggled, Stores can run without needing persistent disks.
+      # - --min-time=-14d               # Optional, time based partitioning
+    
+    ## Additional configuration which is not covered by the properties above. (passed through tpl)
+    additionalConfig: {}
+
+
+# Create a Storage instance
+storage:
+  create: false
+  blockManager:
+    enable: true
+    ## If null or unset, the global.whizardImage is used.
+    image: null
+    # repository: thanosio/thanos
+    # tag: v0.28.0
+    serviceAccountName: ""          # If null or unset, the created controllerManager serviceAccountName is used.
+    gc:
+      image:
+        registry: docker.io
+        repository: kubesphere/whizard-monitoring-block-manager
+        # Overrides the image tag whose default is the chart appVersion.
+        tag: ""
+  S3: {}
+
 
 # Deploy an Gateway instance
 gateway:
@@ -407,18 +472,11 @@ gateway:
     # name:
 
   image:
+    registry: docker.io
     repository: kubesphere/whizard-monitoring-gateway
     # Overrides the image tag whose default is the chart appVersion.
     tag: ""
 
-
-  resources: {}
-  securityContext: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
-
-  enabledTenantsAdmission: true
   nodePort: 0
 
 # Deploy an Query instance
@@ -430,34 +488,12 @@ query:
     # namespace:
     # name:
 
-  ## If null or unset, the global.whizardImage is used.
-  image: null
-    # repository: thanosio/thanos
-    # tag: v0.28.0
-
-  promqlEngine: thanos
-
-  resources: {}
-  securityContext: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
-
-  replicaLabelNames:
-  - prometheus_replica
-  - receive_replica
-  - ruler_replica
-
   genSignedCert: false
   httpServerTLSConfig: {}
 
-  additionalFlags: []
-
-  envoy:
-    image:
-      repository: envoyproxy/envoy
-      tag: v1.20.2
-    resources: {}
+  ## Additional configuration which is not covered by the properties above. (passed through tpl)
+  additionalConfig: {}
+  additionalConfigString: ""
 
 # Deploy an Router instance
 router:
@@ -468,22 +504,12 @@ router:
     # namespace:
     # name:
 
-  ## If null or unset, the global.whizardImage is used.
-  image: null
-    # repository: thanosio/thanos
-    # tag: v0.28.0
-
-
-  resources: {}
-  securityContext: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
-
   genSignedCert: false
   httpServerTLSConfig: {}
 
-  additionalFlags: []
+  ## Additional configuration which is not covered by the properties above. (passed through tpl)
+  additionalConfig: {}
+  additionalConfigString: ""
 
 # Deploy an QueryFrontend instance
 queryFrontend:
@@ -494,28 +520,17 @@ queryFrontend:
     # namespace:
     # name:
 
-  ## If null or unset, the global.whizardImage is used.
-  image: null
-    # repository: thanosio/thanos
-    # tag: v0.28.0
-
-
-  resources: {}
-  securityContext: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
-
-  cacheConfig: {}
   genSignedCert: false
   httpServerTLSConfig: {}
+  
+  ## Additional configuration which is not covered by the properties above. (passed through tpl)
+  additionalConfig: {}
+  additionalConfigString: ""
 
-  additionalFlags:
-  - --no-query-range.align-range-with-step          # Disable query-range.align-range-with-step, the incoming query parameter remains the same (as required by the frontend), although it may reduce the cache-ability.
 
 # Deploy a Ruler instance
 ruler:
-  enabled: true
+  enabled: false
 
   ## If null or unset, the value is determined based on enabled Service instance
   serviceReference: null
@@ -588,35 +603,6 @@ ingester:
     # namespace:
     # name:
 
-  ## If null or unset, the global.whizardImage is used.
-  image: null
-    # repository: thanosio/thanos
-    # tag: v0.28.0
-
-
-  resources: {}
-  securityContext:
-    fsGroup: 0
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
-
-  tenants: []
-
-  logLevel: info
-  logFormat: logfmt
-
-  dataVolume:
-    emptyDir: {}                    # Use emptyDir as the default dataVolume.
-    # persistentVolumeClaim:
-    #   spec:
-    #     resources:
-    #       requests:
-    #         storage: 20Gi
-    # # persistentVolumeClaimRetentionPolicy requires the kubernetes version >= 1.23
-    # # and its StatefulSetAutoDeletePVC feature gate to be enabled.
-    # persistentVolumeClaimRetentionPolicy:
-    #   whenDeleted: Retain # must be one of Retain and Delete, to specify whether delete pvc when statefulset is deleted.
-    #   whenScaled: Retain # must be one of Retain and Delete, to spefify whether delete pvc when statefulset is scaled down.
-
-  additionalFlags: []
+  ## Additional configuration which is not covered by the properties above. (passed through tpl)
+  additionalConfig: {}
+  additionalConfigString: ""

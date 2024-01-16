@@ -12,33 +12,11 @@ metadata:
     {{- end }}
     {{- include "whizard.labels" . | nindent 4 }}
 spec:
-  image: "{{ .Values.gateway.image.repository }}:{{ .Values.gateway.image.tag | default .Chart.AppVersion }}"
-  replicas: {{ .Values.gateway.replicas }}
-  
-  {{- with .Values.gateway.nodeSelector }}
-  nodeSelector:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
-  {{- with .Values.gateway.affinity }}
-  affinity:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
-  {{- with .Values.gateway.tolerations }}
-  tolerations:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
-  {{- with .Values.gateway.resources }}
-  resources:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
-  {{- with .Values.gateway.securityContext }}
-  securityContext:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
-
   nodePort: {{ .Values.gateway.nodePort }}
-
-  logLevel: {{ .Values.global.whizard.log.level }}
-  logFormat: {{ .Values.global.whizard.log.format }}
-  enabledTenantsAdmission: {{ .Values.gateway.enabledTenantsAdmission }}
+{{- with .Values.gateway.additionalConfig }}
+  {{- tpl (toYaml .) $ | nindent 2 }}
+{{- end }}
+{{- with .Values.gateway.additionalConfigString }}
+  {{- tpl . $ | nindent 2 }}
+{{- end }}
 {{- end }}

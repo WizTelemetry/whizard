@@ -46,8 +46,6 @@ spec:
   tenant: {{ .Values.ruler.tenant }}
   {{- end }}
 
-  logLevel: {{ .Values.global.whizard.log.level }}
-  logFormat: {{ .Values.global.whizard.log.format }}
   evaluationInterval: {{ .Values.ruler.evaluationInterval }}
   {{- with .Values.ruler.additionalFlags }}
   flags:

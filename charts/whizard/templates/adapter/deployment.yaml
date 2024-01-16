@@ -18,6 +18,10 @@ spec:
         app: {{ include "whizard.adapter.fullname" . }}
     spec:
       serviceAccountName: {{ include "whizard.adapter.serviceAccountName" . }}
+    {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+      {{- include "whizard.imagePullSecrets" . | indent 8 }}
+    {{- end }}
       containers:
         - name: adapter
           args:
@@ -36,7 +40,8 @@ spec:
           - --default-whizard-configmap={{ include "whizard.namespace" . }}.{{ include "whizard.fullname" . }}-config
           - --web-enabled={{ .Values.adapter.web.enabled }}
           - --kubesphere-adapter-enabled={{ .Values.adapter.kubesphereAdapter.enabled }}
-          image: "{{ .Values.adapter.image.repository }}:{{ .Values.adapter.image.tag | default .Chart.AppVersion }}"
+          image: "{{ .Values.global.imageRegistry | default .Values.adapter.image.registry }}/{{ .Values.adapter.image.repository }}:{{ .Values.adapter.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.adapter.image.pullPolicy }}
           livenessProbe:
             httpGet:
               path: /healthz
