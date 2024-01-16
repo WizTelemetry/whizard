@@ -64,6 +64,7 @@ func (q *QueryFrontend) HttpsAddr() string {
 func (q *QueryFrontend) Reconcile() error {
 	return q.ReconcileResources([]resources.Resource{
 		q.cacheConfigConfigMap,
+		q.webConfigSecret,
 		q.deployment,
 		q.service,
 	})

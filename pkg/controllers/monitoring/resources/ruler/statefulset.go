@@ -28,7 +28,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
@@ -253,7 +252,7 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 				// TODO support certificate validation
 				rwCfg.HTTPClientConfig.TLSConfig.InsecureSkipVerify = true
 			}
-			if !reflect.DeepEqual(rw.HTTPClientConfig.BasicAuth, v1alpha1.BasicAuth{}) {
+			if !reflect.DeepEqual(rw.HTTPClientConfig.BasicAuth, monitoringv1alpha1.BasicAuth{}) {
 				secret := &corev1.Secret{}
 				if err := r.Client.Get(r.Context, client.ObjectKey{Name: rw.HTTPClientConfig.BasicAuth.Username.Name, Namespace: r.Service.Namespace}, secret); err != nil {
 					return nil, "", err
@@ -330,7 +329,7 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 					}
 				}
 				if r.Service.Spec.RemoteQuery != nil {
-					if !reflect.DeepEqual(r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth, v1alpha1.BasicAuth{}) {
+					if !reflect.DeepEqual(r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth, monitoringv1alpha1.BasicAuth{}) {
 						secret := &corev1.Secret{}
 
 						if err := r.Client.Get(r.Context, client.ObjectKey{Name: r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Username.Name, Namespace: r.Service.Namespace}, secret); err != nil {
@@ -387,27 +386,30 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 			container.Args = append(container.Args, "--remote-write.config="+string(body))
 
 			if url, err := url.Parse(writeAddr); err == nil && url.Scheme == "https" {
-				writeAddr = "http://127.0.0.1:" + constants.CustomProxyPort
 
-				data := make(map[string]string, 4)
+				// todo
+				/*
+					writeAddr = "http://127.0.0.1:" + constants.CustomProxyPort
 
-				data["ProxyServiceEnabled"] = "true"
-				data["ProxyLocalListenPort"] = constants.CustomProxyPort
-				data["ProxyServiceAddress"] = url.Hostname()
-				data["ProxyServicePort"] = url.Port()
+					data := make(map[string]string, 4)
 
-				if err := r.envoyConfigMap(data); err != nil {
-					return nil, "", err
-				}
-				var volumeMounts = []corev1.VolumeMount{}
-				var volumes = []corev1.Volume{}
+					data["ProxyServiceEnabled"] = "true"
+					data["ProxyLocalListenPort"] = constants.CustomProxyPort
+					data["ProxyServiceAddress"] = url.Hostname()
+					data["ProxyServicePort"] = url.Port()
 
-				volumes, volumeMounts, _ = resources.BuildCommonVolumes(nil, r.name("envoy-config"), nil, nil)
+					if err := r.envoyConfigMap(data); err != nil {
+						return nil, "", err
+					}
+					var volumeMounts = []corev1.VolumeMount{}
+					var volumes = []corev1.Volume{}
 
-				envoyContainer := resources.BuildEnvoySidecarContainer(r.ruler.Spec.Envoy, volumeMounts)
-				sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, envoyContainer)
-				sts.Spec.Template.Spec.Volumes = append(sts.Spec.Template.Spec.Volumes, volumes...)
+					volumes, volumeMounts, _ = resources.BuildCommonVolumes(nil, r.name("envoy-config"), nil, nil)
 
+					envoyContainer := resources.BuildEnvoySidecarContainer(r.ruler.Spec.Envoy, volumeMounts)
+					sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, envoyContainer)
+					sts.Spec.Template.Spec.Volumes = append(sts.Spec.Template.Spec.Volumes, volumes...)
+				*/
 			}
 
 			writeProxyContainer, err := r.addWriteProxyContainer(&service.Spec, writeAddr)
@@ -555,7 +557,7 @@ func (r *Ruler) remoteWriteAddress() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		if o.Spec.HTTPServerTLSConfig != nil {
+		if o.Spec.WebConfig != nil && o.Spec.WebConfig.HTTPServerTLSConfig != nil {
 			return r.RemoteWriteHTTPSAddr(), nil
 		}
 
@@ -584,7 +586,7 @@ func (r *Ruler) queryAddress() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		if q.Spec.HTTPServerTLSConfig != nil {
+		if q.Spec.WebConfig != nil && q.Spec.WebConfig.HTTPServerTLSConfig != nil {
 			return r.HttpsAddr(), nil
 		}
 
@@ -606,7 +608,7 @@ func (r *Ruler) queryAddress() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		if o.Spec.HTTPServerTLSConfig != nil {
+		if o.Spec.WebConfig != nil && o.Spec.WebConfig.HTTPServerTLSConfig != nil {
 			return r.HttpsAddr(), nil
 		}
 		return r.HttpAddr(), nil
@@ -648,7 +650,7 @@ func (r *Ruler) addQueryProxyContainer(serviceSpec *monitoringv1alpha1.ServiceSp
 	}
 
 	if r.Service.Spec.RemoteQuery != nil {
-		if !reflect.DeepEqual(r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth, v1alpha1.BasicAuth{}) {
+		if !reflect.DeepEqual(r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth, monitoringv1alpha1.BasicAuth{}) {
 			secret := &corev1.Secret{}
 			cfg.BasicAuth = &monitoringgateway.BasicAuth{}
 			if err := r.Client.Get(r.Context, client.ObjectKey{Name: r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Username.Name, Namespace: r.Service.Namespace}, secret); err != nil {

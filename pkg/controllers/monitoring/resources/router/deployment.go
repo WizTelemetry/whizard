@@ -1,10 +1,11 @@
 package router
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"path/filepath"
 	"sort"
-	"strconv"
 
 	"github.com/prometheus-operator/prometheus-operator/pkg/k8sutil"
 	appsv1 "k8s.io/api/apps/v1"
@@ -115,30 +116,29 @@ func (r *Router) deployment() (runtime.Object, resources.Operation, error) {
 		},
 	}
 
-	if r.router.Spec.HTTPServerTLSConfig != nil {
-		data := make(map[string]string, 4)
-		data["LocalServiceEnabled"] = "true"
-		data["ServiceMappingPort"] = strconv.Itoa(constants.RemoteWritePort)
-		data["ServiceListenPort"] = constants.ReceiveHTTPRemoteWritePort
-		data["ServiceTLSCertFile"] = constants.EnvoyCertsMountPath + r.router.Spec.HTTPServerTLSConfig.CertSecret.Key
-		data["ServiceTLSKeyFile"] = constants.EnvoyCertsMountPath + r.router.Spec.HTTPServerTLSConfig.KeySecret.Key
-
-		container.Args = append(container.Args, "--remote-write.address=127.0.0.1:"+constants.ReceiveHTTPRemoteWritePort)
-		// container.LivenessProbe.HTTPGet.Scheme = "HTTPS"
-		// container.ReadinessProbe.HTTPGet.Scheme = "HTTPS"
-
-		if err := r.envoyConfigMap(data); err != nil {
+	if r.router.Spec.WebConfig != nil {
+		secret, _, err := r.webConfigSecret()
+		if err != nil {
 			return nil, "", err
 		}
-		var volumeMounts = []corev1.VolumeMount{}
-		var volumes = []corev1.Volume{}
+		hash := md5.New()
+		hash.Write(secret.(*corev1.Secret).Data[constants.WhizardWebConfigFile])
+		hashStr := hex.EncodeToString(hash.Sum(nil))
+		if d.Spec.Template.Annotations == nil {
+			d.Spec.Template.Annotations = make(map[string]string)
+		}
+		d.Spec.Template.Annotations[constants.LabelNameConfigHash] = hashStr
 
-		tlsAsset := []string{r.router.Spec.HTTPServerTLSConfig.KeySecret.Name, r.router.Spec.HTTPServerTLSConfig.CertSecret.Name}
-		volumes, volumeMounts, _ = resources.BuildCommonVolumes(tlsAsset, r.name("envoy-config"), nil, nil)
-
-		envoyContainer := resources.BuildEnvoySidecarContainer(r.router.Spec.Envoy, volumeMounts)
-		d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, envoyContainer)
+		volumes, volumeMounts := r.BaseReconciler.CreateWebConfigVolumeMount(r.name("web-config"), r.router.Spec.WebConfig)
 		d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, volumes...)
+		container.VolumeMounts = append(container.VolumeMounts, volumeMounts...)
+
+		container.Args = append(container.Args, fmt.Sprintf("--http.config=%s", constants.WhizardWebConfigMountPath+constants.WhizardWebConfigFile))
+
+		if r.router.Spec.WebConfig.HTTPServerTLSConfig != nil {
+			container.LivenessProbe = r.DefaultLivenessProbeWithTLS()
+			container.ReadinessProbe = r.DefaultReadinessProbeWithTLS()
+		}
 	}
 
 	if r.router.Spec.LogLevel != "" {

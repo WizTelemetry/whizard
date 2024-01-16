@@ -79,6 +79,7 @@ const (
 
 	WhizardConfigMountPath     = "/etc/whizard/config/"
 	WhizardWebConfigMountPath  = "/etc/whizard/web_config/"
+	WhizardWebConfigFile       = "web-config.yaml"
 	WhizardCertsMountPath      = "/etc/whizard/certs/"
 	WhizardConfigMapsMountPath = "/etc/whizard/configmaps/"
 	WhizardSecretsMountPath    = "/etc/whizard/secrets/"

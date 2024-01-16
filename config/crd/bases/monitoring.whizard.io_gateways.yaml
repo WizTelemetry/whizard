@@ -873,10 +873,6 @@ spec:
                         type: array
                     type: object
                 type: object
-              clientCaCertificate:
-                description: Deprecated, Secret name for HTTP Client CA certificate
-                  (Kubernetes TLS secret type)
-                type: string
               configMaps:
                 description: ConfigMaps is a list of ConfigMaps in the same namespace
                   as the component object, which shall be mounted into the default
@@ -1202,10 +1198,6 @@ spec:
                         type: string
                     type: object
                 type: object
-              serverCertificate:
-                description: Deprecated, Secret name for HTTP Server certificate (Kubernetes
-                  TLS secret type)
-                type: string
               tolerations:
                 description: If specified, the pod's tolerations.
                 items:

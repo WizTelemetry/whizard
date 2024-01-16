@@ -1,6 +1,8 @@
 package query
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"path/filepath"
 	"sort"
@@ -133,30 +135,29 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 		}},
 	}
 
-	if q.query.Spec.HTTPServerTLSConfig != nil {
-		data := make(map[string]string, 4)
-		data["LocalServiceEnabled"] = "true"
-		data["ServiceMappingPort"] = strconv.Itoa(constants.HTTPPort)
-		data["ServiceListenPort"] = constants.QueryHTTPPort
-		data["ServiceTLSCertFile"] = constants.EnvoyCertsMountPath + q.query.Spec.HTTPServerTLSConfig.CertSecret.Key
-		data["ServiceTLSKeyFile"] = constants.EnvoyCertsMountPath + q.query.Spec.HTTPServerTLSConfig.KeySecret.Key
-
-		queryContainer.Args = append(queryContainer.Args, "--http-address=127.0.0.1:"+constants.QueryHTTPPort)
-		queryContainer.LivenessProbe.HTTPGet.Scheme = "HTTPS"
-		queryContainer.ReadinessProbe.HTTPGet.Scheme = "HTTPS"
-
-		if err := q.envoyConfigMap(data); err != nil {
+	if q.query.Spec.WebConfig != nil {
+		secret, _, err := q.webConfigSecret()
+		if err != nil {
 			return nil, "", err
 		}
-		var volumeMounts = []corev1.VolumeMount{}
-		var volumes = []corev1.Volume{}
+		hash := md5.New()
+		hash.Write(secret.(*corev1.Secret).Data[constants.WhizardWebConfigFile])
+		hashStr := hex.EncodeToString(hash.Sum(nil))
+		if d.Spec.Template.Annotations == nil {
+			d.Spec.Template.Annotations = make(map[string]string)
+		}
+		d.Spec.Template.Annotations[constants.LabelNameConfigHash] = hashStr
 
-		tlsAsset := []string{q.query.Spec.HTTPServerTLSConfig.KeySecret.Name, q.query.Spec.HTTPServerTLSConfig.CertSecret.Name}
-		volumes, volumeMounts, _ = resources.BuildCommonVolumes(tlsAsset, q.name("envoy-config"), nil, nil)
-
-		envoyContainer := resources.BuildEnvoySidecarContainer(q.query.Spec.Envoy, volumeMounts)
-		d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, envoyContainer)
+		volumes, volumeMounts := q.BaseReconciler.CreateWebConfigVolumeMount(q.name("web-config"), q.query.Spec.WebConfig)
 		d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, volumes...)
+		queryContainer.VolumeMounts = append(queryContainer.VolumeMounts, volumeMounts...)
+
+		queryContainer.Args = append(queryContainer.Args, fmt.Sprintf("--http.config=%s", constants.WhizardWebConfigMountPath+constants.WhizardWebConfigFile))
+
+		if q.query.Spec.WebConfig.HTTPServerTLSConfig != nil {
+			queryContainer.LivenessProbe = q.DefaultLivenessProbeWithTLS()
+			queryContainer.ReadinessProbe = q.DefaultReadinessProbeWithTLS()
+		}
 	}
 
 	if q.query.Spec.PromqlEngine != "" {

@@ -17,17 +17,19 @@ spec:
     {{- toYaml . | nindent 4 }}
   {{- end }}
   {{ if .Values.query.genSignedCert }}
-  httpServerTLSConfig:
-    certSecret:
-      name: {{ include "whizard.query.crname" . }}-query-tls-assets
-      key: tls.crt
-    keySecret:
-      name: {{ include "whizard.query.crname" . }}-query-tls-assets
-      key: tls.key
+  webConfig:
+    httpServerTLSConfig:
+      certSecret:
+        name: {{ include "whizard.query.crname" . }}-query-tls-assets
+        key: tls.crt
+      keySecret:
+        name: {{ include "whizard.query.crname" . }}-query-tls-assets
+        key: tls.key
   {{- else }}
   {{- with .Values.query.httpServerTLSConfig }}
-  httpServerTLSConfig:
-    {{- toYaml . | nindent 4 }}
+  webConfig:
+    httpServerTLSConfig:
+      {{- toYaml . | nindent 6 }}
   {{- end }}
   {{- end }}
 {{- with .Values.query.additionalConfig }}

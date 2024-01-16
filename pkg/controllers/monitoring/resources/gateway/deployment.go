@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/url"
 	"path"
-	"path/filepath"
 	"reflect"
 	"time"
 
@@ -96,41 +95,6 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 		// },
 	}
 
-	if g.gateway.Spec.ServerCertificate != "" {
-		serverCertVol := corev1.Volume{
-			Name: "server-certificate",
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: g.gateway.Spec.ServerCertificate,
-				},
-			},
-		}
-		d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, serverCertVol)
-		container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
-			Name:      serverCertVol.Name,
-			MountPath: filepath.Join(secretsDir, g.gateway.Spec.ServerCertificate),
-		})
-		container.Args = append(container.Args, "--server-tls-key="+filepath.Join(secretsDir, g.gateway.Spec.ServerCertificate, "tls.key"))
-		container.Args = append(container.Args, "--server-tls-crt="+filepath.Join(secretsDir, g.gateway.Spec.ServerCertificate, "tls.crt"))
-	}
-
-	if g.gateway.Spec.ClientCACertificate != "" {
-		clientCaCertVol := corev1.Volume{
-			Name: "client-ca-certificate",
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: g.gateway.Spec.ClientCACertificate,
-				},
-			},
-		}
-		d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, clientCaCertVol)
-		container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
-			Name:      clientCaCertVol.Name,
-			MountPath: filepath.Join(secretsDir, g.gateway.Spec.ClientCACertificate),
-		})
-		container.Args = append(container.Args, "--server-tls-client-ca="+filepath.Join(secretsDir, g.gateway.Spec.ClientCACertificate, "tls.crt"))
-	}
-
 	if g.gateway.Spec.LogLevel != "" {
 		container.Args = append(container.Args, "--log.level="+g.gateway.Spec.LogLevel)
 	}
@@ -177,67 +141,18 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 			return nil, "", err
 		}
 		hash := md5.New()
-		hash.Write(secret.(*corev1.Secret).Data[webConfigFile])
+		hash.Write(secret.(*corev1.Secret).Data[constants.WhizardWebConfigFile])
 		hashStr := hex.EncodeToString(hash.Sum(nil))
 		if d.Spec.Template.Annotations == nil {
 			d.Spec.Template.Annotations = make(map[string]string)
 		}
 		d.Spec.Template.Annotations[constants.LabelNameConfigHash] = hashStr
 
-		container.Args = append(container.Args, fmt.Sprintf("--http.config=%s", constants.WhizardWebConfigMountPath+webConfigFile))
+		volumes, volumeMounts := g.BaseReconciler.CreateWebConfigVolumeMount(g.name("web-config"), g.gateway.Spec.WebConfig)
+		d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, volumes...)
+		container.VolumeMounts = append(container.VolumeMounts, volumeMounts...)
 
-		volume := corev1.Volume{
-			Name: "web-config",
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: g.name("web-config"),
-				},
-			},
-		}
-		d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, volume)
-		volumeMount := corev1.VolumeMount{
-			Name:      volume.Name,
-			MountPath: constants.WhizardWebConfigMountPath,
-			ReadOnly:  true,
-		}
-		container.VolumeMounts = append(container.VolumeMounts, volumeMount)
-
-		tlsAssets := []string{}
-		if g.gateway.Spec.WebConfig.HTTPServerTLSConfig != nil {
-			if g.gateway.Spec.WebConfig.HTTPServerTLSConfig.KeySecret.Name != "" {
-				tlsAssets = append(tlsAssets, g.gateway.Spec.WebConfig.HTTPServerTLSConfig.KeySecret.Name)
-			}
-			if g.gateway.Spec.WebConfig.HTTPServerTLSConfig.CertSecret.Name != "" {
-				tlsAssets = append(tlsAssets, g.gateway.Spec.WebConfig.HTTPServerTLSConfig.CertSecret.Name)
-			}
-			if g.gateway.Spec.WebConfig.HTTPServerTLSConfig.ClientCASecret.Name != "" {
-				tlsAssets = append(tlsAssets, g.gateway.Spec.WebConfig.HTTPServerTLSConfig.ClientCASecret.Name)
-			}
-			if len(tlsAssets) > 0 {
-				assetsVolume := corev1.Volume{
-					Name: "tls-assets",
-					VolumeSource: corev1.VolumeSource{
-						Projected: &corev1.ProjectedVolumeSource{
-							Sources: []corev1.VolumeProjection{},
-						},
-					},
-				}
-				for _, assetShard := range tlsAssets {
-					assetsVolume.Projected.Sources = append(assetsVolume.Projected.Sources,
-						corev1.VolumeProjection{
-							Secret: &corev1.SecretProjection{
-								LocalObjectReference: corev1.LocalObjectReference{Name: assetShard},
-							},
-						})
-				}
-				d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, assetsVolume)
-				container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
-					Name:      "tls-assets",
-					ReadOnly:  true,
-					MountPath: constants.WhizardCertsMountPath,
-				})
-			}
-		}
+		container.Args = append(container.Args, fmt.Sprintf("--http.config=%s", constants.WhizardWebConfigMountPath+constants.WhizardWebConfigFile))
 	}
 
 	queryFrontendAddr, err := g.queryfrontendAddress()
@@ -410,7 +325,7 @@ func (g *Gateway) queryfrontendAddress() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		if q.Spec.HTTPServerTLSConfig != nil {
+		if q.Spec.WebConfig != nil && q.Spec.WebConfig.HTTPServerTLSConfig != nil {
 			return r.HttpsAddr(), nil
 		}
 
@@ -437,7 +352,7 @@ func (g *Gateway) queryAddress() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		if q.Spec.HTTPServerTLSConfig != nil {
+		if q.Spec.WebConfig != nil && q.Spec.WebConfig.HTTPServerTLSConfig != nil {
 			return r.HttpsAddr(), nil
 		}
 
@@ -463,7 +378,7 @@ func (g *Gateway) remoteWriteAddress() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		if o.Spec.HTTPServerTLSConfig != nil {
+		if o.Spec.WebConfig != nil && o.Spec.WebConfig.HTTPServerTLSConfig != nil {
 			return r.RemoteWriteHTTPSAddr(), nil
 		}
 
