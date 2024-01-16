@@ -1,0 +1,86 @@
+{{- if .Values.hook.enabled }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "whizard.name" . }}-post-delete
+  namespace: {{ include "whizard.namespace" . }}
+  annotations:
+    "helm.sh/hook": post-delete
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "whizard.name" . }}-post-delete
+  annotations:
+    "helm.sh/hook": post-delete
+    "helm.sh/hook-weight": "2"
+    "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation
+rules:
+  - apiGroups:
+      - monitoring.whizard.io
+    resources:
+      - '*'
+    verbs:
+      - '*'
+
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ include "whizard.name" . }}-post-delete
+  annotations:
+    "helm.sh/hook": post-delete
+    "helm.sh/hook-weight": "3"
+    "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "whizard.name" . }}-post-delete
+    namespace: {{ include "whizard.namespace" . }}
+roleRef:
+  kind: ClusterRole
+  name: {{ include "whizard.name" . }}-post-delete
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "whizard.name" . }}-post-delete
+  namespace: {{ include "whizard.namespace" . }}
+  annotations:
+    "helm.sh/hook": post-delete
+    "helm.sh/hook-weight": "4"
+    "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation
+spec:
+  backoffLimit: {{ .Values.hook.backoffLimit }}
+  template:
+    metadata:
+      name: {{ include "whizard.name" . }}
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "whizard.name" . }}-post-delete
+      containers:
+        - name: post-delete-job
+          image: {{ .Values.global.imageRegistry | default .Values.hook.image.registry }}/{{ .Values.hook.image.repository }}:{{ .Values.hook.image.tag }}
+          imagePullPolicy: {{ .Values.hook.image.pullPolicy }}
+          {{- if .Values.global.imagePullSecrets }}
+          imagePullSecrets:
+          {{- include "whizard.imagePullSecrets" . | indent 10 }}
+          {{- end }}
+          {{- with .Values.hook.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+                kubectl delete ingesters.monitoring.whizard.io -n {{ include "whizard.namespace" . }} --all
+                kubectl delete rulers.monitoring.whizard.io -n {{ include "whizard.namespace" . }} --all
+                kubectl delete stores.monitoring.whizard.io -n {{ include "whizard.namespace" . }} --all
+                kubectl delete compactors.monitoring.whizard.io -n {{ include "whizard.namespace" . }} --all
+{{- end }}

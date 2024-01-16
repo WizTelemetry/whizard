@@ -21,27 +21,17 @@ global:
       repository: thanosio/thanos
       tag: v0.33.0
 
+hook:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: kubesphere/kubectl
+    tag: v1.21.0
+    pullPolicy: IfNotPresent
+  backoffLimit: 3
+
 monitoring:
   enabled: false
-
-
-# Create a Storage instance
-storage:
-  create: false
-  blockManager:
-    enable: true
-    ## If null or unset, the global.whizardImage is used.
-    image: null
-    # repository: thanosio/thanos
-    # tag: v0.28.0
-    serviceAccountName: ""          # If null or unset, the created controllerManager serviceAccountName is used.
-    gc:
-      image:
-        registry: docker.io
-        repository: kubesphere/whizard-monitoring-block-manager
-        # Overrides the image tag whose default is the chart appVersion.
-        tag: ""
-  S3: {}
 
 ## Manages Service, Query, QueryFrontend, Router, Ingester, Store, Compactor and Ruler instances and components
 ##
@@ -451,6 +441,25 @@ service:
     
     ## Additional configuration which is not covered by the properties above. (passed through tpl)
     additionalConfig: {}
+
+
+# Create a Storage instance
+storage:
+  create: false
+  blockManager:
+    enable: true
+    ## If null or unset, the global.whizardImage is used.
+    image: null
+    # repository: thanosio/thanos
+    # tag: v0.28.0
+    serviceAccountName: ""          # If null or unset, the created controllerManager serviceAccountName is used.
+    gc:
+      image:
+        registry: docker.io
+        repository: kubesphere/whizard-monitoring-block-manager
+        # Overrides the image tag whose default is the chart appVersion.
+        tag: ""
+  S3: {}
 
 
 # Deploy an Gateway instance
