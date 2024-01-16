@@ -41,7 +41,12 @@ func (r *Ruler) ruleConfigMaps() (retResources []resources.Resource) {
 		return errResourcesFunc(err)
 	}
 
-	var shards = uint64(*r.ruler.Spec.Shards)
+	// Although the shards attribute has a default value in the updated crd,
+	// it may be still nil in previous ruler instances. So check it.
+	var shards uint64 = 1
+	if r.ruler.Spec.Shards != nil {
+		shards = uint64(*r.ruler.Spec.Shards)
+	}
 
 	// generate rule files for each shard
 	var shardsRuleFiles = make([]map[string]string, shards)

@@ -186,13 +186,17 @@ func (r *BaseReconciler) DefaultReadinessProbe() *corev1.Probe {
 }
 
 func (r *BaseReconciler) AddTSDBVolume(sts *appsv1.StatefulSet, container *corev1.Container, dataVolume *v1alpha1.KubernetesVolume) {
-	if dataVolume == nil ||
-		(dataVolume.PersistentVolumeClaim == nil && dataVolume.EmptyDir == nil) {
-		return
-	}
-
 	var volumeName string
-	if dataVolume.PersistentVolumeClaim != nil {
+	if dataVolume == nil || // If dataVolume is not specified, default to a new EmptyDirVolumeSource
+		(dataVolume.PersistentVolumeClaim == nil && dataVolume.EmptyDir == nil) {
+		volumeName = constants.TSDBVolumeName
+		sts.Spec.Template.Spec.Volumes = append(sts.Spec.Template.Spec.Volumes, corev1.Volume{
+			Name: constants.TSDBVolumeName,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		})
+	} else if dataVolume.PersistentVolumeClaim != nil {
 		pvc := *dataVolume.PersistentVolumeClaim
 		if pvc.Name == "" {
 			pvc.Name = constants.TSDBVolumeName
