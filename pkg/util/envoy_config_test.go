@@ -97,19 +97,19 @@ static_resources:
                   socket_address:
                     address: query-whizard-operated.kubesphere-monitoring-system.svc
                     port_value: 10902
-      transport_socket:
-        name: envoy.transport_sockets.tls
-        typed_config:
-          '@type': type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
-          common_tls_context:
-            validation_context:
-              trust_chain_verification: ACCEPT_UNTRUSTED
-            alpn_protocols: 'h2,http/1.1'
-          sni: query-whizard-operated.kubesphere-monitoring-system.svc
+    transport_socket:
+      name: envoy.transport_sockets.tls
+      typed_config:
+        '@type': type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+        common_tls_context:
+          validation_context:
+            trust_chain_verification: ACCEPT_UNTRUSTED
+        sni: query-whizard-operated.kubesphere-monitoring-system.svc
 `
 
 func TestTempExec(t *testing.T) {
-	variables := map[string]string{
+	variables := map[string]interface{}{
+		"LocalServiceEnabled":  true,
 		"ServiceMappingPort":   "10902",
 		"ServiceListenPort":    "10904",
 		"ServiceTLSCertFile":   "/etc/whizard/certs/tls.crt",
