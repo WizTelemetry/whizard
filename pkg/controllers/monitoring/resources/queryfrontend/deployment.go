@@ -1,13 +1,17 @@
 package queryfrontend
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"net/url"
 	"path/filepath"
 	"reflect"
-	"strconv"
 
 	"github.com/prometheus-operator/prometheus-operator/pkg/k8sutil"
+	"github.com/thanos-io/thanos/pkg/exthttp"
+	queryfrontendconfig "github.com/thanos-io/thanos/pkg/queryfrontend"
+	"gopkg.in/yaml.v3"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -108,8 +112,6 @@ func (q *QueryFrontend) deployment() (runtime.Object, resources.Operation, error
 		},
 	}
 
-	data := make(map[string]string, 8)
-
 	// If there is remote-query configured in the related Service,
 	// QueryFrontend will preferentially query from configured remote-query target,
 	// else it'll query from the Query directly.
@@ -129,48 +131,44 @@ func (q *QueryFrontend) deployment() (runtime.Object, resources.Operation, error
 
 	if url, err := url.Parse(addr); err == nil && url.Scheme == "https" {
 
-		addr = "http://127.0.0.1:" + constants.CustomProxyPort
-
-		data["ProxyServiceEnabled"] = "true"
-		data["ProxyLocalListenPort"] = constants.CustomProxyPort
-		data["ProxyServiceAddress"] = url.Hostname()
-		data["ProxyServicePort"] = url.Port()
+		cfg := &queryfrontendconfig.DownstreamTripperConfig{
+			TLSConfig: &exthttp.TLSConfig{
+				InsecureSkipVerify: true,
+			},
+		}
+		body, err := yaml.Marshal(cfg)
+		if err != nil {
+			return nil, "", err
+		}
+		container.Args = append(container.Args, "--query-frontend.downstream-tripper-config="+string(body))
 
 	} else if err != nil {
 		return nil, "", err
 	}
 
-	if q.queryFrontend.Spec.HTTPServerTLSConfig != nil {
-		data["LocalServiceEnabled"] = "true"
-		data["ServiceMappingPort"] = strconv.Itoa(constants.HTTPPort)
-		data["ServiceListenPort"] = constants.QueryFrontendHTTPPort
-		data["ServiceTLSCertFile"] = constants.EnvoyCertsMountPath + q.queryFrontend.Spec.HTTPServerTLSConfig.CertSecret.Key
-		data["ServiceTLSKeyFile"] = constants.EnvoyCertsMountPath + q.queryFrontend.Spec.HTTPServerTLSConfig.KeySecret.Key
-
-		container.Args = append(container.Args, "--http-address=127.0.0.1:"+constants.QueryFrontendHTTPPort)
-		container.LivenessProbe.HTTPGet.Scheme = "HTTPS"
-		container.ReadinessProbe.HTTPGet.Scheme = "HTTPS"
-	}
-
-	if len(data) > 0 {
-		if err := q.envoyConfigMap(data); err != nil {
+	if q.queryFrontend.Spec.WebConfig != nil {
+		secret, _, err := q.webConfigSecret()
+		if err != nil {
 			return nil, "", err
 		}
-		var volumeMounts = []corev1.VolumeMount{}
-		var volumes = []corev1.Volume{}
-
-		// Mount tls volume
-		if q.queryFrontend.Spec.HTTPServerTLSConfig != nil {
-
-			tlsAsset := []string{q.queryFrontend.Spec.HTTPServerTLSConfig.KeySecret.Name, q.queryFrontend.Spec.HTTPServerTLSConfig.CertSecret.Name}
-			volumes, volumeMounts, _ = resources.BuildCommonVolumes(tlsAsset, q.name("envoy-config"), nil, nil)
-		} else {
-			volumes, volumeMounts, _ = resources.BuildCommonVolumes(nil, q.name("envoy-config"), nil, nil)
+		hash := md5.New()
+		hash.Write(secret.(*corev1.Secret).Data[constants.WhizardWebConfigFile])
+		hashStr := hex.EncodeToString(hash.Sum(nil))
+		if d.Spec.Template.Annotations == nil {
+			d.Spec.Template.Annotations = make(map[string]string)
 		}
+		d.Spec.Template.Annotations[constants.LabelNameConfigHash] = hashStr
 
-		envoyContainer := resources.BuildEnvoySidecarContainer(q.queryFrontend.Spec.Envoy, volumeMounts)
-		d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, envoyContainer)
+		volumes, volumeMounts := q.BaseReconciler.CreateWebConfigVolumeMount(q.name("web-config"), q.queryFrontend.Spec.WebConfig)
 		d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, volumes...)
+		container.VolumeMounts = append(container.VolumeMounts, volumeMounts...)
+
+		container.Args = append(container.Args, fmt.Sprintf("--http.config=%s", constants.WhizardWebConfigMountPath+constants.WhizardWebConfigFile))
+
+		if q.queryFrontend.Spec.WebConfig.HTTPServerTLSConfig != nil {
+			container.LivenessProbe = q.DefaultLivenessProbeWithTLS()
+			container.ReadinessProbe = q.DefaultReadinessProbeWithTLS()
+		}
 	}
 
 	container.Args = append(container.Args, "--query-frontend.downstream-url="+addr)
@@ -242,7 +240,7 @@ func (q *QueryFrontend) queryAddress() (string, error) {
 			return "", err
 		}
 
-		if o.Spec.HTTPServerTLSConfig != nil {
+		if o.Spec.WebConfig != nil && o.Spec.WebConfig.HTTPServerTLSConfig != nil {
 			return r.HttpsAddr(), nil
 		}
 

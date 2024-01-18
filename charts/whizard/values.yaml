@@ -146,7 +146,7 @@ service:
   ## Set remote query
   remoteQuery:
     # url: remote_query_address
-  
+
   compactorTemplateSpec:
     image: {}
     # registry: docker.io
@@ -182,19 +182,19 @@ service:
     # retention1h: 360d
 
     additionalFlags:
-     - --block-files-concurrency=20
-     - --compact.blocks-fetch-concurrency=5
-     - --web.disable                                 # Disable Block Viewer UI.
-     - --compact.enable-vertical-compaction
+      - --block-files-concurrency=20
+      - --compact.blocks-fetch-concurrency=5
+      - --web.disable                                 # Disable Block Viewer UI.
+      - --compact.enable-vertical-compaction
     ## Additional configuration which is not covered by the properties above. (passed through tpl)
     additionalConfig: {}
 
   gatewayTemplateSpec:
-    image: 
+    image:
       registry: docker.io
       repository: kubesphere/whizard-monitoring-gateway
       tag: ""
-    
+
     resources: {}
     # limits:
     #   cpu: "2"
@@ -211,7 +211,7 @@ service:
 
     ## Additional configuration which is not covered by the properties above. (passed through tpl)
     additionalConfig: {}
-  
+
   ingesterTemplateSpec:
     image: {}
     # registry: docker.io
@@ -309,7 +309,7 @@ service:
 
     cacheConfig: {}
 
-    additionalFlags: 
+    additionalFlags:
       - --no-query-range.align-range-with-step          # Disable query-range.align-range-with-step, the incoming query parameter remains the same (as required by the frontend), although it may reduce the cache-ability.
     ## Additional configuration which is not covered by the properties above. (passed through tpl)
     additionalConfig: {}
@@ -326,7 +326,7 @@ service:
     #   memory: 4Gi
     # requests:
     #   cpu: 50m
-    #   memory: 64Mi  
+    #   memory: 64Mi
 
     securityContext: {}
     dataVolume: {}
@@ -347,14 +347,14 @@ service:
     #   memory: 4Gi
     # requests:
     #   cpu: 50m
-    #   memory: 64Mi 
+    #   memory: 64Mi
 
     securityContext:
       fsGroup: 0
     dataVolume:
       emptyDir: {}
 
-    ruleSelectors: 
+    ruleSelectors:
       - matchLabels:
           role: alert-rules
 
@@ -374,20 +374,20 @@ service:
       # requests:
       #   cpu: 50m
       #   memory: 64Mi
- 
+
     rulerWriteProxy:
       image:
         registry: docker.io
         repository: kubesphere/cortex-tenant
-        tag: v1.7.2  
-      
+        tag: v1.7.2
+
       resources: {}
       # limits:
       #   cpu: "2"
       #   memory: 4Gi
       # requests:
       #   cpu: 50m
-      #   memory: 64Mi  
+      #   memory: 64Mi
 
     rulerQueryProxy:
       image:
@@ -400,9 +400,9 @@ service:
       #   memory: 4Gi
       # requests:
       #   cpu: 50m
-      #   memory: 64Mi  
+      #   memory: 64Mi
 
-  storeTemplateSpec: 
+  storeTemplateSpec:
     image: {}
     # registry: docker.io
     # repository: thanosio/thanos
@@ -414,7 +414,7 @@ service:
     #   memory: 4Gi
     # requests:
     #   cpu: 50m
-    #   memory: 64Mi  
+    #   memory: 64Mi
     securityContext:
       fsGroup: 0
     dataVolume:
@@ -429,7 +429,7 @@ service:
       # persistentVolumeClaimRetentionPolicy:
       #   whenDeleted: Retain # must be one of Retain and Delete, to specify whether to delete pvc when statefulset is deleted.
       #   whenScaled: Retain # must be one of Retain and Delete, to spefify whether to delete pvc when statefulset is scaled down.
-    
+
     indexCacheConfig: {}
     timeRanges:
       - maxTime: -36h
@@ -438,7 +438,7 @@ service:
       - --web.disable                   # Disable Block Viewer UI.
       - --no-cache-index-header         # Support disabling cache index header file. When toggled, Stores can run without needing persistent disks.
       # - --min-time=-14d               # Optional, time based partitioning
-    
+
     ## Additional configuration which is not covered by the properties above. (passed through tpl)
     additionalConfig: {}
 
@@ -522,7 +522,7 @@ queryFrontend:
 
   genSignedCert: false
   httpServerTLSConfig: {}
-  
+
   ## Additional configuration which is not covered by the properties above. (passed through tpl)
   additionalConfig: {}
   additionalConfigString: ""

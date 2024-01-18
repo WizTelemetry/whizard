@@ -185,6 +185,34 @@ func (r *BaseReconciler) DefaultReadinessProbe() *corev1.Probe {
 	}
 }
 
+func (r *BaseReconciler) DefaultLivenessProbeWithTLS() *corev1.Probe {
+	return &corev1.Probe{
+		FailureThreshold: 4,
+		PeriodSeconds:    30,
+		ProbeHandler: corev1.ProbeHandler{
+			HTTPGet: &corev1.HTTPGetAction{
+				Scheme: "HTTPS",
+				Path:   "/-/healthy",
+				Port:   intstr.FromString(constants.HTTPPortName),
+			},
+		},
+	}
+}
+
+func (r *BaseReconciler) DefaultReadinessProbeWithTLS() *corev1.Probe {
+	return &corev1.Probe{
+		FailureThreshold: 20,
+		PeriodSeconds:    5,
+		ProbeHandler: corev1.ProbeHandler{
+			HTTPGet: &corev1.HTTPGetAction{
+				Scheme: "HTTPS",
+				Path:   "/-/ready",
+				Port:   intstr.FromString(constants.HTTPPortName),
+			},
+		},
+	}
+}
+
 func (r *BaseReconciler) AddTSDBVolume(sts *appsv1.StatefulSet, container *corev1.Container, dataVolume *v1alpha1.KubernetesVolume) {
 	var volumeName string
 	if dataVolume == nil || // If dataVolume is not specified, default to a new EmptyDirVolumeSource

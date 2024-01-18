@@ -137,11 +137,6 @@ type EmbeddedObjectMetadata struct {
 type GatewaySpec struct {
 	CommonSpec `json:",inline"`
 
-	// Deprecated, Secret name for HTTP Server certificate (Kubernetes TLS secret type)
-	ServerCertificate string `json:"serverCertificate,omitempty"`
-	// Deprecated, Secret name for HTTP Client CA certificate (Kubernetes TLS secret type)
-	ClientCACertificate string `json:"clientCaCertificate,omitempty"`
-
 	WebConfig *WebConfig `json:"webConfig,omitempty"`
 
 	// If debug mode is on, gateway will proxy Query UI
@@ -223,7 +218,7 @@ type HTTPServerTLSConfig struct {
 type QuerySpec struct {
 	CommonSpec `json:",inline"`
 
-	HTTPServerTLSConfig *HTTPServerTLSConfig `json:"httpServerTLSConfig,omitempty"`
+	WebConfig *WebConfig `json:"webConfig,omitempty"`
 
 	PromqlEngine string `json:"promqlEngine,omitempty"`
 
@@ -286,9 +281,8 @@ type QueryList struct {
 type RouterSpec struct {
 	CommonSpec `json:",inline"`
 
-	HTTPServerTLSConfig *HTTPServerTLSConfig `json:"httpServerTLSConfig,omitempty"`
+	WebConfig *WebConfig `json:"webConfig,omitempty"`
 
-	Envoy SidecarSpec `json:"envoy,omitempty"`
 	// How many times to replicate incoming write requests
 	ReplicationFactor *uint64 `json:"replicationFactor,omitempty"`
 }
@@ -350,9 +344,8 @@ type HTTPServerConfig struct {
 type QueryFrontendSpec struct {
 	CommonSpec `json:",inline"`
 
-	HTTPServerTLSConfig *HTTPServerTLSConfig `json:"httpServerTLSConfig,omitempty"`
+	WebConfig *WebConfig `json:"webConfig,omitempty"`
 
-	Envoy SidecarSpec `json:"envoy,omitempty"`
 	// CacheProviderConfig ...
 	CacheConfig *ResponseCacheProviderConfig `json:"cacheConfig,omitempty"`
 }
@@ -635,11 +628,8 @@ type IngesterList struct {
 type RulerSpec struct {
 	CommonSpec `json:",inline"`
 
-	RulerQueryProxy SidecarSpec `json:"rulerQueryProxy,omitempty"`
-	RulerWriteProxy SidecarSpec `json:"rulerWriteProxy,omitempty"`
-
-	Envoy SidecarSpec `json:"envoy,omitempty"`
-
+	RulerQueryProxy          SidecarSpec `json:"rulerQueryProxy,omitempty"`
+	RulerWriteProxy          SidecarSpec `json:"rulerWriteProxy,omitempty"`
 	PrometheusConfigReloader SidecarSpec `json:"prometheusConfigReloader,omitempty"`
 
 	// Label selectors to select which PrometheusRules to mount for alerting and recording.

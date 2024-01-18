@@ -69,6 +69,7 @@ func (r *Router) RemoteWriteHTTPSAddr() string {
 func (r *Router) Reconcile() error {
 	return r.ReconcileResources([]resources.Resource{
 		r.hashringsConfigMap,
+		r.webConfigSecret,
 		r.deployment,
 		r.service,
 	})

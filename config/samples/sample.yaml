@@ -101,6 +101,7 @@ metadata:
     monitoring.whizard.io/service: kubesphere-monitoring-system.whizard
 spec: {}
 
+
 ---
 apiVersion: monitoring.whizard.io/v1alpha1
 kind: Router

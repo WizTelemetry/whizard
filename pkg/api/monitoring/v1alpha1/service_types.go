@@ -33,11 +33,6 @@ type ServiceSpec struct {
 	// Label name through which the tenant will be announced.
 	TenantLabelName string `json:"tenantLabelName,omitempty"`
 
-	// @Deprecated
-	// Transfer to CompactorTemplateSpec
-	// Retention configs how long to retain samples
-	Retention *Retention `json:"retention,omitempty"`
-
 	Storage *ObjectReference `json:"storage,omitempty"`
 
 	// RemoteWrites is the list of remote write configurations.

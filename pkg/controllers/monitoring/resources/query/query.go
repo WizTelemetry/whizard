@@ -116,6 +116,7 @@ func (q *Query) Reconcile() error {
 	return q.ReconcileResources([]resources.Resource{
 		q.proxyConfigMap,
 		q.storesConfigMap,
+		q.webConfigSecret,
 		q.deployment,
 		q.service,
 	})
