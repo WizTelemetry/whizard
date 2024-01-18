@@ -47,10 +47,13 @@ func (r *Ingester) meta(name string) metav1.ObjectMeta {
 
 func (r *Ingester) GrpcAddrs() []string {
 	var addrs []string
-	if r.ingester.Spec.Replicas == nil {
-		addrs = make([]string, 1)
-	} else {
+	if r.ingester.Spec.Replicas != nil {
 		addrs = make([]string, *r.ingester.Spec.Replicas)
+	} else if r.Service.Spec.IngesterTemplateSpec.Replicas != nil {
+		addrs = make([]string, *r.Service.Spec.IngesterTemplateSpec.Replicas)
+	} else {
+		// whizard ingester default replicas is 2
+		addrs = make([]string, 2)
 	}
 	for i := range addrs {
 		addrs[i] = fmt.Sprintf("%s-%d.%s.%s.svc:%d",
