@@ -9,7 +9,7 @@ import (
 var EnvoyStaticConfigTemplate = template.Must(template.New("envoy.yaml").Parse(dedent.Dedent(`
 static_resources:
   listeners:
-{{ if .LocalServiceEnabled }}
+{{- if .LocalServiceEnabled }}
     - name: self_listener
       address:
         socket_address:
@@ -46,8 +46,8 @@ static_resources:
                       filename: {{ .ServiceTLSCertFile }}
                     private_key:
                       filename: {{ .ServiceTLSKeyFile }}
-{{ end }}
-{{ if .ProxyServiceEnabled }}
+{{- end }}
+{{- if .ProxyServiceEnabled }}
     - name: proxy_listener
       address:
         socket_address:
@@ -74,9 +74,9 @@ static_resources:
                             cluster: upstrean_serivce
                 http_filters:
                   - name: envoy.filters.http.router
-{{ end }}
+{{- end }}
   clusters:
-{{ if .LocalServiceEnabled }}  
+{{- if .LocalServiceEnabled }}
   - name: local_serivce
     type: STATIC
     lb_policy: ROUND_ROBIN
@@ -89,8 +89,8 @@ static_resources:
                   socket_address:
                     address: 127.0.0.1
                     port_value: {{ .ServiceListenPort }}
-{{ end }} 
-{{ if .ProxyServiceEnabled }}
+{{- end }} 
+{{- if .ProxyServiceEnabled }}
   - name: upstrean_serivce
     type: STRICT_DNS
     lb_policy: ROUND_ROBIN
@@ -111,5 +111,5 @@ static_resources:
           validation_context:
             trust_chain_verification: ACCEPT_UNTRUSTED
         sni: {{ .ProxyServiceAddress }}
-{{ end }} 
+{{- end }}
 `)))
