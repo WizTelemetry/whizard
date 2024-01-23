@@ -602,3 +602,17 @@ func BuildCommonVolumes(tlsAssetSecrets []string, config string, configmaps []st
 
 	return volumes, volumeMounts, nil
 }
+
+func (r *BaseReconciler) GetValueFromSecret(ref *corev1.SecretKeySelector, namespace string) ([]byte, error) {
+
+	if ref == nil {
+		return nil, nil
+	}
+
+	secret := &corev1.Secret{}
+	if err := r.Client.Get(r.Context, client.ObjectKey{Name: ref.Name, Namespace: namespace}, secret); err != nil {
+		return nil, err
+	}
+
+	return secret.Data[ref.Key], nil
+}

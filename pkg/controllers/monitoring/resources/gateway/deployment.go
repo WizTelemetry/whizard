@@ -163,20 +163,19 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 	if err != nil {
 		return nil, "", err
 	}
-	if g.Service != nil && g.Service.Spec.RemoteQuery != nil {
+	if g.Service != nil && g.Service.Spec.RemoteQuery != nil && g.Service.Spec.RemoteQuery.URL != "" {
 		// If there is remote query config in service,
 		// Gateway will query metrics from QueryFrontend (which is put in front of remote-query),
 		// while query rules from Query (which aggregates rules from all rulers).
-		if queryFrontendAddr == "" {
-			return nil, "", fmt.Errorf("no query frontend exist for service %s/%s", g.Service.Name, g.Service.Namespace)
-		}
-		queryFrontendUrl, err := url.Parse(queryFrontendAddr)
+
+		remoteQueryUrl, err := url.Parse(g.Service.Spec.RemoteQuery.URL)
 		if err != nil {
-			return nil, "", fmt.Errorf("invalid query frontend address: %s", queryFrontendAddr)
+			return nil, "", fmt.Errorf("invalid remoteQuery Url: %s", g.Service.Spec.RemoteQuery.URL)
 		}
-		container.Args = append(container.Args, fmt.Sprintf("--query.address=%s", queryFrontendAddr))
+
+		container.Args = append(container.Args, fmt.Sprintf("--query.address=%s", g.Service.Spec.RemoteQuery.URL))
 		var cfg = config{}
-		if queryFrontendUrl.Scheme == "https" {
+		if remoteQueryUrl.Scheme == "https" {
 			cfg.TLSConfig = &config_util.TLSConfig{InsecureSkipVerify: true}
 		}
 		if !reflect.DeepEqual(g.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth, v1alpha1.BasicAuth{}) {
@@ -199,12 +198,17 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 			buff, _ := yaml.Marshal(cfg)
 			container.Args = append(container.Args, fmt.Sprintf("--query.config=%s", buff))
 		}
-		if queryAddr == "" {
-			return nil, "", fmt.Errorf("no query exist for service %s/%s", g.Service.Name, g.Service.Namespace)
+
+		var addr = queryFrontendAddr
+		if addr == "" {
+			addr = queryAddr
 		}
-		queryUrl, err := url.Parse(queryAddr)
+		if addr == "" {
+			return nil, "", fmt.Errorf("no query frontend and query exist for service %s/%s", g.Service.Name, g.Service.Namespace)
+		}
+		queryUrl, err := url.Parse(addr)
 		if err != nil {
-			return nil, "", fmt.Errorf("invalid query address: %s", queryAddr)
+			return nil, "", fmt.Errorf("invalid query address: %s", addr)
 		}
 		container.Args = append(container.Args, fmt.Sprintf("--rules-query.address=%s", queryAddr))
 		if queryUrl.Scheme == "https" {
@@ -377,9 +381,6 @@ func (g *Gateway) remoteWriteAddress() (string, error) {
 		r, err := router.New(g.BaseReconciler, &o)
 		if err != nil {
 			return "", err
-		}
-		if o.Spec.WebConfig != nil && o.Spec.WebConfig.HTTPServerTLSConfig != nil {
-			return r.RemoteWriteHTTPSAddr(), nil
 		}
 
 		return r.RemoteWriteAddr(), nil

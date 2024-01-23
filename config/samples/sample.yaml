@@ -37,6 +37,8 @@ spec:
   routerTemplateSpec:
     image: thanosio/thanos:v0.33.0
   rulerTemplateSpec:
+    rulerWriteProxy:
+      image: frezes/cortex-tenant:v1.12.5
     securityContext:
       fsGroup: 0
     dataVolume:

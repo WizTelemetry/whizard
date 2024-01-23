@@ -81,7 +81,7 @@ func NewHandler(logger log.Logger, o *Options) *Handler {
 	// do provide /api/v1/alerts because thanos does not support alerts filtering as of v0.28.0
 	// please filtering alerts by /api/v1/rules
 	// h.router.Get(epAlerts, h.wrap(h.matcher(matchersParam)))
-	h.addGlobalQueryHandler()
+	h.addGlobalProxyHandler()
 	h.addTenantQueryHandler()
 	h.addTenantRemoteWriteHandler()
 	return h
@@ -101,7 +101,8 @@ func (h *Handler) addTenantRemoteWriteHandler() {
 	h.router.Path(apiTenantPrefix + epReceive).Methods(http.MethodPost).HandlerFunc(h.wrap(h.remoteWrite))
 }
 
-func (h *Handler) addGlobalQueryHandler() {
+func (h *Handler) addGlobalProxyHandler() {
+	h.router.Path(apiGlobalPrefix + epReceive).HandlerFunc(h.remoteWriteHander.ServeHTTP)
 	h.router.PathPrefix(apiGlobalPrefix).HandlerFunc(h.queryProxy.ServeHTTP)
 }
 

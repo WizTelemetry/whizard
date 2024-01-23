@@ -1254,6 +1254,16 @@ func (in *RulerSpec) DeepCopyInto(out *RulerSpec) {
 		*out = new(int32)
 		**out = **in
 	}
+	if in.QueryConfig != nil {
+		in, out := &in.QueryConfig, &out.QueryConfig
+		*out = new(corev1.SecretKeySelector)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.RemoteWriteConfig != nil {
+		in, out := &in.RemoteWriteConfig, &out.RemoteWriteConfig
+		*out = new(corev1.SecretKeySelector)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.Labels != nil {
 		in, out := &in.Labels, &out.Labels
 		*out = make(map[string]string, len(*in))
