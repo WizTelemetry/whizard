@@ -257,11 +257,7 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 		}
 		var username, password string
 		if gatewayInstance.Spec.WebConfig != nil && len(gatewayInstance.Spec.WebConfig.BasicAuthUsers) > 0 {
-			username, err := r.GetValueFromSecret(&gatewayInstance.Spec.WebConfig.BasicAuthUsers[0].Username, gatewayInstance.Namespace)
-			if err != nil {
-				return nil, "", err
-			}
-			password, err := r.GetValueFromSecret(&gatewayInstance.Spec.WebConfig.BasicAuthUsers[0].Password, gatewayInstance.Namespace)
+			username, password, err := r.getBuiltInUser(&gatewayInstance)
 			if err != nil {
 				return nil, "", err
 			}
@@ -288,7 +284,7 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 	}
 
 	if r.ruler.Spec.RemoteWriteConfig != nil {
-		fullPath := mountSecret(r.ruler.Spec.QueryConfig, "query-config", &sts.Spec.Template.Spec.Volumes, &container.VolumeMounts)
+		fullPath := mountSecret(r.ruler.Spec.RemoteWriteConfig, "remote-write-config", &sts.Spec.Template.Spec.Volumes, &container.VolumeMounts)
 		container.Args = append(container.Args, "--remote-write.config-file="+fullPath)
 
 	} else {
@@ -834,7 +830,7 @@ type config struct {
 	}
 }
 
-func (r *Ruler) addWriteProxyContainer(gateway *monitoringv1alpha1.Gateway, gatewayEndpoint string) (*corev1.Container, error) {
+func (r *Ruler) addWriteProxyContainer(gatewayInstance *monitoringv1alpha1.Gateway, gatewayEndpoint string) (*corev1.Container, error) {
 	var writeProxyContainer *corev1.Container
 
 	// cortex-tenant default config
@@ -858,22 +854,18 @@ func (r *Ruler) addWriteProxyContainer(gateway *monitoringv1alpha1.Gateway, gate
 	cfg.Tenant.Header = r.Service.Spec.TenantHeader
 	cfg.Tenant.Default = r.Service.Spec.DefaultTenantId
 
-	if gateway.Spec.WebConfig != nil {
-		if gateway.Spec.WebConfig.HTTPServerTLSConfig != nil {
+	if gatewayInstance.Spec.WebConfig != nil {
+		if gatewayInstance.Spec.WebConfig.HTTPServerTLSConfig != nil {
 			cfg.TLSClientConfig = promcommonconfig.TLSConfig{
 				InsecureSkipVerify: true,
 			}
 		}
-		if len(gateway.Spec.WebConfig.BasicAuthUsers) > 0 {
-			username, err := r.GetValueFromSecret(&gateway.Spec.WebConfig.BasicAuthUsers[0].Username, gateway.Namespace)
+		if len(gatewayInstance.Spec.WebConfig.BasicAuthUsers) > 0 {
+			username, password, err := r.getBuiltInUser(gatewayInstance)
 			if err != nil {
 				return nil, err
 			}
 			cfg.Auth.Egress.Username = string(username)
-			password, err := r.GetValueFromSecret(&gateway.Spec.WebConfig.BasicAuthUsers[0].Password, gateway.Namespace)
-			if err != nil {
-				return nil, err
-			}
 			cfg.Auth.Egress.Password = string(password)
 		}
 	}
@@ -930,4 +922,31 @@ func mountSecret(secretSelector *corev1.SecretKeySelector, volumeName string, tr
 		MountPath: mountpath,
 	})
 	return mountpath + "/" + path
+}
+
+func (r *Ruler) getBuiltInUser(gatewayInstance *monitoringv1alpha1.Gateway) (username, password []byte, err error) {
+	g, err := gateway.New(r.BaseReconciler, gatewayInstance)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	username, err = r.GetValueFromSecret(&corev1.SecretKeySelector{
+		LocalObjectReference: corev1.LocalObjectReference{
+			Name: g.QualifiedName(constants.AppNameGateway, gatewayInstance.Name, "built-in-user"),
+		},
+		Key: "username",
+	}, gatewayInstance.Namespace)
+	if err != nil {
+		return nil, nil, err
+	}
+	password, err = r.GetValueFromSecret(&corev1.SecretKeySelector{
+		LocalObjectReference: corev1.LocalObjectReference{
+			Name: g.QualifiedName(constants.AppNameGateway, gatewayInstance.Name, "built-in-user"),
+		},
+		Key: "cpassword",
+	}, gatewayInstance.Namespace)
+	if err != nil {
+		return nil, nil, err
+	}
+	return
 }
