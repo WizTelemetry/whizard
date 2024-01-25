@@ -1,6 +1,8 @@
 package gateway
 
 import (
+	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
@@ -53,6 +55,16 @@ func (g *Gateway) meta(name string) metav1.ObjectMeta {
 		Namespace: g.Service.Namespace,
 		Labels:    g.labels(),
 	}
+}
+
+func (g *Gateway) HttpAddr() string {
+	return fmt.Sprintf("http://%s.%s.svc:%d",
+		g.name(constants.ServiceNameSuffix), g.Service.Namespace, 9090)
+}
+
+func (g *Gateway) HttpsAddr() string {
+	return fmt.Sprintf("https://%s.%s.svc:%d",
+		g.name(constants.ServiceNameSuffix), g.Service.Namespace, 9090)
 }
 
 func (g *Gateway) Reconcile() error {

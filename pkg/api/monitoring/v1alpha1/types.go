@@ -649,6 +649,10 @@ type RulerSpec struct {
 	// otherwise, it is for all tenants.
 	Tenant string `json:"tenant,omitempty"`
 
+	QueryConfig *corev1.SecretKeySelector `json:"queryConfig,omitempty"`
+
+	RemoteWriteConfig *corev1.SecretKeySelector `json:"remoteWriteConfig,omitempty"`
+
 	// Labels configure the external label pairs to Ruler. A default replica label
 	// `ruler_replica` will be always added  as a label with the value of the pod's name and it will be dropped in the alerts.
 	Labels map[string]string `json:"labels,omitempty"`

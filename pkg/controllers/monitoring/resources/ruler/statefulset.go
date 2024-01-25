@@ -14,9 +14,7 @@ import (
 	"github.com/prometheus-operator/prometheus-operator/pkg/k8sutil"
 	promoperator "github.com/prometheus-operator/prometheus-operator/pkg/operator"
 	promcommonconfig "github.com/prometheus/common/config"
-	"github.com/prometheus/common/model"
 	promconfig "github.com/prometheus/prometheus/config"
-	"github.com/prometheus/prometheus/model/relabel"
 	"github.com/thanos-io/thanos/pkg/httpconfig"
 	"gopkg.in/yaml.v3"
 	yamlv3 "gopkg.in/yaml.v3"
@@ -31,6 +29,7 @@ import (
 	monitoringv1alpha1 "github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/kubesphere/whizard/pkg/constants"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources"
+	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/gateway"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/query"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/queryfrontend"
 	"github.com/kubesphere/whizard/pkg/controllers/monitoring/resources/router"
@@ -212,269 +211,374 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 		container.Args = append(container.Args, fmt.Sprintf("--eval-interval=%s", r.ruler.Spec.EvaluationInterval))
 	}
 
-	namespacedName := util.ServiceNamespacedName(r.ruler)
+	gatewayList := &monitoringv1alpha1.GatewayList{}
+	if err := r.Client.List(r.Context, gatewayList, client.MatchingLabels(util.ManagedLabelBySameService(r.ruler))); err != nil {
+		return nil, "", err
+	}
+	if len(gatewayList.Items) != 1 {
+		return nil, "", fmt.Errorf("the number of gateway is not 1")
+	}
+	gatewayInstance := gatewayList.Items[0]
+	g, err := gateway.New(r.BaseReconciler, &gatewayInstance)
+	if err != nil {
+		return nil, "", err
+	}
+	var gatewayEndpoint string
+	if gatewayInstance.Spec.WebConfig != nil && gatewayInstance.Spec.WebConfig.HTTPServerTLSConfig != nil {
+		gatewayEndpoint = g.HttpsAddr()
+	} else {
+		gatewayEndpoint = g.HttpAddr()
+	}
 
-	if namespacedName != nil {
-		var service monitoringv1alpha1.Service
-		if err := r.Client.Get(r.Context, *namespacedName, &service); err != nil {
-			return nil, resources.OperationCreateOrUpdate, err
-		}
+	if r.ruler.Spec.QueryConfig != nil {
+		fullPath := mountSecret(r.ruler.Spec.QueryConfig, "query-config", &sts.Spec.Template.Spec.Volumes, &container.VolumeMounts)
+		container.Args = append(container.Args, "--query.config.file="+fullPath)
 
-		writeAddr, err := r.remoteWriteAddress()
+	} else {
+
+		url, err := url.Parse(gatewayEndpoint)
 		if err != nil {
 			return nil, "", err
 		}
-		queryAddr, err := r.queryAddress()
-		if err != nil {
-			return nil, "", err
+
+		queryconfig := httpconfig.Config{
+			EndpointsConfig: httpconfig.EndpointsConfig{
+				Scheme:          url.Scheme,
+				StaticAddresses: []string{url.Host},
+				PathPrefix:      r.ruler.Spec.Tenant,
+			},
 		}
+		if gatewayInstance.Spec.WebConfig != nil && gatewayInstance.Spec.WebConfig.HTTPServerTLSConfig != nil {
+			queryconfig.HTTPClientConfig = httpconfig.ClientConfig{
+				TLSConfig: httpconfig.TLSConfig{
+					InsecureSkipVerify: true,
+				},
+			}
+		}
+		var username, password string
+		if gatewayInstance.Spec.WebConfig != nil && len(gatewayInstance.Spec.WebConfig.BasicAuthUsers) > 0 {
+			username, err := r.GetValueFromSecret(&gatewayInstance.Spec.WebConfig.BasicAuthUsers[0].Username, gatewayInstance.Namespace)
+			if err != nil {
+				return nil, "", err
+			}
+			password, err := r.GetValueFromSecret(&gatewayInstance.Spec.WebConfig.BasicAuthUsers[0].Password, gatewayInstance.Namespace)
+			if err != nil {
+				return nil, "", err
+			}
+			queryconfig.HTTPClientConfig.BasicAuth = httpconfig.BasicAuth{
+				Username: string(username),
+				Password: string(password),
+			}
+		}
+		queryConfigs := []httpconfig.Config{}
+		queryConfigs = append(queryConfigs, queryconfig)
+
+		buff, _ := yamlv3.Marshal(queryConfigs)
+		if username != "" && password != "" {
+			root := &yaml.Node{}
+			if err := yaml.Unmarshal(buff, root); err != nil {
+				return nil, "", err
+			}
+			if n := findYamlNodeByKey(root, "password"); n != nil {
+				n.SetString(password)
+			}
+		}
+
+		container.Args = append(container.Args, "--query.config="+string(buff))
+	}
+
+	if r.ruler.Spec.RemoteWriteConfig != nil {
+		fullPath := mountSecret(r.ruler.Spec.QueryConfig, "query-config", &sts.Spec.Template.Spec.Volumes, &container.VolumeMounts)
+		container.Args = append(container.Args, "--remote-write.config-file="+fullPath)
+
+	} else {
 		var rwCfg = &promconfig.RemoteWriteConfig{}
 		*rwCfg = promconfig.DefaultRemoteWriteConfig
 		var cfgs struct {
 			RemoteWriteConfigs []*promconfig.RemoteWriteConfig `yaml:"remote_write,omitempty"`
 		}
+		writeUrl, err := url.Parse("http://127.0.0.1:8081/push")
+		if err != nil {
+			return nil, resources.OperationCreateOrUpdate, err
+		}
+		rwCfg.URL = &promcommonconfig.URL{URL: writeUrl}
 
-		// If there is remote-writes configured in the related service instance,
-		// the rulers should also write calculated metrics to them.
-		//
-		// TODO currently global rulers write directly to remote targets without tenant header.
-		// 		If the tenant header is required, do it later.
-		for _, rw := range service.Spec.RemoteWrites {
+		cfgs.RemoteWriteConfigs = append(cfgs.RemoteWriteConfigs, rwCfg)
+
+		buff, err := yamlv3.Marshal(&cfgs)
+		if err != nil {
+			return nil, resources.OperationCreateOrUpdate, err
+		}
+		container.Args = append(container.Args, "--remote-write.config="+string(buff))
+
+		writeProxyContainer, err := r.addWriteProxyContainer(&gatewayInstance, gatewayEndpoint)
+		if err != nil {
+			return nil, "", err
+		}
+		sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, *writeProxyContainer)
+	}
+
+	/*
+		namespacedName := util.ServiceNamespacedName(r.ruler)
+		if namespacedName != nil {
+			var service monitoringv1alpha1.Service
+			if err := r.Client.Get(r.Context, *namespacedName, &service); err != nil {
+				return nil, resources.OperationCreateOrUpdate, err
+			}
+
+			writeAddr, err := r.remoteWriteAddress()
+			if err != nil {
+				return nil, "", err
+			}
+			queryAddr, err := r.queryAddress()
+			if err != nil {
+				return nil, "", err
+			}
 			var rwCfg = &promconfig.RemoteWriteConfig{}
 			*rwCfg = promconfig.DefaultRemoteWriteConfig
-			rwCfg.Name = rw.Name
-			writeUrl, err := url.Parse(rw.URL)
-			if err != nil {
-				return nil, "", fmt.Errorf("invalid remote write url: %s", rw.URL)
+			var cfgs struct {
+				RemoteWriteConfigs []*promconfig.RemoteWriteConfig `yaml:"remote_write,omitempty"`
 			}
-			rwCfg.URL = &promcommonconfig.URL{URL: writeUrl}
-			if writeUrl.Scheme == "https" {
-				// TODO support certificate validation
-				rwCfg.HTTPClientConfig.TLSConfig.InsecureSkipVerify = true
-			}
-			if !reflect.DeepEqual(rw.HTTPClientConfig.BasicAuth, monitoringv1alpha1.BasicAuth{}) {
-				secret := &corev1.Secret{}
-				if err := r.Client.Get(r.Context, client.ObjectKey{Name: rw.HTTPClientConfig.BasicAuth.Username.Name, Namespace: r.Service.Namespace}, secret); err != nil {
-					return nil, "", err
-				}
-				username := string(secret.Data[rw.HTTPClientConfig.BasicAuth.Username.Key])
-				if err := r.Client.Get(r.Context, client.ObjectKey{Name: rw.HTTPClientConfig.BasicAuth.Password.Name, Namespace: r.Service.Namespace}, secret); err != nil {
-					return nil, "", err
-				}
-				password := promcommonconfig.Secret(secret.Data[rw.HTTPClientConfig.BasicAuth.Password.Key])
-				rwCfg.HTTPClientConfig.BasicAuth = &promcommonconfig.BasicAuth{
-					Username: username,
-					Password: password,
-				}
 
-				//	basicAuthEnc := func(username, password string) string {
-				//		auth := username + ":" + password
-				//		return base64.StdEncoding.EncodeToString([]byte(auth))
-				//	}(username, strings.TrimSpace(string(password)))
-				//	if len(rwCfg.Headers) == 0 {
-				//		rwCfg.Headers = make(map[string]string, 1)
-				//	}
-				//	rwCfg.Headers["Authorization"] = "Basic " + basicAuthEnc
-			}
-			if rw.HTTPClientConfig.BearerToken != "" {
-				rwCfg.HTTPClientConfig.BearerToken = promcommonconfig.Secret(rw.HTTPClientConfig.BearerToken)
-				//	if len(rwCfg.Headers) == 0 {
-				//		rwCfg.Headers = make(map[string]string, 1)
-				//	}
-				//	bearerEnc := fmt.Sprintf("%s %s", "Bearer", string(rw.HTTPClientConfig.BearerToken))
-				//	rwCfg.Headers["Authorization"] = bearerEnc
-			}
-			rwCfg.Headers = rw.Headers
-			if rw.RemoteTimeout != "" {
-				timeout, err := time.ParseDuration(string(rw.RemoteTimeout))
+			// If there is remote-writes configured in the related service instance,
+			// the rulers should also write calculated metrics to them.
+			//
+			// TODO currently global rulers write directly to remote targets without tenant header.
+			// 		If the tenant header is required, do it later.
+			for _, rw := range service.Spec.RemoteWrites {
+				var rwCfg = &promconfig.RemoteWriteConfig{}
+				*rwCfg = promconfig.DefaultRemoteWriteConfig
+				rwCfg.Name = rw.Name
+				writeUrl, err := url.Parse(rw.URL)
 				if err != nil {
-					return nil, "", fmt.Errorf("invalid remote timeout: %s", rw.RemoteTimeout)
+					return nil, "", fmt.Errorf("invalid remote write url: %s", rw.URL)
 				}
-				rwCfg.RemoteTimeout = model.Duration(timeout)
-			}
-
-			cfgs.RemoteWriteConfigs = append(cfgs.RemoteWriteConfigs, rwCfg)
-		}
-
-		// proxy config
-		// if the tenant exists, append QueryProxy
-		// otherwise, append WriteProxy
-		if r.ruler.Spec.Tenant == "" { // as global ruler if no tenant specified
-			var hasQueryFlag bool
-			for _, flag := range r.ruler.Spec.Flags {
-				if strings.HasPrefix(flag, "--query=") {
-					hasQueryFlag = true
-					break
+				rwCfg.URL = &promcommonconfig.URL{URL: writeUrl}
+				if writeUrl.Scheme == "https" {
+					// TODO support certificate validation
+					rwCfg.HTTPClientConfig.TLSConfig.InsecureSkipVerify = true
 				}
-			}
-			// If --query flag in spec.Flags is not specified, the global ruler will query from the queryAddr
-			// which points to the QueryFrontend/Query under the same whizard service.
-			// If and only if the ruler needs to query external data out of whizard service, the --query flag can be specified.
-			if !hasQueryFlag {
-				url, err := url.Parse(queryAddr)
-				if err != nil {
-					return nil, "", err
-				}
-				queryconfig := httpconfig.Config{
-					EndpointsConfig: httpconfig.EndpointsConfig{
-						Scheme:          url.Scheme,
-						StaticAddresses: []string{url.Host},
-					},
-				}
-				if url.Scheme == "https" {
-					queryconfig.HTTPClientConfig = httpconfig.ClientConfig{
-						TLSConfig: httpconfig.TLSConfig{
-							InsecureSkipVerify: true,
-						},
-					}
-				}
-				if r.Service.Spec.RemoteQuery != nil {
-					if !reflect.DeepEqual(r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth, monitoringv1alpha1.BasicAuth{}) {
-						secret := &corev1.Secret{}
-
-						if err := r.Client.Get(r.Context, client.ObjectKey{Name: r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Username.Name, Namespace: r.Service.Namespace}, secret); err != nil {
-							return nil, "", err
-						}
-						queryconfig.HTTPClientConfig.BasicAuth.Username = string(secret.Data[r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Username.Key])
-						if err := r.Client.Get(r.Context, client.ObjectKey{Name: r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Password.Name, Namespace: r.Service.Namespace}, secret); err != nil {
-							return nil, "", err
-						}
-						queryconfig.HTTPClientConfig.BasicAuth.Password = string(secret.Data[r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Password.Key])
-					}
-					if r.Service.Spec.RemoteQuery.HTTPClientConfig.BearerToken != "" {
-						queryconfig.HTTPClientConfig.BearerToken = string(r.Service.Spec.RemoteQuery.HTTPClientConfig.BearerToken)
-					}
-				}
-				queryConfigs := []httpconfig.Config{}
-				queryConfigs = append(queryConfigs, queryconfig)
-				buff, _ := yamlv3.Marshal(queryConfigs)
-				container.Args = append(container.Args, "--query.config="+string(buff))
-			}
-
-			writeUrl, err := url.Parse("http://127.0.0.1:8081/push")
-			if err != nil {
-				return nil, resources.OperationCreateOrUpdate, err
-			}
-			rwCfg.URL = &promcommonconfig.URL{URL: writeUrl}
-
-			cfgs.RemoteWriteConfigs = append(cfgs.RemoteWriteConfigs, rwCfg)
-			content, err := yamlv3.Marshal(&cfgs)
-			if err != nil {
-				return nil, resources.OperationCreateOrUpdate, err
-			}
-			root := &yaml.Node{}
-			if err := yaml.Unmarshal(content, root); err != nil {
-				return nil, "", err
-			}
-			for _, rwCfg := range cfgs.RemoteWriteConfigs {
-				if rwCfg.HTTPClientConfig.BasicAuth != nil {
-					if n := findYamlNodeByKey(root, "password"); n != nil {
-						n.SetString(string(rwCfg.HTTPClientConfig.BasicAuth.Password))
-					}
-				}
-				if rwCfg.HTTPClientConfig.BearerToken != "" {
-					if n := findYamlNodeByKey(root, "bearer_token"); n != nil {
-						n.SetString(string(rwCfg.HTTPClientConfig.BearerToken))
-					}
-				}
-			}
-
-			body, err := yaml.Marshal(root)
-			if err != nil {
-				return nil, resources.OperationCreateOrUpdate, err
-			}
-			container.Args = append(container.Args, "--remote-write.config="+string(body))
-
-			if url, err := url.Parse(writeAddr); err == nil && url.Scheme == "https" {
-
-				// todo
-				/*
-					writeAddr = "http://127.0.0.1:" + constants.CustomProxyPort
-
-					data := make(map[string]string, 4)
-
-					data["ProxyServiceEnabled"] = "true"
-					data["ProxyLocalListenPort"] = constants.CustomProxyPort
-					data["ProxyServiceAddress"] = url.Hostname()
-					data["ProxyServicePort"] = url.Port()
-
-					if err := r.envoyConfigMap(data); err != nil {
+				if !reflect.DeepEqual(rw.HTTPClientConfig.BasicAuth, monitoringv1alpha1.BasicAuth{}) {
+					secret := &corev1.Secret{}
+					if err := r.Client.Get(r.Context, client.ObjectKey{Name: rw.HTTPClientConfig.BasicAuth.Username.Name, Namespace: r.Service.Namespace}, secret); err != nil {
 						return nil, "", err
 					}
-					var volumeMounts = []corev1.VolumeMount{}
-					var volumes = []corev1.Volume{}
+					username := string(secret.Data[rw.HTTPClientConfig.BasicAuth.Username.Key])
+					if err := r.Client.Get(r.Context, client.ObjectKey{Name: rw.HTTPClientConfig.BasicAuth.Password.Name, Namespace: r.Service.Namespace}, secret); err != nil {
+						return nil, "", err
+					}
+					password := promcommonconfig.Secret(secret.Data[rw.HTTPClientConfig.BasicAuth.Password.Key])
+					rwCfg.HTTPClientConfig.BasicAuth = &promcommonconfig.BasicAuth{
+						Username: username,
+						Password: password,
+					}
 
-					volumes, volumeMounts, _ = resources.BuildCommonVolumes(nil, r.name("envoy-config"), nil, nil)
-
-					envoyContainer := resources.BuildEnvoySidecarContainer(r.ruler.Spec.Envoy, volumeMounts)
-					sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, envoyContainer)
-					sts.Spec.Template.Spec.Volumes = append(sts.Spec.Template.Spec.Volumes, volumes...)
-				*/
-			}
-
-			writeProxyContainer, err := r.addWriteProxyContainer(&service.Spec, writeAddr)
-			if err != nil {
-				return nil, "", err
-			}
-			sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, *writeProxyContainer)
-		} else {
-			container.Args = append(container.Args,
-				fmt.Sprintf("--query=http://127.0.0.1:9080/%s", r.ruler.Spec.Tenant))
-
-			//	rewrite proxy container
-			// writeUrl, err := url.Parse(writeAddr + "/api/v1/receive")
-			writeUrl, err := url.Parse(fmt.Sprintf("http://127.0.0.1:9080/%s/api/v1/receive", r.ruler.Spec.Tenant))
-
-			if err != nil {
-				return nil, resources.OperationCreateOrUpdate, err
-			}
-			rwCfg.URL = &promcommonconfig.URL{URL: writeUrl}
-			cfgs.RemoteWriteConfigs = append(cfgs.RemoteWriteConfigs, rwCfg)
-
-			for i := range cfgs.RemoteWriteConfigs {
-				rwCfg := cfgs.RemoteWriteConfigs[i]
-				if rwCfg.Headers == nil {
-					rwCfg.Headers = make(map[string]string)
+					//	basicAuthEnc := func(username, password string) string {
+					//		auth := username + ":" + password
+					//		return base64.StdEncoding.EncodeToString([]byte(auth))
+					//	}(username, strings.TrimSpace(string(password)))
+					//	if len(rwCfg.Headers) == 0 {
+					//		rwCfg.Headers = make(map[string]string, 1)
+					//	}
+					//	rwCfg.Headers["Authorization"] = "Basic " + basicAuthEnc
 				}
-				rwCfg.Headers[service.Spec.TenantHeader] = r.ruler.Spec.Tenant
-				rwCfg.WriteRelabelConfigs = append(rwCfg.WriteRelabelConfigs,
-					&relabel.Config{
-						Regex:  relabel.MustNewRegexp(service.Spec.TenantLabelName),
-						Action: relabel.LabelDrop,
-					})
-				cfgs.RemoteWriteConfigs[i] = rwCfg
+				if rw.HTTPClientConfig.BearerToken != "" {
+					rwCfg.HTTPClientConfig.BearerToken = promcommonconfig.Secret(rw.HTTPClientConfig.BearerToken)
+					//	if len(rwCfg.Headers) == 0 {
+					//		rwCfg.Headers = make(map[string]string, 1)
+					//	}
+					//	bearerEnc := fmt.Sprintf("%s %s", "Bearer", string(rw.HTTPClientConfig.BearerToken))
+					//	rwCfg.Headers["Authorization"] = bearerEnc
+				}
+				rwCfg.Headers = rw.Headers
+				if rw.RemoteTimeout != "" {
+					timeout, err := time.ParseDuration(string(rw.RemoteTimeout))
+					if err != nil {
+						return nil, "", fmt.Errorf("invalid remote timeout: %s", rw.RemoteTimeout)
+					}
+					rwCfg.RemoteTimeout = model.Duration(timeout)
+				}
+
+				cfgs.RemoteWriteConfigs = append(cfgs.RemoteWriteConfigs, rwCfg)
 			}
-			content, err := yamlv3.Marshal(&cfgs)
-			if err != nil {
-				return nil, resources.OperationCreateOrUpdate, err
-			}
-			root := &yaml.Node{}
-			if err := yaml.Unmarshal(content, root); err != nil {
-				return nil, "", err
-			}
-			for _, rwCfg := range cfgs.RemoteWriteConfigs {
-				if rwCfg.HTTPClientConfig.BasicAuth != nil {
-					if n := findYamlNodeByKey(root, "password"); n != nil {
-						n.SetString(string(rwCfg.HTTPClientConfig.BasicAuth.Password))
+
+			// proxy config
+			// if the tenant exists, append QueryProxy
+			// otherwise, append WriteProxy
+			if r.ruler.Spec.Tenant == "" { // as global ruler if no tenant specified
+				var hasQueryFlag bool
+				for _, flag := range r.ruler.Spec.Flags {
+					if strings.HasPrefix(flag, "--query=") {
+						hasQueryFlag = true
+						break
 					}
 				}
-				if rwCfg.HTTPClientConfig.BearerToken != "" {
-					if n := findYamlNodeByKey(root, "bearer_token"); n != nil {
-						n.SetString(string(rwCfg.HTTPClientConfig.BearerToken))
+				// If --query flag in spec.Flags is not specified, the global ruler will query from the queryAddr
+				// which points to the QueryFrontend/Query under the same whizard service.
+				// If and only if the ruler needs to query external data out of whizard service, the --query flag can be specified.
+				if !hasQueryFlag {
+					url, err := url.Parse(queryAddr)
+					if err != nil {
+						return nil, "", err
+					}
+					queryconfig := httpconfig.Config{
+						EndpointsConfig: httpconfig.EndpointsConfig{
+							Scheme:          url.Scheme,
+							StaticAddresses: []string{url.Host},
+						},
+					}
+					if url.Scheme == "https" {
+						queryconfig.HTTPClientConfig = httpconfig.ClientConfig{
+							TLSConfig: httpconfig.TLSConfig{
+								InsecureSkipVerify: true,
+							},
+						}
+					}
+					if r.Service.Spec.RemoteQuery != nil {
+						if !reflect.DeepEqual(r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth, monitoringv1alpha1.BasicAuth{}) {
+							secret := &corev1.Secret{}
+
+							if err := r.Client.Get(r.Context, client.ObjectKey{Name: r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Username.Name, Namespace: r.Service.Namespace}, secret); err != nil {
+								return nil, "", err
+							}
+							queryconfig.HTTPClientConfig.BasicAuth.Username = string(secret.Data[r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Username.Key])
+							if err := r.Client.Get(r.Context, client.ObjectKey{Name: r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Password.Name, Namespace: r.Service.Namespace}, secret); err != nil {
+								return nil, "", err
+							}
+							queryconfig.HTTPClientConfig.BasicAuth.Password = string(secret.Data[r.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth.Password.Key])
+						}
+						if r.Service.Spec.RemoteQuery.HTTPClientConfig.BearerToken != "" {
+							queryconfig.HTTPClientConfig.BearerToken = string(r.Service.Spec.RemoteQuery.HTTPClientConfig.BearerToken)
+						}
+					}
+					queryConfigs := []httpconfig.Config{}
+					queryConfigs = append(queryConfigs, queryconfig)
+					buff, _ := yamlv3.Marshal(queryConfigs)
+					container.Args = append(container.Args, "--query.config="+string(buff))
+				}
+
+				writeUrl, err := url.Parse("http://127.0.0.1:8081/push")
+				if err != nil {
+					return nil, resources.OperationCreateOrUpdate, err
+				}
+				rwCfg.URL = &promcommonconfig.URL{URL: writeUrl}
+
+				cfgs.RemoteWriteConfigs = append(cfgs.RemoteWriteConfigs, rwCfg)
+				content, err := yamlv3.Marshal(&cfgs)
+				if err != nil {
+					return nil, resources.OperationCreateOrUpdate, err
+				}
+				root := &yaml.Node{}
+				if err := yaml.Unmarshal(content, root); err != nil {
+					return nil, "", err
+				}
+				for _, rwCfg := range cfgs.RemoteWriteConfigs {
+					if rwCfg.HTTPClientConfig.BasicAuth != nil {
+						if n := findYamlNodeByKey(root, "password"); n != nil {
+							n.SetString(string(rwCfg.HTTPClientConfig.BasicAuth.Password))
+						}
+					}
+					if rwCfg.HTTPClientConfig.BearerToken != "" {
+						if n := findYamlNodeByKey(root, "bearer_token"); n != nil {
+							n.SetString(string(rwCfg.HTTPClientConfig.BearerToken))
+						}
 					}
 				}
-			}
 
-			body, err := yaml.Marshal(root)
-			if err != nil {
-				return nil, resources.OperationCreateOrUpdate, err
-			}
-			container.Args = append(container.Args, "--remote-write.config="+string(body))
+				body, err := yaml.Marshal(root)
+				if err != nil {
+					return nil, resources.OperationCreateOrUpdate, err
+				}
+				container.Args = append(container.Args, "--remote-write.config="+string(body))
 
-			queryProxyContainer, _ := r.addQueryProxyContainer(&service.Spec, queryAddr, writeAddr)
-			sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, *queryProxyContainer)
+				if url, err := url.Parse(writeAddr); err == nil && url.Scheme == "https" {
+
+					// todo
+					/*
+						writeAddr = "http://127.0.0.1:" + constants.CustomProxyPort
+
+						data := make(map[string]string, 4)
+
+						data["ProxyServiceEnabled"] = "true"
+						data["ProxyLocalListenPort"] = constants.CustomProxyPort
+						data["ProxyServiceAddress"] = url.Hostname()
+						data["ProxyServicePort"] = url.Port()
+
+						if err := r.envoyConfigMap(data); err != nil {
+							return nil, "", err
+						}
+						var volumeMounts = []corev1.VolumeMount{}
+						var volumes = []corev1.Volume{}
+
+						volumes, volumeMounts, _ = resources.BuildCommonVolumes(nil, r.name("envoy-config"), nil, nil)
+
+						envoyContainer := resources.BuildEnvoySidecarContainer(r.ruler.Spec.Envoy, volumeMounts)
+						sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, envoyContainer)
+						sts.Spec.Template.Spec.Volumes = append(sts.Spec.Template.Spec.Volumes, volumes...)
+
+				}
+
+
+
+			} else {
+				container.Args = append(container.Args,
+					fmt.Sprintf("--query=http://127.0.0.1:9080/%s", r.ruler.Spec.Tenant))
+
+				//	rewrite proxy container
+				// writeUrl, err := url.Parse(writeAddr + "/api/v1/receive")
+				writeUrl, err := url.Parse(fmt.Sprintf("http://127.0.0.1:9080/%s/api/v1/receive", r.ruler.Spec.Tenant))
+
+				if err != nil {
+					return nil, resources.OperationCreateOrUpdate, err
+				}
+				rwCfg.URL = &promcommonconfig.URL{URL: writeUrl}
+				cfgs.RemoteWriteConfigs = append(cfgs.RemoteWriteConfigs, rwCfg)
+
+				for i := range cfgs.RemoteWriteConfigs {
+					rwCfg := cfgs.RemoteWriteConfigs[i]
+					if rwCfg.Headers == nil {
+						rwCfg.Headers = make(map[string]string)
+					}
+					rwCfg.Headers[service.Spec.TenantHeader] = r.ruler.Spec.Tenant
+					rwCfg.WriteRelabelConfigs = append(rwCfg.WriteRelabelConfigs,
+						&relabel.Config{
+							Regex:  relabel.MustNewRegexp(service.Spec.TenantLabelName),
+							Action: relabel.LabelDrop,
+						})
+					cfgs.RemoteWriteConfigs[i] = rwCfg
+				}
+				content, err := yamlv3.Marshal(&cfgs)
+				if err != nil {
+					return nil, resources.OperationCreateOrUpdate, err
+				}
+				root := &yaml.Node{}
+				if err := yaml.Unmarshal(content, root); err != nil {
+					return nil, "", err
+				}
+				for _, rwCfg := range cfgs.RemoteWriteConfigs {
+					if rwCfg.HTTPClientConfig.BasicAuth != nil {
+						if n := findYamlNodeByKey(root, "password"); n != nil {
+							n.SetString(string(rwCfg.HTTPClientConfig.BasicAuth.Password))
+						}
+					}
+					if rwCfg.HTTPClientConfig.BearerToken != "" {
+						if n := findYamlNodeByKey(root, "bearer_token"); n != nil {
+							n.SetString(string(rwCfg.HTTPClientConfig.BearerToken))
+						}
+					}
+				}
+
+				body, err := yaml.Marshal(root)
+				if err != nil {
+					return nil, resources.OperationCreateOrUpdate, err
+				}
+				container.Args = append(container.Args, "--remote-write.config="+string(body))
+
+				queryProxyContainer, _ := r.addQueryProxyContainer(&service.Spec, queryAddr, writeAddr)
+				sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, *queryProxyContainer)
+			}
 		}
-	}
+	*/
 
 	for _, flag := range r.ruler.Spec.Flags {
 		arg := util.GetArgName(flag)
@@ -691,56 +795,88 @@ func (r *Ruler) addQueryProxyContainer(serviceSpec *monitoringv1alpha1.ServiceSp
 }
 
 // cortex-tenant config
-// https://github.com/blind-oracle/cortex-tenant/blob/main/config.go#L13
+// https://github.com/blind-oracle/cortex-tenant/blob/v1.12.4/config.go#L14
 type config struct {
-	Listen      string
-	ListenPprof string `yaml:"listen_pprof"`
+	Listen               string `env:"CT_LISTEN"`
+	ListenPprof          string `yaml:"listen_pprof" env:"CT_LISTEN_PPROF"`
+	ListenMetricsAddress string `yaml:"listen_metrics_address" env:"CT_LISTEN_METRICS_ADDRESS"`
+	MetricsIncludeTenant bool   `yaml:"metrics_include_tenant" env:"CT_METRICS_INCLUDE_TENANT"`
 
-	Target string
+	Target     string `env:"CT_TARGET"`
+	EnableIPv6 bool   `yaml:"enable_ipv6" env:"CT_ENABLE_IPV6"`
 
-	LogLevel        string `yaml:"log_level"`
-	Timeout         time.Duration
-	TimeoutShutdown time.Duration `yaml:"timeout_shutdown"`
-	Concurrency     int
-	Metadata        bool
+	LogLevel          string        `yaml:"log_level" env:"CT_LOG_LEVEL"`
+	Timeout           time.Duration `env:"CT_TIMEOUT"`
+	TimeoutShutdown   time.Duration `yaml:"timeout_shutdown" env:"CT_TIMEOUT_SHUTDOWN"`
+	Concurrency       int           `env:"CT_CONCURRENCY"`
+	Metadata          bool          `env:"CT_METADATA"`
+	LogResponseErrors bool          `yaml:"log_response_errors" env:"CT_LOG_RESPONSE_ERRORS"`
+	MaxConnDuration   time.Duration `yaml:"max_connection_duration" env:"CT_MAX_CONN_DURATION"`
+	MaxConnsPerHost   int           `env:"CT_MAX_CONNS_PER_HOST" yaml:"max_conns_per_host"`
+
+	TLSClientConfig promcommonconfig.TLSConfig `yaml:"tls_client_config"`
 
 	Auth struct {
 		Egress struct {
-			Username string
-			Password string
+			Username string `env:"CT_AUTH_EGRESS_USERNAME"`
+			Password string `env:"CT_AUTH_EGRESS_PASSWORD"`
 		}
 	}
 
 	Tenant struct {
-		Label       string
-		LabelRemove bool `yaml:"label_remove"`
-		Header      string
-		Default     string
-		AcceptAll   bool `yaml:"accept_all"`
+		Label       string   `env:"CT_TENANT_LABEL"`
+		LabelList   []string `yaml:"label_list" env:"CT_TENANT_LABEL_LIST" envSeparator:","`
+		Prefix      string   `yaml:"prefix" env:"CT_TENANT_PREFIX"`
+		LabelRemove bool     `yaml:"label_remove" env:"CT_TENANT_LABEL_REMOVE"`
+		Header      string   `env:"CT_TENANT_HEADER"`
+		Default     string   `env:"CT_TENANT_DEFAULT"`
+		AcceptAll   bool     `yaml:"accept_all" env:"CT_TENANT_ACCEPT_ALL"`
 	}
 }
 
-func (r *Ruler) addWriteProxyContainer(serviceSpec *monitoringv1alpha1.ServiceSpec, writeAddr string) (*corev1.Container, error) {
+func (r *Ruler) addWriteProxyContainer(gateway *monitoringv1alpha1.Gateway, gatewayEndpoint string) (*corev1.Container, error) {
 	var writeProxyContainer *corev1.Container
+
+	// cortex-tenant default config
 	cfg := &config{
-		Listen:          "127.0.0.1:8081",
-		LogLevel:        "warn",
-		Timeout:         time.Second * 10,
-		TimeoutShutdown: time.Second * 10,
-		Concurrency:     1000,
-		Metadata:        false,
+		Listen:               "127.0.0.1:8081",
+		ListenMetricsAddress: "0.0.0.0:8082",
+		LogLevel:             "warn",
+		Timeout:              time.Second * 10,
+		Concurrency:          512,
+		MaxConnsPerHost:      64,
 	}
 
-	writeUrl, err := url.Parse(writeAddr + "/api/v1/receive")
+	writeUrl, err := url.Parse(gatewayEndpoint + "/api/v1/receive")
 	if err != nil {
 		return writeProxyContainer, err
 	}
 	cfg.Target = writeUrl.String()
 
-	cfg.Tenant.Label = serviceSpec.TenantLabelName
+	cfg.Tenant.Label = r.Service.Spec.TenantLabelName
 	cfg.Tenant.LabelRemove = true
-	cfg.Tenant.Header = serviceSpec.TenantHeader
-	cfg.Tenant.Default = serviceSpec.DefaultTenantId
+	cfg.Tenant.Header = r.Service.Spec.TenantHeader
+	cfg.Tenant.Default = r.Service.Spec.DefaultTenantId
+
+	if gateway.Spec.WebConfig != nil {
+		if gateway.Spec.WebConfig.HTTPServerTLSConfig != nil {
+			cfg.TLSClientConfig = promcommonconfig.TLSConfig{
+				InsecureSkipVerify: true,
+			}
+		}
+		if len(gateway.Spec.WebConfig.BasicAuthUsers) > 0 {
+			username, err := r.GetValueFromSecret(&gateway.Spec.WebConfig.BasicAuthUsers[0].Username, gateway.Namespace)
+			if err != nil {
+				return nil, err
+			}
+			cfg.Auth.Egress.Username = string(username)
+			password, err := r.GetValueFromSecret(&gateway.Spec.WebConfig.BasicAuthUsers[0].Password, gateway.Namespace)
+			if err != nil {
+				return nil, err
+			}
+			cfg.Auth.Egress.Password = string(password)
+		}
+	}
 
 	cfgContent, err := yamlv3.Marshal(cfg)
 	if err != nil {
@@ -770,4 +906,28 @@ func findYamlNodeByKey(root *yaml.Node, key string) *yaml.Node {
 		}
 	}
 	return nil
+}
+
+func mountSecret(secretSelector *corev1.SecretKeySelector, volumeName string, trVolumes *[]corev1.Volume, trVolumeMounts *[]corev1.VolumeMount) string {
+	path := secretSelector.Key
+	*trVolumes = append(*trVolumes, corev1.Volume{
+		Name: volumeName,
+		VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: secretSelector.Name,
+				Items: []corev1.KeyToPath{
+					{
+						Key:  secretSelector.Key,
+						Path: path,
+					},
+				},
+			},
+		},
+	})
+	mountpath := configDir + "/" + volumeName
+	*trVolumeMounts = append(*trVolumeMounts, corev1.VolumeMount{
+		Name:      volumeName,
+		MountPath: mountpath,
+	})
+	return mountpath + "/" + path
 }

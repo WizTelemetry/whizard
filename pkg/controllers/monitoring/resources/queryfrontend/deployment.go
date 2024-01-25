@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"path/filepath"
-	"reflect"
+	"sort"
 
 	"github.com/prometheus-operator/prometheus-operator/pkg/k8sutil"
 	"github.com/thanos-io/thanos/pkg/exthttp"
@@ -115,18 +115,22 @@ func (q *QueryFrontend) deployment() (runtime.Object, resources.Operation, error
 	// If there is remote-query configured in the related Service,
 	// QueryFrontend will preferentially query from configured remote-query target,
 	// else it'll query from the Query directly.
-	var addr string
-	if q.Service != nil && q.Service.Spec.RemoteQuery != nil {
-		addr = q.Service.Spec.RemoteQuery.URL
-		if !reflect.DeepEqual(q.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth, v1alpha1.BasicAuth{}) || q.Service.Spec.RemoteQuery.HTTPClientConfig.BearerToken != "" {
-			container.Args = append(container.Args, []string{"--query-frontend.forward-header", "Authorization"}...)
-		}
-	} else {
+
+	/*
+		var addr string
 		var err error
-		addr, err = q.queryAddress()
-		if err != nil {
-			return nil, "", err
+		if q.Service != nil && q.Service.Spec.RemoteQuery != nil {
+			addr = q.Service.Spec.RemoteQuery.URL
+			if !reflect.DeepEqual(q.Service.Spec.RemoteQuery.HTTPClientConfig.BasicAuth, v1alpha1.BasicAuth{}) || q.Service.Spec.RemoteQuery.HTTPClientConfig.BearerToken != "" {
+				container.Args = append(container.Args, []string{"--query-frontend.forward-header", "Authorization"}...)
+			}
+		} else {
 		}
+	*/
+
+	addr, err := q.queryAddress()
+	if err != nil {
+		return nil, "", err
 	}
 
 	if url, err := url.Parse(addr); err == nil && url.Scheme == "https" {
@@ -202,8 +206,7 @@ func (q *QueryFrontend) deployment() (runtime.Object, resources.Operation, error
 		}
 	}
 
-	// disable sort flag
-	// sort.Strings(container.Args[1:])
+	sort.Strings(container.Args[1:])
 
 	d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, container)
 	d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, cacheConfigVol)
