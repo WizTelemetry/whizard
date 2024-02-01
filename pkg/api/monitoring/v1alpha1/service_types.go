@@ -80,8 +80,8 @@ type RulerTemplateSpec struct {
 
 	// DisableAlertingRulesAutoSelection disable auto select alerting rules in tenant ruler
 	//
-	// Default: false
-	// +kubebuilder:default:=false
+	// Default: true
+	// +kubebuilder:default:=true
 	DisableAlertingRulesAutoSelection *bool `json:"disableAlertingRulesAutoSelection,omitempty"`
 }
 
