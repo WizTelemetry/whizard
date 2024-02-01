@@ -11881,9 +11881,9 @@ spec:
                         type: object
                     type: object
                   disableAlertingRulesAutoSelection:
-                    default: false
+                    default: true
                     description: "DisableAlertingRulesAutoSelection disable auto select
-                      alerting rules in tenant ruler \n Default: false"
+                      alerting rules in tenant ruler \n Default: true"
                     type: boolean
                   evaluationInterval:
                     default: 1m
