@@ -31,7 +31,7 @@ const (
 	epQueryRange  = "/query_range"
 	epSeries      = "/series"
 	epLabels      = "/labels"
-	epLabelValues = "/label/*"
+	epLabelValues = "/label/*path"
 	epReceive     = "/receive"
 	epRules       = "/rules"
 	epAlerts      = "/alerts"
@@ -102,8 +102,12 @@ func (h *Handler) addTenantRemoteWriteHandler() {
 }
 
 func (h *Handler) addGlobalProxyHandler() {
-	h.router.Path(apiGlobalPrefix + epReceive).HandlerFunc(h.remoteWriteHander.ServeHTTP)
-	h.router.PathPrefix(apiGlobalPrefix).HandlerFunc(h.queryProxy.ServeHTTP)
+	if h.remoteWriteHander != nil {
+		h.router.Path(apiGlobalPrefix + epReceive).HandlerFunc(h.remoteWriteHander.ServeHTTP)
+	}
+	if h.queryProxy != nil {
+		h.router.PathPrefix(apiGlobalPrefix).HandlerFunc(h.queryProxy.ServeHTTP)
+	}
 }
 
 func (h *Handler) AppendQueryUIHandler(logger log.Logger, reg *prometheus.Registry) {
