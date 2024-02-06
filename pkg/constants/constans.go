@@ -129,7 +129,7 @@ const (
 	DefaultPrometheusConfigReloaderImage = "quay.io/prometheus-operator/prometheus-config-reloader:v0.68.0"
 
 	DefaultEnvoyImage               = "envoyproxy/envoy:v1.20.2"
-	DefaultRulerWriteProxyImage     = "kubesphere/cortex-tenant:v1.7.2"
+	DefaultRulerWriteProxyImage     = "kubesphere/cortex-tenant:v1.12.5"
 	DefaultIngesterTSDBCleanupImage = "bash:5.1.16"
 )
 
