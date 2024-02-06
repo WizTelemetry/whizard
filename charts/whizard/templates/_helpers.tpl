@@ -144,3 +144,26 @@ app.kubernetes.io/instance: {{ .Release.Name }}
   {{- end }}
 {{- end }}
 {{- end -}}
+
+
+{{- define "whizard.common.nodeSelectorFunc" -}}
+{{- if .globalNodeSelector }}
+    {{- $nodeSelector := .globalNodeSelector -}}
+    {{- if .nodeSelector }}
+        {{- $nodeSelector = merge .nodeSelector $nodeSelector -}}
+    {{- end -}}
+    {{- toYaml $nodeSelector }}
+{{- else }}
+    {{- toYaml .nodeSelector }}
+{{- end }}
+{{- end -}}
+
+{{- define "whizard.controllerManager.nodeSelector" -}}
+{{- $_dict := (dict "nodeSelector" .Values.controllerManager.nodeSelector "globalNodeSelector" .Values.global.nodeSelector) }}
+{{- include "whizard.common.nodeSelectorFunc" $_dict }}
+{{- end -}}
+
+{{- define "whizard.adapter.nodeSelector" -}}
+{{- $_dict := (dict "nodeSelector" .Values.adapter.nodeSelector "globalNodeSelector" .Values.global.nodeSelector) }}
+{{- include "whizard.common.nodeSelectorFunc" $_dict }}
+{{- end -}}
