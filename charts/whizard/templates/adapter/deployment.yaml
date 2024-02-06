@@ -54,9 +54,9 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-      {{- with .Values.adapter.nodeSelector }}
+      {{- with (include "whizard.adapter.nodeSelector" .) }}
       nodeSelector:
-        {{- toYaml . | nindent 8 }}
+        {{- . | nindent 8 }}
       {{- end }}
       {{- with .Values.adapter.affinity }}
       affinity:
