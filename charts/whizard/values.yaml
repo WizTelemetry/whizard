@@ -381,7 +381,7 @@ service:
       image:
         registry: docker.io
         repository: kubesphere/cortex-tenant
-        tag: v1.7.2
+        tag: v1.12.5
 
       resources: {}
       # limits:
