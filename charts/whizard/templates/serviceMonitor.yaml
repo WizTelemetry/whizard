@@ -1,6 +1,6 @@
 {{- if .Values.monitoring.enabled -}}
-{{- $components := tuple "compactor" "query" "ingester" "store" "ruler" }}
-{{- range $index, $component := .Values.monitoring.components }}
+{{- $components := tuple "compactor" "query" "ingester" "store" "ruler" "router" }}
+{{- range $index, $component := $components }}
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
@@ -16,7 +16,6 @@ spec:
     port: http
     scheme: http
     scrapeTimeout: 30s
-  jobLabel: app.kubernetes.io/name
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ $component }}
