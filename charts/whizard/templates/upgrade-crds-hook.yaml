@@ -1,0 +1,112 @@
+{{- if .Values.hook.enabled }}
+{{- $crdFiles := .Files.Glob "crds/**" }}
+{{- $i := 0 }}
+{{- range $path, $_ := $crdFiles }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "whizard.name" $ }}-crds-{{ $i }}
+  namespace: {{ include "whizard.namespace" $ }}
+  annotations:
+    "helm.sh/hook": post-delete
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation
+data:
+  {{ $path | base }}: |
+    {{- $.Files.Get $path | nindent 4 }}
+---
+{{- $i = add1 $i }}
+{{- end }}
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "whizard.name" . }}-update-crds
+  annotations:
+    "helm.sh/hook": post-delete
+    "helm.sh/hook-weight": "2"
+    "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "whizard.name" . }}-update-crds
+  annotations:
+    "helm.sh/hook": post-delete
+    "helm.sh/hook-weight": "3"
+    "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation
+rules:
+  - apiGroups: 
+    - apiextensions.k8s.io
+    resources: 
+    - customresourcedefinitions
+    verbs:
+    - get
+    - update
+    - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "whizard.name" . }}-update-crds
+  annotations:
+    "helm.sh/hook": post-delete
+    "helm.sh/hook-weight": "4"
+    "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "whizard.name" . }}-update-crds
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "whizard.name" . }}-update-crds
+    namespace: {{ include "whizard.namespace" . }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "whizard.name" . }}-update-crds
+  namespace: {{ include "whizard.namespace" . }}
+  annotations:
+    "helm.sh/hook": post-delete
+    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "whizard.name" . }}-update-crds
+      volumes:
+        {{- $i = 0 }}
+        {{- range $path, $_ := $crdFiles }}
+        - name: crds-{{ $i }}
+          configMap:
+            name: {{ include "whizard.name" $ }}-crds-{{ $i }}
+            items:
+            - key: {{ $path | base }}
+              path: {{ $path | base }}
+        {{- $i = add1 $i }}
+        {{- end }}
+      containers:
+        - name: update-crds
+          image: {{ .Values.global.imageRegistry | default .Values.hook.image.registry }}/{{ .Values.hook.image.repository }}:{{ .Values.hook.image.tag }}
+          command:
+            - /bin/bash
+            - -c
+            - |
+              kubectl apply -f /data/crds 2>&1
+          {{- $i = 0 }}
+          volumeMounts:
+          {{- range $path, $_ := $crdFiles }}
+            - name: crds-{{ $i }}
+              mountPath: /data/crds/{{ $path | base }}
+              subPath: {{ $path | base }}
+          {{- $i = add1 $i }}
+          {{- end }}
+          {{- with .Values.hook.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}
