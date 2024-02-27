@@ -74,7 +74,18 @@ all: build
 
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=charts/whizard/crds
+
+# stripped-down-crds is a version of the whizard CRDs with all
+# description fields being removed. It is meant as a workaround for the issue
+# that `kubectl apply -f ...` might fail with the full version of the CRDs
+# because of too long annotations field.
+# See https://github.com/prometheus-operator/prometheus-operator/issues/4355
+stripped-down-crds: manifests
+	cd config/crd/bases && \
+	for f in *.yaml; do \
+		gojsontoyaml -yamltojson < $$f | jq 'walk(if type == "object" then with_entries(if .value|type=="object" then . else select(.key | test("description") | not) end) else . end)' | gojsontoyaml > ../../../charts/whizard/crds/$$f; \
+	done;
+
 
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
