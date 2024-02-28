@@ -1,5 +1,5 @@
 {{- if .Values.service.enabled -}}
-{{- $baseImage := printf "%s/%s:%s" (default .Values.global.imageRegistry .Values.global.whizard.image.registry) .Values.global.whizard.image.repository  .Values.global.whizard.image.tag }}
+{{- $baseImage := printf "%s/%s:%s" (default .Values.global.whizard.image.registry .Values.global.imageRegistry) .Values.global.whizard.image.repository  .Values.global.whizard.image.tag }}
 apiVersion: monitoring.whizard.io/v1alpha1
 kind: Service
 metadata:
