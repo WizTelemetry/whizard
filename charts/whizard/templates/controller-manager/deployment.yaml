@@ -18,19 +18,23 @@ spec:
         app: {{ include "whizard.manager.fullname" . }}
     spec:
       serviceAccountName: {{ include "whizard.manager.serviceAccountName" . }}
+      {{- if .Values.controllerManager.config.create }}
       volumes:
       - name: whizard-config
         configMap:
           name: {{ include "whizard.fullname" . }}-config
           defaultMode: 420
+      {{- end }}
       containers:
         - name: manager
           command:
           - /manager
           image: "{{ .Values.global.imageRegistry | default .Values.controllerManager.image.registry }}/{{ .Values.controllerManager.image.repository }}:{{ .Values.controllerManager.image.tag | default .Chart.AppVersion }}"
+          {{- if .Values.controllerManager.config.create }}
           volumeMounts:
           - mountPath: /etc/whizard/
             name: whizard-config
+          {{- end }}
           livenessProbe:
             httpGet:
               path: /healthz
