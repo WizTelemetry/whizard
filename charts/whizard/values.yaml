@@ -185,10 +185,10 @@ service:
       #   whenDeleted: Retain # must be one of Retain and Delete, to specify whether to delete pvc when statefulset is deleted.
       #   whenScaled: Retain # must be one of Retain and Delete, to spefify whether to delete pvc when statefulset is scaled down.
 
-    retention: {}
-    # retentionRaw: 60d
-    # retention5m: 180d
-    # retention1h: 360d
+    retention:
+      retentionRaw: 60d
+      retention5m: 180d
+      retention1h: 360d
 
     additionalFlags:
       - --block-files-concurrency=20

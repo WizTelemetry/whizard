@@ -71,8 +71,8 @@ func ApplyDefaults(service *monitoringv1alpha1.Service) *monitoringv1alpha1.Serv
 	if service.Spec.QueryTemplateSpec.Replicas == nil {
 		service.Spec.QueryTemplateSpec.Replicas = &whizardQueryReplicas
 	}
-	if service.Spec.QueryFrontendTemplateSpec.Resources.Size() == 0 {
-		service.Spec.QueryFrontendTemplateSpec.Resources = constants.DefaultWhizardBaseResources
+	if service.Spec.QueryTemplateSpec.Resources.Size() == 0 {
+		service.Spec.QueryTemplateSpec.Resources = constants.DefaultWhizardBaseResources
 	}
 	if service.Spec.QueryTemplateSpec.Envoy.Image == "" {
 		service.Spec.QueryTemplateSpec.Envoy.Image = constants.DefaultEnvoyImage
@@ -139,7 +139,7 @@ func ApplyDefaults(service *monitoringv1alpha1.Service) *monitoringv1alpha1.Serv
 		service.Spec.StoreTemplateSpec.Replicas = &whizardDefaultReplicas
 	}
 	if service.Spec.StoreTemplateSpec.Resources.Size() == 0 {
-		service.Spec.StoreTemplateSpec.Resources = constants.DefaultWhizardBaseResources
+		service.Spec.StoreTemplateSpec.Resources = constants.DefaultWhizardLargeResource
 	}
 
 	return service
