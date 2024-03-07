@@ -74,6 +74,7 @@ metadata:
     "helm.sh/hook-weight": "5"
     "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation
 spec:
+  backoffLimit: {{ .Values.hook.backoffLimit }}
   template:
     spec:
       restartPolicy: Never
