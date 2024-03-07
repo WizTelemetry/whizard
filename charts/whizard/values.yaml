@@ -501,7 +501,8 @@ query:
   httpServerTLSConfig: {}
 
   ## Additional configuration which is not covered by the properties above. (passed through tpl)
-  additionalConfig: {}
+  additionalConfig:
+    promqlEngine: thanos
   additionalConfigString: ""
 
 # Deploy an Router instance
