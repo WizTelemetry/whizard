@@ -83,4 +83,5 @@ spec:
                 kubectl delete rulers.monitoring.whizard.io -n {{ include "whizard.namespace" . }} --all
                 kubectl delete stores.monitoring.whizard.io -n {{ include "whizard.namespace" . }} --all
                 kubectl delete compactors.monitoring.whizard.io -n {{ include "whizard.namespace" . }} --all
+                kubectl delete storages.monitoring.whizard.io -n {{ include "whizard.namespace" . }} --all
 {{- end }}
