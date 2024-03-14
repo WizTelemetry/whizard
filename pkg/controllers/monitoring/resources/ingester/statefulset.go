@@ -195,7 +195,12 @@ func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
 	sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, container)
 	sts.Spec.Template.Spec.InitContainers = r.generateInitContainer(getTSDBVolumeMount(container))
 
-	if len(r.ingester.Spec.EmbeddedContainers) > 0 {
+	if len(r.ingester.Spec.Containers.Raw) > 0 {
+		var err error
+		r.ingester.Spec.EmbeddedContainers, err = util.DecodeRawToContainers(r.ingester.Spec.Containers)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to decode containers: %w", err)
+		}
 		containers, err := k8sutil.MergePatchContainers(sts.Spec.Template.Spec.Containers, r.ingester.Spec.EmbeddedContainers)
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to merge containers spec: %w", err)

@@ -630,7 +630,11 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 		sts.Spec.Template.Spec.ImagePullSecrets = r.ruler.Spec.ImagePullSecrets
 	}
 
-	if len(r.ruler.Spec.EmbeddedContainers) > 0 {
+	if len(r.ruler.Spec.Containers.Raw) > 0 {
+		r.ruler.Spec.EmbeddedContainers, err = util.DecodeRawToContainers(r.ruler.Spec.Containers)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to decode containers: %w", err)
+		}
 		containers, err := k8sutil.MergePatchContainers(sts.Spec.Template.Spec.Containers, r.ruler.Spec.EmbeddedContainers)
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to merge containers spec: %w", err)
