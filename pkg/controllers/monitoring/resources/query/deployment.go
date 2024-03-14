@@ -309,7 +309,12 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 	d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, queryContainer)
 	d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, envoyContainer)
 
-	if len(q.query.Spec.EmbeddedContainers) > 0 {
+	if len(q.query.Spec.Containers.Raw) > 0 {
+		var err error
+		q.query.Spec.EmbeddedContainers, err = util.DecodeRawToContainers(q.query.Spec.Containers)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to decode containers: %w", err)
+		}
 		containers, err := k8sutil.MergePatchContainers(d.Spec.Template.Spec.Containers, q.query.Spec.EmbeddedContainers)
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to merge containers spec: %w", err)

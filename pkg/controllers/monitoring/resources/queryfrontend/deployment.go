@@ -215,7 +215,12 @@ func (q *QueryFrontend) deployment() (runtime.Object, resources.Operation, error
 		d.Spec.Template.Spec.ImagePullSecrets = q.queryFrontend.Spec.ImagePullSecrets
 	}
 
-	if len(q.queryFrontend.Spec.EmbeddedContainers) > 0 {
+	if len(q.queryFrontend.Spec.Containers.Raw) > 0 {
+		var err error
+		q.queryFrontend.Spec.EmbeddedContainers, err = util.DecodeRawToContainers(q.queryFrontend.Spec.Containers)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to decode containers: %w", err)
+		}
 		containers, err := k8sutil.MergePatchContainers(d.Spec.Template.Spec.Containers, q.queryFrontend.Spec.EmbeddedContainers)
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to merge containers spec: %w", err)

@@ -1,6 +1,7 @@
 package util
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 
@@ -13,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	yamlutil "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -226,4 +228,14 @@ func DeletePVC(ctx context.Context, c client.Client, obj runtime.Object) error {
 	}
 
 	return nil
+}
+
+func DecodeRawToContainers(raw runtime.RawExtension) ([]corev1.Container, error) {
+	var containers []corev1.Container
+
+	decoder := yamlutil.NewYAMLOrJSONDecoder(bytes.NewReader(raw.Raw), len(raw.Raw))
+	if err := decoder.Decode(&containers); err != nil {
+		return nil, err
+	}
+	return containers, nil
 }
