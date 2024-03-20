@@ -28,7 +28,7 @@ hook:
   image:
     registry: docker.io
     repository: kubesphere/kubectl
-    tag: v1.27.4
+    tag: v1.27.12
     pullPolicy: IfNotPresent
   resources:
     limits:
