@@ -1,4 +1,4 @@
-{{- if .Values.monitoring.enabled -}}
+{{- if and (.Values.selfMonitor.enabled) (.Capabilities.APIVersions.Has "monitoring.coreos.com/v1/ServiceMonitor") -}}
 {{- $components := tuple "compactor" "query" "ingester" "store" "ruler" "router" }}
 {{- range $index, $component := $components }}
 ---

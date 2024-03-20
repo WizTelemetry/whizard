@@ -208,7 +208,11 @@ func (r *Store) statefulSet(name string, partitionSn int, timeRange v1alpha1.Tim
 		sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, *container)
 	}
 
-	if len(r.store.Spec.EmbeddedContainers) > 0 {
+	if len(r.store.Spec.Containers.Raw) > 0 {
+		r.store.Spec.EmbeddedContainers, err = util.DecodeRawToContainers(r.store.Spec.Containers)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to decode containers: %w", err)
+		}
 		containers, err := k8sutil.MergePatchContainers(sts.Spec.Template.Spec.Containers, r.store.Spec.EmbeddedContainers)
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to merge containers spec: %w", err)

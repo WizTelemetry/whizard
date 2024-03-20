@@ -302,7 +302,11 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 
 	d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, container)
 
-	if len(g.gateway.Spec.EmbeddedContainers) > 0 {
+	if len(g.gateway.Spec.Containers.Raw) > 0 {
+		g.gateway.Spec.EmbeddedContainers, err = util.DecodeRawToContainers(g.gateway.Spec.Containers)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to decode containers: %w", err)
+		}
 		containers, err := k8sutil.MergePatchContainers(d.Spec.Template.Spec.Containers, g.gateway.Spec.EmbeddedContainers)
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to merge containers spec: %w", err)

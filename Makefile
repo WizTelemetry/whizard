@@ -83,8 +83,10 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 stripped-down-crds: manifests
 	cd config/crd/bases && \
 	for f in *.yaml; do \
-		gojsontoyaml -yamltojson < $$f | jq 'walk(if type == "object" then with_entries(if .value|type=="object" then . else select(.key | test("description") | not) end) else . end)' | gojsontoyaml > ../../../charts/whizard/crds/$$f; \
-	done;
+		echo "---" > ../../../charts/whizard/crds/$$f; \
+		gojsontoyaml -yamltojson < $$f | jq 'walk(if type == "object" then with_entries(if .value|type=="object" then . else select(.key | test("description") | not) end) else . end)' | gojsontoyaml >> ../../../charts/whizard/crds/$$f; \
+	done && \
+	cp -rf ../../../charts/whizard/crds ../../../charts/whizard-crds/;
 
 
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.

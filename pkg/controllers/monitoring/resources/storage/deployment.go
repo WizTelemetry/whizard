@@ -183,7 +183,11 @@ func (s *Storage) deployment() (runtime.Object, resources.Operation, error) {
 		}
 	}
 
-	if len(s.storage.Spec.BlockManager.EmbeddedContainers) > 0 {
+	if len(s.storage.Spec.BlockManager.Containers.Raw) > 0 {
+		s.storage.Spec.BlockManager.EmbeddedContainers, err = util.DecodeRawToContainers(s.storage.Spec.BlockManager.Containers)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to decode containers: %w", err)
+		}
 		containers, err := k8sutil.MergePatchContainers(d.Spec.Template.Spec.Containers, s.storage.Spec.BlockManager.EmbeddedContainers)
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to merge containers spec: %w", err)

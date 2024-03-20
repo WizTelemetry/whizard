@@ -28,18 +28,18 @@ hook:
   image:
     registry: docker.io
     repository: kubesphere/kubectl
-    tag: v1.27.4
+    tag: v1.27.12
     pullPolicy: IfNotPresent
   resources:
     limits:
-      cpu: 100m
-      memory: 128Mi
+      cpu: 500m
+      memory: 512Mi
     requests:
       cpu: 50m
       memory: 64Mi
   backoffLimit: 3
 
-monitoring:
+selfMonitor:
   enabled: false
 
 ## Manages Service, Query, QueryFrontend, Router, Ingester, Store, Compactor and Ruler instances and components
