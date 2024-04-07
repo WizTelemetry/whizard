@@ -1,3 +1,67 @@
+# v0.10.0 / 2024-04-07
+
+### Features
+
+* Add whizard-crds charts (#480) @frezes
+* Add upgrade crds hook and stripped down crds (#476) @frezes
+* Add a built-in user of the gateway when authentication is enabled (#451) @frezes
+* Add post-delete hook and update whizard helm charts (#435) @frezes
+* Get config form ServiceCR  and remove MonitoringOptions in whizard-config (#425) @frezes
+* Complete the service configuration (#423) @frezes
+* Add container customization (#415) @junotx
+* Change disableAlertingRulesAutoSelection default to be true (#457) @junotx
+* Support to disable auto select alerting rules in tenant ruler (#414) @junotx
+* Supports authentication of external data sources (#404) @frezes
+* Add a built-in query UI to the gateway (#397) @frezes
+
+### ENHANCEMENT
+
+* Update whizard-controller-manager resource limits (#486) @frezes
+* Upgrade thanos version to v0.34.1 (#481) @frezes
+* Update servicemonitors (#472) @junotx
+* Update cortex-tenant version (#461) @frezes
+* Add setting global.imageRegistry and global.nodeSelector in the helm values (#460) @frezes
+* Refactor access external datasource (#450) @frezes
+* Refactor tls configuration support and remove envoy sidecar (#441) @frezes
+* Set a default tsdb volume if not specified (#434) @junotx
+* Add separator to crds (#496) @junotx
+
+### Bugfix
+
+* Fix label values api (#458) @junotx
+* Fix panic when remotequery is nil (#413) @junotx
+* Fix invalid remote write address in ruler (#420) @junotx
+
+### Other changes
+
+* Bump thanosio/thanos from v0.33.0 to v0.34.1 in /build/monitoring-block-manager (#470) @dependabot
+* Bump actions/setup-go from 4 to 5 (#443) @dependabot
+* Bump actions/cache from 3 to 4 (#444) @dependabot
+* Bump actions/checkout from 3 to 4 (#445) @dependabot
+* Bump k8s.io/klog/v2 from 2.110.1 to 2.120.1 (#448) @dependabot
+* Bump release-drafter/release-drafter from 5 to 6 (#459) @dependabot
+* Bump golang from 1.21.6 to 1.22.0 in /build/monitoring-agent-proxy (#462) @dependabot
+* Bump helm/kind-action from 1.8.0 to 1.9.0 (#463) @dependabot
+* Bump golang from 1.21.6 to 1.22.0 in /build/monitoring-block-manager (#464) @dependabot
+* Bump golang from 1.21.6 to 1.22.0 in /build/monitoring-gateway (#465) @dependabot
+* Bump golang from 1.21.6 to 1.22.0 in /build/controller-manager (#466) @dependabot
+* Bump thanosio/thanos from v0.32.5 to v0.33.0 in /build/monitoring-block-manager (#416) @dependabot
+* Bump k8s.io/apiextensions-apiserver from 0.28.4 to 0.29.1 (#439) @dependabot
+* Bump k8s.io/apimachinery from 0.28.4 to 0.29.1 (#440) @dependabot
+* Bump actions/setup-python from 4 to 5 (#408) @dependabot
+* Bump actions/setup-go from 4 to 5 (#407) @dependabot
+* Bump github.com/prometheus/common from 0.44.0 to 0.46.0 (#432) @dependabot
+* Bump golang from 1.21.4 to 1.21.6 in /build/monitoring-block-manager (#433) @dependabot
+* Bump golang from 1.21.4 to 1.21.6 in /build/monitoring-agent-proxy (#430) @dependabot
+* Bump golang from 1.21.4 to 1.21.6 in /build/monitoring-gateway (#429) @dependabot
+* Bump golang from 1.21.4 to 1.21.6 in /build/controller-manager (#428) @dependabot
+* Bump docker/setup-buildx-action from 2 to 3 (#362) @dependabot
+* Bump docker/setup-qemu-action from 2 to 3 (#361) @dependabot
+* Bump docker/login-action from 2 to 3 (#360) @dependabot
+* Upgrade dependencies (#398) @frezes
+
+**Full Changelog**: https://github.com/WhizardTelemetry/whizard/compare/v0.9.0...v0.10.0
+
 # v0.9.0 / 2023-09-22
 
 ### Features
