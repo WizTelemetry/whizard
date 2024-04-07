@@ -76,38 +76,38 @@
 * Gateway supports tenant access control([#310](https://github.com/WhizardTelemetry/whizard/pull/310))
 * Gateway enhancement and refactor([#310](https://github.com/WhizardTelemetry/whizard/pull/310))
 
-### ENHANCEMENT
+### Enhancements
 
 * Upgrade thanos version to v0.32.2([#335](https://github.com/WhizardTelemetry/whizard/pull/335))
 * Fix dependabot security alerts([#329](https://github.com/WhizardTelemetry/whizard/pull/329))
 * Upgrade go version to 1.21([#306](https://github.com/WhizardTelemetry/whizard/pull/329))
 
-### Bugfix
+### Bugfixes
 
 * Fix rulerOptions missing dataVolume ([#356](https://github.com/WhizardTelemetry/whizard/pull/356))
 * Add ruler emptyDir volume mount ([#352](https://github.com/WhizardTelemetry/whizard/pull/352))
 * Fix bug to add emptyDir volume([#340](https://github.com/WhizardTelemetry/whizard/pull/340), [#350](https://github.com/WhizardTelemetry/whizard/pull/350))
 
-# v0.9.0-rc.2 / 2023-09-15
+## v0.9.0-rc.2 / 2023-09-15
 
-### Bugfix
+### Bugfixes
 
 * Fix rulerOptions missing dataVolume ([#356](https://github.com/WhizardTelemetry/whizard/pull/356)) @frezes
 
-# v0.9.0-rc.1 / 2023-09-12
+## v0.9.0-rc.1 / 2023-09-12
 
 ### Features
 
 * Add helm lint and test ([#338](https://github.com/WhizardTelemetry/whizard/pull/352)) @frezes
 
-### Bugfix
+### Bugfixes
 
 * Add ruler emptyDir volume mount ([#352](https://github.com/WhizardTelemetry/whizard/pull/352)) @frezes
 * Fix bug to add emptyDir volume([#340](https://github.com/WhizardTelemetry/whizard/pull/340), [#350](https://github.com/WhizardTelemetry/whizard/pull/350)) @junotx
 
-# v0.9.0-rc.0 / 2023-09-07
+## v0.9.0-rc.0 / 2023-09-07
 
-### FEATURES
+### Features
 
 * Gateway supports server-side basic_auth authentication configuration([#332](https://github.com/WhizardTelemetry/whizard/pull/332))
 * Add persistentVolumeClaimRetentionPolicy config([#330](https://github.com/WhizardTelemetry/whizard/pull/330))
@@ -117,87 +117,87 @@
 * Gateway supports tenant access control([#310](https://github.com/WhizardTelemetry/whizard/pull/310))
 * Gateway enhancement and refactor([#310](https://github.com/WhizardTelemetry/whizard/pull/310))
 
-### ENHANCEMENT
+### Enhancements
 
 * Upgrade thanos version to v0.32.2([#335](https://github.com/WhizardTelemetry/whizard/pull/335))
 * Fix dependabot security alerts([#329](https://github.com/WhizardTelemetry/whizard/pull/329))
 * Upgrade go version to 1.21([#306](https://github.com/WhizardTelemetry/whizard/pull/329))
 
-# v0.8.0 / 2023-08-07
+## v0.8.0 / 2023-08-07
 
-### FEATURES
+### Features
 
 * Support external remote write and query ([#290](https://github.com/WhizardTelemetry/whizard/pull/290))
 
-### ENHANCEMENT
+### Enhancements
 
 * Gateway: Replace tenant matcher of query param for query api ([#297](https://github.com/WhizardTelemetry/whizard/pull/297))
 * Optimize ingester data cleanup when a tenant is deleted ([#291](https://github.com/WhizardTelemetry/whizard/pull/291))
 * Optimize transport parameters for agent proxy component ([#286](https://github.com/WhizardTelemetry/whizard/pull/286))
 
-### BUGFIX
+### Bugfixes
 
 * Fix values config in the chart ([#292](https://github.com/WhizardTelemetry/whizard/pull/292))
 
-# v0.8.0-rc.0 / 2023-07-27
+## v0.8.0-rc.0 / 2023-07-27
 
-### FEATURES
+### Features
 
 * Support external remote write and query ([#290](https://github.com/WhizardTelemetry/whizard/pull/290))
 
-### ENHANCEMENT
+### Enhancements
 
 * Optimize ingester data cleanup when a tenant is deleted ([#291](https://github.com/WhizardTelemetry/whizard/pull/291))
 * Optimize transport parameters for agent proxy component ([#286](https://github.com/WhizardTelemetry/whizard/pull/286))
 
-### BUGFIX
+### Bugfixes
 
 * Fix values config in the chart ([#292](https://github.com/WhizardTelemetry/whizard/pull/292))
 
-# v0.7.0 / 2023-06-30
+## v0.7.0 / 2023-06-30
 
-### FEATURES
+### Features
 
 * Allow to override --query flag for global ruler to query external data sources([#277](https://github.com/WhizardTelemetry/whizard/pull/277))
 
-### BUGFIX
+### Bugfixes
 
 * ruler watches router([#276](https://github.com/WhizardTelemetry/whizard/pull/276))
 * remove alpn_protocols in envoy config([#275](https://github.com/WhizardTelemetry/whizard/pull/275))
 
+## v0.7.0-rc.0 / 2023-06-21
 
-# v0.7.0-rc.0 / 2023-06-21
-
-### FEATURES
+### Features
 
 * Components support https configuration([#264](https://github.com/WhizardTelemetry/whizard/pull/264))
 * Gateway supports tls configuration for downstream services([#263](https://github.com/WhizardTelemetry/whizard/pull/263))
 
-### BUGFIX
+### Bugfixes
 
 * Fix ruler name conflicts ([#265](https://github.com/WhizardTelemetry/whizard/pull/265))
 * Fixed ruler name being too long([#250](https://github.com/WhizardTelemetry/whizard/pull/250))
 * Optionally deploy Store HPA([#246](https://github.com/WhizardTelemetry/whizard/pull/246))
 * Degrade Thanos Query to v0.30.2([#252](https://github.com/WhizardTelemetry/whizard/pull/252))
 
-### ENHANCEMENT
+### Enhancements
 
 * Add cherry pick action in CI([#247](https://github.com/WhizardTelemetry/whizard/pull/247))
 * Add `--tsdb.out-of-order.time-window=10m` flag to ingester([#252](https://github.com/WhizardTelemetry/whizard/pull/252))
 
-# v0.6.2 / 2023-05-12
+## v0.6.2 / 2023-05-12
+
 ### Features
 
 * Support to configure imagePullSecrets for private registry([#241](https://github.com/WhizardTelemetry/whizard/pull/241))
 
+## v0.6.1 / 2023-04-21
 
-# v0.6.1 / 2023-04-21
-### BUGFIX
+### Bugfixes
 
 * Donot copy all labels of custom resources to managed workloads to fix that managed workloads cannot be upgraded([#230](https://github.com/WhizardTelemetry/whizard/pull/230))
 * Fix object storage config in chart([#231](https://github.com/WhizardTelemetry/whizard/pull/231))
 
-# v0.6.0 / 2023-04-14
+## v0.6.0 / 2023-04-14
 
 ### Features
 
@@ -205,7 +205,7 @@
 * Add tenant selector in store([#171](https://github.com/WhizardTelemetry/whizard/pull/171))
 * Allow tenants to monopolize resources([#170](https://github.com/WhizardTelemetry/whizard/pull/170))
 
-### ENHANCEMENT
+### Enhancements
 
 * Allows global configuration to update compactor.retention([#186](https://github.com/WhizardTelemetry/whizard/pull/186))
 * Adjust ingester retention period([#185](https://github.com/WhizardTelemetry/whizard/pull/185))
@@ -215,37 +215,35 @@
 * Upgrade Thanos to v0.31.0([#208](https://github.com/WhizardTelemetry/whizard/pull/208))
 * Update Ruler to query from QueryFrontend with a higher performance than Query([#211](https://github.com/WhizardTelemetry/whizard/pull/211))
 
-### BUGFIX
+### Bugfixes
 
 * Fix tls secret volume mount in storage component([#183](https://github.com/WhizardTelemetry/whizard/pull/183))
 * Fix mapstructure decode bugs and add config unit test([#137](https://github.com/WhizardTelemetry/whizard/pull/137))
 * Fix override method bugs and add options unit test([#160](https://github.com/WhizardTelemetry/whizard/pull/160))
 * Fix resources config parse and override error ([#208](https://github.com/WhizardTelemetry/whizard/pull/208))
 
-# 0.6.0-rc.2 / 2023-04-03
+## 0.6.0-rc.2 / 2023-04-03
 
-### ENHANCEMENT
+### Enhancements
 
 * Update the ruler to query from the QueryFrontend with a higher performance than the Query([#211](https://github.com/WhizardTelemetry/whizard/pull/211))
 
-### BUGFIX
+### Bugfixes
 
 * Update go4.org/unsafe/assume-no-moving-gc to fix the build failed to run with go1.20([#211](https://github.com/WhizardTelemetry/whizard/pull/211))
 
-# 0.6.0-rc.1 / 2023-03-24
+## 0.6.0-rc.1 / 2023-03-24
 
-### ENHANCEMENT
+### Enhancements
 
 * Upgrade Thanos to v0.31.0([#208](https://github.com/WhizardTelemetry/whizard/pull/208))
 * Upgrade dependencies([#208](https://github.com/WhizardTelemetry/whizard/pull/208))
 
-### BUGFIX
+### Bugfixes
 
 * Fix some bugs([#201](https://github.com/WhizardTelemetry/whizard/pull/201))
 
-
-
-# 0.6.0-rc.0 / 2023-03-08
+## 0.6.0-rc.0 / 2023-03-08
 
 ### Features
 
@@ -253,7 +251,7 @@
 * Add tenant selector in store([#171](https://github.com/WhizardTelemetry/whizard/pull/171))
 * Allow tenants to monopolize resources([#170](https://github.com/WhizardTelemetry/whizard/pull/170))
 
-### ENHANCEMENT
+### Enhancements
 
 * Allows global configuration to update compactor.retention([#186](https://github.com/WhizardTelemetry/whizard/pull/186))
 * Adjust ingester retention period([#185](https://github.com/WhizardTelemetry/whizard/pull/185))
@@ -261,19 +259,17 @@
 * Update charts([#187](https://github.com/WhizardTelemetry/whizard/pull/187), [#162](https://github.com/WhizardTelemetry/whizard/pull/162))
 * Support mutil-arch image build([#136](https://github.com/WhizardTelemetry/whizard/pull/136))
 
-### BUGFIX
+### Bugfixes
 
 * Fix tls secret volume mount in storage component([#183](https://github.com/WhizardTelemetry/whizard/pull/183))
 * Fix mapstructure decode bugs and add config unit test([#137](https://github.com/WhizardTelemetry/whizard/pull/137))
 * Fix override method bugs and add options unit test([#160](https://github.com/WhizardTelemetry/whizard/pull/160))
 
-
-
-# 0.5.0-rc.0 / 2022-09-29
+## 0.5.0 / 2022-09-29
 
 This is the first release of whizard.
 
-## What's new
+### What's new
 
 Whizard is a distributed cloud observability platform that provides unified observability (currently monitoring and alerting) for Multi-Cloud, On-Premise and Edge infrastructures and applications. 
 
@@ -306,4 +302,3 @@ The Whizard Controller Manager simplifies and automates the configuration and de
 ### Others
 
 - Whizard also has an agent proxy component that implements the Prometheus HTTP v1 API (reads/writes), which can be used as a data collection agent and a query proxy.
-
