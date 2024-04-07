@@ -1,4 +1,4 @@
-## v0.10.0 / 2024-04-07
+# v0.10.0 / 2024-04-07
 
 ### Features
 
@@ -14,7 +14,7 @@
 * Supports authentication of external data sources (#404) @frezes
 * Add a built-in query UI to the gateway (#397) @frezes
 
-### Enhancements
+### ENHANCEMENT
 
 * Update whizard-controller-manager resource limits (#486) @frezes
 * Upgrade thanos version to v0.34.1 (#481) @frezes
@@ -26,7 +26,7 @@
 * Set a default tsdb volume if not specified (#434) @junotx
 * Add separator to crds (#496) @junotx
 
-### Bugfixes
+### Bugfix
 
 * Fix label values api (#458) @junotx
 * Fix panic when remotequery is nil (#413) @junotx
@@ -62,7 +62,7 @@
 
 **Full Changelog**: https://github.com/WhizardTelemetry/whizard/compare/v0.9.0...v0.10.0
 
-## v0.9.0 / 2023-09-22
+# v0.9.0 / 2023-09-22
 
 ### Features
 
