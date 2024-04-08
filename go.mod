@@ -25,8 +25,8 @@ require (
 	github.com/prometheus-community/prom-label-proxy v0.7.0
 	github.com/prometheus-operator/prometheus-operator v0.68.0
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.70.0
-	github.com/prometheus/client_golang v1.17.0
-	github.com/prometheus/common v0.44.0
+	github.com/prometheus/client_golang v1.19.0
+	github.com/prometheus/common v0.52.2
 	// Prometheus maps version 2.x.y to tags v0.x.y.
 	github.com/prometheus/prometheus v0.48.0
 	github.com/spf13/cobra v1.7.0
@@ -48,6 +48,8 @@ require (
 	sigs.k8s.io/controller-runtime v0.16.3
 	sigs.k8s.io/yaml v1.4.0
 )
+
+require golang.org/x/crypto v0.21.0
 
 require (
 	cloud.google.com/go v0.110.8 // indirect
@@ -119,7 +121,6 @@ require (
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/metalmatze/signal v0.0.0-20210307161603-1c9aa721a97a // indirect
 	github.com/miekg/dns v1.1.56 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
@@ -136,10 +137,10 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus-operator/prometheus-operator/pkg/client v0.70.0 // indirect
 	github.com/prometheus/alertmanager v0.26.0 // indirect
-	github.com/prometheus/client_model v0.5.0 // indirect
+	github.com/prometheus/client_model v0.6.0 // indirect
 	github.com/prometheus/common/sigv4 v0.1.0 // indirect
 	github.com/prometheus/exporter-toolkit v0.10.0 // indirect
-	github.com/prometheus/procfs v0.11.1 // indirect
+	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/redis/rueidis v1.0.14-go1.18 // indirect
 	github.com/sercand/kuberesolver v2.4.0+incompatible // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
@@ -178,14 +179,13 @@ require (
 	go.uber.org/zap v1.25.0 // indirect
 	go4.org/intern v0.0.0-20230525184215-6c62f75575cb // indirect
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20230525183740-e7c30c78aeb2 // indirect
-	golang.org/x/crypto v0.17.0 // indirect
 	golang.org/x/exp v0.0.0-20231127185646-65229373498e // indirect
 	golang.org/x/mod v0.14.0 // indirect
-	golang.org/x/net v0.19.0 // indirect
-	golang.org/x/oauth2 v0.15.0 // indirect
+	golang.org/x/net v0.22.0 // indirect
+	golang.org/x/oauth2 v0.18.0 // indirect
 	golang.org/x/sync v0.5.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
-	golang.org/x/term v0.15.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/term v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.16.1 // indirect
@@ -194,7 +194,7 @@ require (
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231009173412-8bfb1ae86b6c // indirect
 	google.golang.org/grpc v1.58.3 // indirect
-	google.golang.org/protobuf v1.31.0 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
