@@ -75,22 +75,16 @@ all: build
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
-# stripped-down-crds is a version of the whizard CRDs with all
-# description fields being removed. It is meant as a workaround for the issue
-# that `kubectl apply -f ...` might fail with the full version of the CRDs
-# because of too long annotations field.
-# See https://github.com/prometheus-operator/prometheus-operator/issues/4355
-stripped-down-crds: manifests
-	cd config/crd/bases && \
-	for f in *.yaml; do \
-		echo "---" > ../../../charts/whizard/crds/$$f; \
-		gojsontoyaml -yamltojson < $$f | jq 'walk(if type == "object" then with_entries(if .value|type=="object" then . else select(.key | test("description") | not) end) else . end)' | gojsontoyaml >> ../../../charts/whizard/crds/$$f; \
-	done && \
-	cp -rf ../../../charts/whizard/crds ../../../charts/whizard-crds/;
-
-
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+
+clientset:
+	./hack/generate_client.sh $(GV)
+
+bundle: manifests kustomize
+	cd config/manager && $(KUSTOMIZE) edit set image controller=$(CONTROLLER_MANAGER_IMG)
+	cd config/default && $(KUSTOMIZE) edit set namespace kubesphere-monitoring-system
+	$(KUSTOMIZE) build config/default > config/bundle.yaml
 
 fmt: ## Run go fmt against code.
 	go fmt ./...
@@ -159,6 +153,10 @@ KUSTOMIZE = $(shell pwd)/bin/kustomize
 kustomize: ## Download kustomize locally if necessary.
 	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v3.8.7)
 
+CRD-REF-DOCS =$(shell pwd)/bin/crd-ref-docs
+crd-ref-docs: ## Download crd-ref-docs locally if necessary.
+	$(call go-get-tool,$(CRD-REF-DOCS),github.com/elastic/crd-ref-docs@v0.0.12)
+
 # go-get-tool will 'go get' any package $2 and install it to $1.
 PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
 define go-get-tool
@@ -173,18 +171,27 @@ rm -rf $$TMP_DIR ;\
 }
 endef
 
-clientset:
-	./hack/generate_client.sh $(GV)
 
-bundle: manifests kustomize
-	cd config/manager && $(KUSTOMIZE) edit set image controller=$(CONTROLLER_MANAGER_IMG)
-	cd config/default && $(KUSTOMIZE) edit set namespace kubesphere-monitoring-system
-	$(KUSTOMIZE) build config/default > config/bundle.yaml
+docgen: crd-ref-docs
+	$(CRD-REF-DOCS) \
+	    --source-path=./pkg/api/monitoring/v1alpha1 \
+	    --config=./tools/docgen/config.yaml \
+		--output-path=./docs/monitoring/api.md \
+	    --renderer=markdown
 
-MONITORING_TYPE_GOES=$(shell find pkg/api/monitoring -name *_types.go | tr '\n' ' ')
-docs/monitoring/api.md: tools/docgen/docgen.go $(TYPE_GOES)
-	go run github.com/kubesphere/whizard/tools/docgen $(MONITORING_TYPE_GOES) > docs/monitoring/api.md
+# stripped-down-crds is a version of the whizard CRDs with all
+# description fields being removed. It is meant as a workaround for the issue
+# that `kubectl apply -f ...` might fail with the full version of the CRDs
+# because of too long annotations field.
+# See https://github.com/prometheus-operator/prometheus-operator/issues/4355
+stripped-down-crds: manifests
+	cd config/crd/bases && \
+	for f in *.yaml; do \
+		echo "---" > ../../../charts/whizard/crds/$$f; \
+		gojsontoyaml -yamltojson < $$f | jq 'walk(if type == "object" then with_entries(if .value|type=="object" then . else select(.key | test("description") | not) end) else . end)' | gojsontoyaml >> ../../../charts/whizard/crds/$$f; \
+	done && \
+	cp -rf ../../../charts/whizard/crds ../../../charts/whizard-crds/;
 
-update-helm-appVersion: ## Update appVersion in helm chart.
+cut-new-version: stripped-down-crds ## Update appVersion in helm chart.
 	$(shell sed -i '' -e 's/appVersion:.*/appVersion: "'$(VERSION)'"/g'  charts/whizard/Chart.yaml)
 	   
