@@ -26,7 +26,7 @@ require (
 	github.com/prometheus-operator/prometheus-operator v0.72.0
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.73.2
 	github.com/prometheus/client_golang v1.19.0
-	github.com/prometheus/common v0.49.1-0.20240306132007-4199f18c3e92
+	github.com/prometheus/common v0.53.0
 	// Prometheus maps version 2.x.y to tags v0.x.y.
 	github.com/prometheus/prometheus v0.51.1-0.20240325140356-78c0fd2f4d75
 	github.com/spf13/cobra v1.8.0
@@ -149,7 +149,6 @@ require (
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
-	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/stretchr/testify v1.9.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/thanos-io/objstore v0.0.0-20240309075357-e8336a5fd5f3 // indirect
