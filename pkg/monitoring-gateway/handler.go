@@ -114,7 +114,7 @@ func (h *Handler) AppendQueryUIHandler(logger log.Logger, reg *prometheus.Regist
 
 	ins := extpromhttp.NewInstrumentationMiddleware(reg, nil)
 	r := route.New()
-	ui.NewQueryUI(logger, nil, "/-/ui", "", "").Register(r, ins)
+	ui.NewQueryUI(logger, nil, "/-/ui", "", "", "", "", false).Register(r, ins)
 
 	// matching /-/ui/* routes
 	h.router.PathPrefix(apiUIPrefix).HandlerFunc(h.queryUIHander(apiUIPrefix, h.queryProxy.ServeHTTP, r.ServeHTTP))

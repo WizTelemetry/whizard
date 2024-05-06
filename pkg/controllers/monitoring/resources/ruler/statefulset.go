@@ -15,7 +15,7 @@ import (
 	promoperator "github.com/prometheus-operator/prometheus-operator/pkg/operator"
 	promcommonconfig "github.com/prometheus/common/config"
 	promconfig "github.com/prometheus/prometheus/config"
-	"github.com/thanos-io/thanos/pkg/httpconfig"
+	"github.com/thanos-io/thanos/pkg/clientconfig"
 	"gopkg.in/yaml.v3"
 	yamlv3 "gopkg.in/yaml.v3"
 	appsv1 "k8s.io/api/apps/v1"
@@ -241,16 +241,16 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 			return nil, "", err
 		}
 
-		queryconfig := httpconfig.Config{
-			EndpointsConfig: httpconfig.EndpointsConfig{
+		queryconfig := clientconfig.HTTPConfig{
+			EndpointsConfig: clientconfig.HTTPEndpointsConfig{
 				Scheme:          url.Scheme,
 				StaticAddresses: []string{url.Host},
 				PathPrefix:      r.ruler.Spec.Tenant,
 			},
 		}
 		if gatewayInstance.Spec.WebConfig != nil && gatewayInstance.Spec.WebConfig.HTTPServerTLSConfig != nil {
-			queryconfig.HTTPClientConfig = httpconfig.ClientConfig{
-				TLSConfig: httpconfig.TLSConfig{
+			queryconfig.HTTPClientConfig = clientconfig.HTTPClientConfig{
+				TLSConfig: clientconfig.TLSConfig{
 					InsecureSkipVerify: true,
 				},
 			}
@@ -261,12 +261,12 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 			if err != nil {
 				return nil, "", err
 			}
-			queryconfig.HTTPClientConfig.BasicAuth = httpconfig.BasicAuth{
+			queryconfig.HTTPClientConfig.BasicAuth = clientconfig.BasicAuth{
 				Username: string(username),
 				Password: string(password),
 			}
 		}
-		queryConfigs := []httpconfig.Config{}
+		queryConfigs := []clientconfig.HTTPConfig{}
 		queryConfigs = append(queryConfigs, queryconfig)
 
 		buff, _ := yamlv3.Marshal(queryConfigs)

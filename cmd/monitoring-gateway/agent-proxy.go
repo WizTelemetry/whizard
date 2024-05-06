@@ -13,10 +13,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	config_util "github.com/prometheus/common/config"
 	"github.com/prometheus/common/model"
+	"github.com/thanos-io/thanos/pkg/clientconfig"
 	"github.com/thanos-io/thanos/pkg/component"
 	"github.com/thanos-io/thanos/pkg/extkingpin"
 	"github.com/thanos-io/thanos/pkg/extprom"
-	"github.com/thanos-io/thanos/pkg/httpconfig"
 	"github.com/thanos-io/thanos/pkg/prober"
 	httpserver "github.com/thanos-io/thanos/pkg/server/http"
 	"gopkg.in/yaml.v2"
@@ -92,7 +92,7 @@ func runAgentProxy(
 	comp component.Component,
 ) error {
 
-	gatewayClientCfg := httpconfig.NewDefaultClientConfig()
+	gatewayClientCfg := clientconfig.NewDefaultHTTPClientConfig()
 	if len(conf.gatewayConfigYaml) > 0 {
 		if err := yaml.UnmarshalStrict(conf.gatewayConfigYaml, &gatewayClientCfg); err != nil {
 			return errors.Wrap(err, "parsing gateway config YAML file failed")
@@ -179,7 +179,7 @@ func (c *agentProxyConfig) registerFlag(cmd extkingpin.FlagClause) {
 	cmd.Flag("tenant", "Tenant is the tenant name to be used for all requests.").Default("").StringVar(&c.tenant)
 }
 
-func newRoundTripperFromConfig(cfg *httpconfig.ClientConfig, name string) (http.RoundTripper, error) {
+func newRoundTripperFromConfig(cfg *clientconfig.HTTPClientConfig, name string) (http.RoundTripper, error) {
 	httpClientConfig := config_util.HTTPClientConfig{
 		BearerToken:     config_util.Secret(cfg.BearerToken),
 		BearerTokenFile: cfg.BearerTokenFile,
@@ -219,7 +219,7 @@ func newRoundTripperFromConfig(cfg *httpconfig.ClientConfig, name string) (http.
 		return nil, err
 	}
 
-	rt, err := httpconfig.NewRoundTripperFromConfig(
+	rt, err := clientconfig.NewRoundTripperFromConfig(
 		httpClientConfig,
 		cfg.TransportConfig,
 		name,
