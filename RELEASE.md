@@ -62,7 +62,7 @@ From now on, all work happens on the `release-<major>.<minor>` branch.
 
 Bump the version in the `VERSION` file in the root of the repository.
 
-Then `make update-helm-appVersion` to update the helm appVersion information. 
+Then `make cut-new-version` to update the helm appVersion information.
 
 Images will be automatically built and pushed whenever code changes or a tag is created. If users want to build images manually, use the following command:
 
@@ -84,13 +84,13 @@ tag="$(< VERSION)"
 git tag -a "${tag}" -m "${tag}"
 git push origin "${tag}"
 ```
+
 Commit all the changes.
 
 Finally, create a new release:
 
-- Go to https://github.com/WhizardTelemetry/whizard/releases/new.
-- Associate the new release with the previously pushed tag.
-- Add release notes based on `CHANGELOG.md`.
-
+* Go to https://github.com/WhizardTelemetry/whizard/releases/new.
+* Associate the new release with the previously pushed tag.
+* Add release notes based on `CHANGELOG.md`.
 
 For patch releases, cherry-pick the commits from the release branch into the master branch.
