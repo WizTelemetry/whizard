@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/kubesphere/whizard/cmd/controller-manager/app"
+	"github.com/WhizardTelemetry/whizard/cmd/controller-manager/app"
 )
 
 func main() {

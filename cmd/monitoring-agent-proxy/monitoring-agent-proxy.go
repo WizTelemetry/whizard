@@ -8,7 +8,7 @@ import (
 	"github.com/thanos-io/thanos/pkg/logging"
 	thanos_tls "github.com/thanos-io/thanos/pkg/tls"
 
-	monitoringagentproxy "github.com/kubesphere/whizard/pkg/monitoring-agent-proxy"
+	monitoringagentproxy "github.com/WhizardTelemetry/whizard/pkg/monitoring-agent-proxy"
 )
 
 var cli struct {

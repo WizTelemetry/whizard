@@ -23,8 +23,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	kconfig "sigs.k8s.io/controller-runtime/pkg/client/config"
 
-	"github.com/kubesphere/whizard/pkg/api/monitoring/v1alpha1"
-	"github.com/kubesphere/whizard/pkg/util"
+	"github.com/WhizardTelemetry/whizard/pkg/api/monitoring/v1alpha1"
+	"github.com/WhizardTelemetry/whizard/pkg/util"
 )
 
 const (

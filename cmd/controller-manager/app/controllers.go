@@ -6,13 +6,13 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	"github.com/kubesphere/whizard/pkg/client/k8s"
-	"github.com/kubesphere/whizard/pkg/controllers/monitoring"
+	"github.com/WhizardTelemetry/whizard/pkg/client/k8s"
+	controllers "github.com/WhizardTelemetry/whizard/pkg/controllers"
 )
 
 func addControllers(mgr manager.Manager, client k8s.Client, ctx context.Context) error {
 
-	if err := (&monitoring.GatewayReconciler{
+	if err := (&controllers.GatewayReconciler{
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
 		Context: ctx,
@@ -21,7 +21,7 @@ func addControllers(mgr manager.Manager, client k8s.Client, ctx context.Context)
 		return err
 	}
 
-	if err := (&monitoring.QueryFrontendReconciler{
+	if err := (&controllers.QueryFrontendReconciler{
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
 		Context: ctx,
@@ -30,7 +30,7 @@ func addControllers(mgr manager.Manager, client k8s.Client, ctx context.Context)
 		return err
 	}
 
-	if err := (&monitoring.QueryReconciler{
+	if err := (&controllers.QueryReconciler{
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
 		Context: ctx,
@@ -39,7 +39,7 @@ func addControllers(mgr manager.Manager, client k8s.Client, ctx context.Context)
 		return err
 	}
 
-	if err := (&monitoring.RouterReconciler{
+	if err := (&controllers.RouterReconciler{
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
 		Context: ctx,
@@ -48,7 +48,7 @@ func addControllers(mgr manager.Manager, client k8s.Client, ctx context.Context)
 		return err
 	}
 
-	if err := (&monitoring.StoreReconciler{
+	if err := (&controllers.StoreReconciler{
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
 		Context: ctx,
@@ -57,7 +57,7 @@ func addControllers(mgr manager.Manager, client k8s.Client, ctx context.Context)
 		return err
 	}
 
-	if err := (&monitoring.CompactorReconciler{
+	if err := (&controllers.CompactorReconciler{
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
 		Context: ctx,
@@ -66,7 +66,7 @@ func addControllers(mgr manager.Manager, client k8s.Client, ctx context.Context)
 		return err
 	}
 
-	if err := (&monitoring.IngesterReconciler{
+	if err := (&controllers.IngesterReconciler{
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
 		Context: ctx,
@@ -75,7 +75,7 @@ func addControllers(mgr manager.Manager, client k8s.Client, ctx context.Context)
 		return err
 	}
 
-	if err := (&monitoring.RulerReconciler{
+	if err := (&controllers.RulerReconciler{
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
 		Context: ctx,
@@ -84,7 +84,7 @@ func addControllers(mgr manager.Manager, client k8s.Client, ctx context.Context)
 		return err
 	}
 
-	if err := (&monitoring.TenantReconciler{
+	if err := (&controllers.TenantReconciler{
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
 		Context: ctx,
@@ -93,7 +93,7 @@ func addControllers(mgr manager.Manager, client k8s.Client, ctx context.Context)
 		return err
 	}
 
-	if err := (&monitoring.StorageReconciler{
+	if err := (&controllers.StorageReconciler{
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
 		Context: ctx,

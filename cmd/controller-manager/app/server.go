@@ -20,11 +20,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
-	"github.com/kubesphere/whizard/cmd/controller-manager/app/options"
-	"github.com/kubesphere/whizard/pkg/apis"
-	"github.com/kubesphere/whizard/pkg/client/k8s"
-	"github.com/kubesphere/whizard/pkg/controllers/config"
-	"github.com/kubesphere/whizard/pkg/informers"
+	"github.com/WhizardTelemetry/whizard/cmd/controller-manager/app/options"
+	"github.com/WhizardTelemetry/whizard/pkg/apis"
+	"github.com/WhizardTelemetry/whizard/pkg/client/k8s"
+	"github.com/WhizardTelemetry/whizard/pkg/controllers/config"
 )
 
 func NewControllerManagerCommand() *cobra.Command {
@@ -128,11 +127,6 @@ func run(s *options.ControllerManagerOptions, ctx context.Context) error {
 		return err
 	}
 
-	// Init informers
-	informerFactory := informers.NewInformerFactories(
-		kubernetesClient.Kubernetes(),
-		kubernetesClient.ApiExtensions())
-
 	mgrOptions := manager.Options{
 		HealthProbeBindAddress: s.HealthProbeBindAddress,
 		Metrics: metricsserver.Options{
@@ -177,10 +171,6 @@ func run(s *options.ControllerManagerOptions, ctx context.Context) error {
 		klog.Error(err, "unable to set up ready check")
 		os.Exit(1)
 	}
-
-	// Start cache data after all informer is registered
-	klog.V(0).Info("Starting cache resource from apiserver...")
-	informerFactory.Start(ctx.Done())
 
 	klog.V(0).Info("Starting the controllers.")
 	if err = mgr.Start(ctx); err != nil {

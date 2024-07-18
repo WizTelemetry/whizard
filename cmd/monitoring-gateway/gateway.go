@@ -18,7 +18,7 @@ import (
 	"github.com/thanos-io/thanos/pkg/prober"
 	httpserver "github.com/thanos-io/thanos/pkg/server/http"
 
-	monitoringgateway "github.com/kubesphere/whizard/pkg/monitoring-gateway"
+	monitoringgateway "github.com/WhizardTelemetry/whizard/pkg/monitoring-gateway"
 )
 
 type gatewayConfig struct {
