@@ -21,8 +21,8 @@ import (
 	httpserver "github.com/thanos-io/thanos/pkg/server/http"
 	"gopkg.in/yaml.v2"
 
-	monitoringagentproxy "github.com/kubesphere/whizard/pkg/monitoring-agent-proxy"
-	monitoringgateway "github.com/kubesphere/whizard/pkg/monitoring-gateway"
+	monitoringagentproxy "github.com/WhizardTelemetry/whizard/pkg/monitoring-agent-proxy"
+	monitoringgateway "github.com/WhizardTelemetry/whizard/pkg/monitoring-gateway"
 )
 
 type agentProxyConfig struct {

@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/pflag"
 	"k8s.io/klog/v2"
 
-	"github.com/kubesphere/whizard/pkg/block"
+	"github.com/WhizardTelemetry/whizard/pkg/block"
 )
 
 var (

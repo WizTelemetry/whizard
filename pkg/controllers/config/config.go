@@ -14,7 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 
-	"github.com/kubesphere/whizard/pkg/client/k8s"
+	"github.com/WhizardTelemetry/whizard/pkg/client/k8s"
 )
 
 var (

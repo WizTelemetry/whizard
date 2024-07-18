@@ -10,8 +10,8 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog/v2"
 
-	"github.com/kubesphere/whizard/pkg/client/k8s"
-	"github.com/kubesphere/whizard/pkg/controllers/config"
+	"github.com/WhizardTelemetry/whizard/pkg/client/k8s"
+	"github.com/WhizardTelemetry/whizard/pkg/controllers/config"
 )
 
 type ControllerManagerOptions struct {

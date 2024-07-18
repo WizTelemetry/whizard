@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	"sigs.k8s.io/yaml"
 
-	"github.com/kubesphere/whizard/pkg/client/k8s"
+	"github.com/WhizardTelemetry/whizard/pkg/client/k8s"
 )
 
 func newTestConfig() (*Config, error) {
