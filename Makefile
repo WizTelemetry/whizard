@@ -2,16 +2,14 @@ REPO ?= kubesphere
 TAG ?= $(shell cat VERSION | tr -d " \t\n\r")
 VERSION=$(shell cat VERSION | tr -d " \t\n\r")
 
+# Image URL to use all building/pushing image targets
 CONTROLLER_MANAGER_IMG=${REPO}/whizard-controller-manager:${TAG}
 MONITORING_GATEWAY_IMG=${REPO}/whizard-monitoring-gateway:${TAG}
 MONITORING_AGENT_PROXY_IMG=${REPO}/whizard-monitoring-agent-proxy:${TAG}
 MONITORING_BLOCK_MANAGER_IMG=${REPO}/whizard-monitoring-block-manager:${TAG}
 
-
-# Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd:allowDangerousTypes=true"
-
-GV="monitoring:v1alpha1"
+# ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
+ENVTEST_K8S_VERSION = 1.30.0
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -24,7 +22,11 @@ GOOS?=$(shell go env GOOS)
 GOARCH?=$(shell go env GOARCH)
 
 
-CONTAINER_CLI ?=docker
+# CONTAINER_CLI defines the container tool to be used for building images.
+# Be aware that the target commands are only tested with Docker which is
+# scaffolded by default. However, you might want to replace it to use other
+# tools. (i.e. podman)
+CONTAINER_CLI ?= docker
 # buildx build
 CONTAINER_BUILDER ?= build
 # --platform=linux/amd64,linux/arm64 --push
@@ -63,45 +65,76 @@ GO_BUILD_RECIPE=\
 	go build -ldflags="$(GO_BUILD_LDFLAGS)"
 
 # Setting SHELL to bash allows bash commands to be executed by recipes.
-# This is a requirement for 'setup-envtest.sh' in the test target.
 # Options are set to exit when a recipe line exits non-zero or a piped command fails.
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
+.PHONY: all
 all: build
+
+##@ General
+
+# The help target prints out all targets with their descriptions organized
+# beneath their categories. The categories are represented by '##@' and the
+# target descriptions by '##'. The awk command is responsible for reading the
+# entire set of makefiles included in this invocation, looking for lines of the
+# file as xyz: ## something, and then pretty-format the target and help. Then,
+# if there's a line with ##@ something, that gets pretty-printed as a category.
+# More info on the usage of ANSI control characters for terminal formatting:
+# https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_parameters
+# More info on the awk command:
+# http://linuxcommand.org/lc3_adv_awk.php
+
+.PHONY: help
+help: ## Display this help.
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 ##@ Development
 
+.PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
+.PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
-
-clientset:
-	./hack/generate_client.sh $(GV)
 
 bundle: manifests kustomize
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(CONTROLLER_MANAGER_IMG)
 	cd config/default && $(KUSTOMIZE) edit set namespace kubesphere-monitoring-system
 	$(KUSTOMIZE) build config/default > config/bundle.yaml
 
+.PHONY: fmt
 fmt: ## Run go fmt against code.
 	go fmt ./...
 
+.PHONY: vet
 vet: ## Run go vet against code.
 	go vet ./...
 
-ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
-test: manifests generate fmt vet ## Run tests.
-	mkdir -p ${ENVTEST_ASSETS_DIR}
-	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.8.3/hack/setup-envtest.sh
-	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test ./... -coverprofile cover.out
+.PHONY: test
+test: manifests generate fmt vet envtest ## Run tests.
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $$(go list ./... | grep -v /e2e) -coverprofile cover.out
+
+# Utilize Kind or modify the e2e tests to load the image locally, enabling compatibility with other vendors.
+.PHONY: test-e2e  # Run the e2e tests against a Kind k8s instance that is spun up.
+test-e2e:
+	go test ./test/e2e/ -v -ginkgo.v
+
+.PHONY: lint
+lint: golangci-lint ## Run golangci-lint linter
+	$(GOLANGCI_LINT) run
+
+.PHONY: lint-fix
+lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes
+	$(GOLANGCI_LINT) run --fix
+
+
 
 ##@ Build
 
 .PHONY: build
-build: controller-manager monitoring-gateway monitoring-block-manager
+build: manifests generate fmt vet controller-manager monitoring-gateway monitoring-block-manager ## Build manager binary.
 
 controller-manager: 
 	$(GO_BUILD_RECIPE)  -o bin/controller-manager cmd/controller-manager/controller-manager.go
@@ -109,13 +142,15 @@ controller-manager:
 monitoring-gateway: 
 	$(GO_BUILD_RECIPE) -o bin/monitoring-gateway cmd/monitoring-gateway/*
 
-#monitoring-agent-proxy:
-#	go build -o bin/monitoring-agent-proxy cmd/monitoring-agent-proxy/monitoring-agent-proxy.go
-
 monitoring-block-manager:
 	go build -o bin/monitoring-block-manager cmd/monitoring-block-manager/block-manager.go
 
-docker-build: docker-build-controller-manager docker-build-monitoring-gateway docker-build-monitoring-agent-proxy docker-build-monitoring-block-manager
+
+# If you wish to build the manager image targeting other platforms you can use the --platform flag.
+# (i.e. docker build --platform linux/arm64). However, you must enable docker buildKit for it.
+# More info: https://docs.docker.com/develop/develop-images/build_enhancements/
+.PHONY: docker-build
+docker-build: docker-build-controller-manager docker-build-monitoring-gateway docker-build-monitoring-agent-proxy docker-build-monitoring-block-manager ## Build docker image with the manager.
 
 docker-build-controller-manager: 
 	${CONTAINER_CLI} ${CONTAINER_BUILDER} ${CONTAINER_BUILD_EXTRA_ARGS} --build-arg GOLDFLAGS="$(GO_BUILD_LDFLAGS)" -t $(CONTROLLER_MANAGER_IMG) -f build/controller-manager/Dockerfile .
@@ -131,53 +166,32 @@ docker-build-monitoring-block-manager:
 
 ##@ Deployment
 
+ifndef ignore-not-found
+  ignore-not-found = false
+endif
+
+.PHONY: install
 install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/crd | kubectl apply --server-side  -f -
+	$(KUSTOMIZE) build config/crd | $(KUBECTL) apply --server-side -f -
 
-uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/crd | kubectl delete -f -
+.PHONY: uninstall
+uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
+	$(KUSTOMIZE) build config/crd | $(KUBECTL) delete --ignore-not-found=$(ignore-not-found) -f -
 
+.PHONY: deploy
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${CONTROLLER_MANAGER_IMG}
-	$(KUSTOMIZE) build config/default | kubectl apply --server-side -f -
+	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+	$(KUSTOMIZE) build config/default | $(KUBECTL) apply --server-side -f -
 
-undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/default | kubectl delete -f -
-
-
-CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
-controller-gen: ## Download controller-gen locally if necessary.
-	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.13.0)
-
-KUSTOMIZE = $(shell pwd)/bin/kustomize
-kustomize: ## Download kustomize locally if necessary.
-	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v3.8.7)
-
-CRD-REF-DOCS =$(shell pwd)/bin/crd-ref-docs
-crd-ref-docs: ## Download crd-ref-docs locally if necessary.
-	$(call go-get-tool,$(CRD-REF-DOCS),github.com/elastic/crd-ref-docs@v0.0.12)
-
-# go-get-tool will 'go get' any package $2 and install it to $1.
-PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
-define go-get-tool
-@[ -f $(1) ] || { \
-set -e ;\
-TMP_DIR=$$(mktemp -d) ;\
-cd $$TMP_DIR ;\
-go mod init tmp ;\
-echo "Downloading $(2)" ;\
-GOBIN=$(PROJECT_DIR)/bin go install $(2) ;\
-rm -rf $$TMP_DIR ;\
-}
-endef
+.PHONY: undeploy
+undeploy: kustomize ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
+	$(KUSTOMIZE) build config/default | $(KUBECTL) delete --ignore-not-found=$(ignore-not-found) -f -
 
 
-docgen: crd-ref-docs
-	$(CRD-REF-DOCS) \
-	    --source-path=./pkg/api/monitoring/v1alpha1 \
-	    --config=./tools/docgen/config.yaml \
-		--output-path=./docs/monitoring/api.md \
-	    --renderer=markdown
+##@ Others
+
+generate-api-docs: gen-crd-api-reference-docs manifests ## Generate API documentation
+	$(API_DOC_GEN) -api-dir "github.com/WhizardTelemetry/whizard/pkg/api/monitoring/v1alpha1" -config "$(PWD)/tools/docs/config.json" -template-dir "$(PWD)/tools/docs/templates" -out-file "$(PWD)/docs/api.md"
 
 # stripped-down-crds is a version of the whizard CRDs with all
 # description fields being removed. It is meant as a workaround for the issue
@@ -192,6 +206,63 @@ stripped-down-crds: manifests
 	done && \
 	cp -rf ../../../charts/whizard/crds ../../../charts/whizard-crds/;
 
-cut-new-version: stripped-down-crds ## Update appVersion in helm chart.
-	$(shell sed -i '' -e 's/appVersion:.*/appVersion: "'$(VERSION)'"/g'  charts/whizard/Chart.yaml)
-	   
+##@ Dependencies
+
+## Location to install dependencies to
+LOCALBIN ?= $(shell pwd)/bin
+$(LOCALBIN):
+	mkdir -p $(LOCALBIN)
+
+## Tool Binaries
+KUBECTL ?= kubectl
+KUSTOMIZE ?= $(LOCALBIN)/kustomize-$(KUSTOMIZE_VERSION)
+CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen-$(CONTROLLER_TOOLS_VERSION)
+ENVTEST ?= $(LOCALBIN)/setup-envtest-$(ENVTEST_VERSION)
+GOLANGCI_LINT = $(LOCALBIN)/golangci-lint-$(GOLANGCI_LINT_VERSION)
+API_DOC_GEN ?= $(LOCALBIN)/gen-crd-api-reference-docs-$(API_DOC_GEN_VERSION)
+
+## Tool Versions
+KUSTOMIZE_VERSION ?= v5.4.1
+CONTROLLER_TOOLS_VERSION ?= v0.15.0
+ENVTEST_VERSION ?= release-0.18
+GOLANGCI_LINT_VERSION ?= v1.57.2
+API_DOC_GEN_VERSION ?= v0.3.0
+
+.PHONY: kustomize
+kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
+$(KUSTOMIZE): $(LOCALBIN)
+	$(call go-install-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v5,$(KUSTOMIZE_VERSION))
+
+.PHONY: controller-gen
+controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
+$(CONTROLLER_GEN): $(LOCALBIN)
+	$(call go-install-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen,$(CONTROLLER_TOOLS_VERSION))
+
+.PHONY: envtest
+envtest: $(ENVTEST) ## Download setup-envtest locally if necessary.
+$(ENVTEST): $(LOCALBIN)
+	$(call go-install-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest,$(ENVTEST_VERSION))
+
+.PHONY: golangci-lint
+golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
+$(GOLANGCI_LINT): $(LOCALBIN)
+	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/cmd/golangci-lint,${GOLANGCI_LINT_VERSION})
+
+.PHONY: gen-crd-api-reference-docs
+gen-crd-api-reference-docs: $(API_DOC_GEN) ## Download gen-crd-api-reference-docs locally if necessary.
+$(API_DOC_GEN): $(LOCALBIN)
+	$(call go-install-tool,$(API_DOC_GEN),github.com/ahmetb/gen-crd-api-reference-docs,$(API_DOC_GEN_VERSION))
+
+# go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
+# $1 - target path with name of binary (ideally with version)
+# $2 - package url which can be installed
+# $3 - specific version of package
+define go-install-tool
+@[ -f $(1) ] || { \
+set -e; \
+package=$(2)@$(3) ;\
+echo "Downloading $${package}" ;\
+GOBIN=$(LOCALBIN) go install $${package} ;\
+mv "$$(echo "$(1)" | sed "s/-$(3)$$//")" $(1) ;\
+}
+endef
