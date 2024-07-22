@@ -1,0 +1,30 @@
+{
+  "hideMemberFields": [
+    "TypeMeta",
+    "EmbeddedContainers"
+  ],
+  "hideTypePatterns": [
+    "List$", 
+    "Interface$"
+  ],
+  "externalPackages": [
+    {
+      "typeMatchPrefix": "^k8s\\.io/apimachinery/pkg/apis/meta/v1\\.Duration$",
+      "docsURLTemplate": "https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration"
+    },
+    {
+      "typeMatchPrefix": "^k8s\\.io/apimachinery/pkg/runtime\\.RawExtension$",
+      "docsURLTemplate": "https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension"
+    },
+    {
+      "typeMatchPrefix": "^k8s\\.io/(api|apimachinery/pkg/apis)/",
+      "docsURLTemplate": "https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#{{lower .TypeIdentifier}}-{{arrIndex .PackageSegments -1}}-{{arrIndex .PackageSegments -2}}"
+    }
+  ],
+  "typeDisplayNamePrefixOverrides": {
+    "k8s.io/api/": "Kubernetes ",
+    "k8s.io/apimachinery/pkg/apis/": "Kubernetes ",
+    "github.com/WhizardTelemetry/whizard/pkg/api/monitoring/v1alpha1": "Monitoring v1alpha1 "
+  },
+  "markdownDisabled": false
+}

@@ -1,18 +1,6 @@
 package store
 
-import (
-	"k8s.io/api/autoscaling/v2beta2"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/WhizardTelemetry/whizard/pkg/api/monitoring/v1alpha1"
-	"github.com/WhizardTelemetry/whizard/pkg/constants"
-	"github.com/WhizardTelemetry/whizard/pkg/controllers/resources"
-	"github.com/WhizardTelemetry/whizard/pkg/util"
-)
-
+/*
 func (r *Store) horizontalPodAutoscalers() (retResources []resources.Resource) {
 	timeRanges := r.store.Spec.TimeRanges
 	if len(timeRanges) == 0 {
@@ -92,3 +80,4 @@ func (r *Store) horizontalPodAutoscaler(name string, partitionSn int) (runtime.O
 
 	return hpa, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(r.store, hpa, r.Scheme)
 }
+*/

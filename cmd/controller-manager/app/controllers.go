@@ -7,7 +7,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/WhizardTelemetry/whizard/pkg/client/k8s"
-	controllers "github.com/WhizardTelemetry/whizard/pkg/controllers"
+	"github.com/WhizardTelemetry/whizard/pkg/controllers"
 )
 
 func addControllers(mgr manager.Manager, client k8s.Client, ctx context.Context) error {

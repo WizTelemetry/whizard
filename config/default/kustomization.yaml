@@ -25,7 +25,6 @@ namePrefix: whizard-
 # endpoint w/o any authn/z, please comment the following line.
 patchesStrategicMerge:
 - manager_auth_proxy_patch.yaml
-- manager_sidecar_adapter_patch.yaml
 
 # Mount the controller config file for loading manager configurations
 # through a ComponentConfig type
