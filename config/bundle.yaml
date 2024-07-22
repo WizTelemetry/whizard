@@ -1,6 +1,10 @@
 apiVersion: v1
 kind: Namespace
 metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: whizard
+    control-plane: controller-manager
   name: kubesphere-monitoring-system
 ---
 apiVersion: apiextensions.k8s.io/v1
@@ -18,10 +22,22 @@ spec:
     singular: compactor
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - description: The number of desired replicas
+      jsonPath: .spec.replicas
+      name: Replicas
+      type: integer
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Compactor is the Schema for the compactors API
+        description: |-
+          The `Compactor` custom resource definition (CRD) defines a desired [Compactor](https://thanos.io/tip/components/compactor.md/) setup to run in a Kubernetes cluster. It allows to specify many options such as the number of replicas, persistent storage and many more.
+
+
+          For each `Compactor` resource, the Operator deploys a `StatefulSet` in the same namespace.
         properties:
           apiVersion:
             description: |-
@@ -984,9 +1000,8 @@ spec:
                 description: DataVolume specifies how volume shall be used
                 properties:
                   emptyDir:
-                    description: |-
-                      Represents an empty directory for a pod.
-                      Empty directory volumes support ownership management and SELinux relabeling.
+                    description: emptyDir represents a temporary directory that shares
+                      a pod's lifetime.
                     properties:
                       medium:
                         description: |-
@@ -1010,8 +1025,8 @@ spec:
                         x-kubernetes-int-or-string: true
                     type: object
                   persistentVolumeClaim:
-                    description: PersistentVolumeClaim is a user's request for and
-                      claim to a persistent volume
+                    description: Defines the PVC spec to be used by the component
+                      StatefulSets.
                     properties:
                       apiVersion:
                         description: |-
@@ -1420,6 +1435,9 @@ spec:
                       persistentVolumeClaimRetentionPolicy describes the lifecycle of persistent
                       volume claims created from persistentVolumeClaim.
                       This requires the kubernetes version >= 1.23 and its StatefulSetAutoDeletePVC feature gate to be enabled.
+
+
+                      This is an *experimental feature*, it may change in any upcoming release in a breaking way.
                     properties:
                       whenDeleted:
                         description: |-
@@ -1439,22 +1457,27 @@ spec:
                     type: object
                 type: object
               disableDownsampling:
-                description: DisableDownsampling specifies whether to disable downsampling
+                description: |-
+                  Disables downsampling.
+                  This is not recommended, as querying long time ranges without non-downsampled data is not efficient and useful.
+                  default: false
                 type: boolean
               flags:
-                description: Flags is the flags of component.
+                description: Flags allows setting additional flags for the component
+                  container.
                 items:
                   type: string
                 type: array
               image:
-                description: Image is the component image with tag/version.
+                description: Component container image URL.
                 type: string
               imagePullPolicy:
-                description: |-
-                  Image pull policy.
-                  One of Always, Never, IfNotPresent.
-                  Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-                  Cannot be updated.
+                description: Image pull policy.
+                enum:
+                - ""
+                - Always
+                - Never
+                - IfNotPresent
                 type: string
               imagePullSecrets:
                 description: |-
@@ -1475,11 +1498,20 @@ spec:
                   x-kubernetes-map-type: atomic
                 type: array
               logFormat:
-                description: 'Log format to use. Possible options: logfmt or json.'
+                description: Log format for component to be configured with.
+                enum:
+                - ""
+                - logfmt
+                - json
                 type: string
               logLevel:
-                description: 'Log filtering level. Possible options: error, warn,
-                  info, debug.'
+                description: Log level for component to be configured with.
+                enum:
+                - ""
+                - debug
+                - info
+                - warn
+                - error
                 type: string
               nodeSelector:
                 additionalProperties:
@@ -1487,11 +1519,8 @@ spec:
                 description: Define which Nodes the Pods are scheduled on.
                 type: object
               podMetadata:
-                description: |-
-                  PodMetadata configures labels and annotations which are propagated to the pods.
-
-
-                  * "kubectl.kubernetes.io/default-container" annotation, set to main pod.
+                description: PodMetadata configures labels and annotations which are
+                  propagated to the pods.
                 properties:
                   annotations:
                     additionalProperties:
@@ -1522,11 +1551,12 @@ spec:
                     type: string
                 type: object
               replicas:
-                description: Number of replicas for a component.
+                description: Number of component instances to deploy.
                 format: int32
                 type: integer
               resources:
-                description: Define resources requests and limits for main container.
+                description: Resources defines the resource requirements for single
+                  Pods.
                 properties:
                   claims:
                     description: |-
@@ -1584,18 +1614,21 @@ spec:
                 description: Retention configs how long to retain samples
                 properties:
                   retention1h:
-                    description: Retention1h specifies how long to retain samples
-                      of 1h resolution in bucket
+                    description: |-
+                      How long to retain samples of resolution 2 (1 hour) in bucket. Setting this to 0d will retain samples of this resolution forever
+                      default: 0d
                     pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
                     type: string
                   retention5m:
-                    description: Retention5m specifies how long to retain samples
-                      of 5m resolution in bucket
+                    description: |-
+                      How long to retain samples of resolution 1 (5 minutes) in bucket. Setting this to 0d will retain samples of this resolution forever
+                      default: 0d
                     pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
                     type: string
                   retentionRaw:
-                    description: RetentionRaw specifies how long to retain raw samples
-                      in bucket
+                    description: |-
+                      How long to retain raw samples in bucket. Setting this to 0d will retain samples of this resolution forever
+                      default: 0d
                     pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
                     type: string
                 type: object
@@ -1810,8 +1843,7 @@ spec:
                     type: object
                 type: object
               tenants:
-                description: Tenants if not empty indicates current config is for
-                  hard tenants; otherwise, it is for soft tenants.
+                description: The tenants whose data is being compacted by the Compactor.
                 items:
                   type: string
                 type: array
@@ -1879,10 +1911,26 @@ spec:
     singular: gateway
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - description: The number of desired replicas
+      jsonPath: .spec.replicas
+      name: Replicas
+      type: integer
+    - description: The nodePort of Gateway service
+      jsonPath: .spec.nodePort
+      name: NodePort
+      type: integer
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Gateway is the Schema for the gateways API
+        description: |-
+          The `Gateway` custom resource definition (CRD) defines a desired [Gateway](https://github.com/WhizardTelemetry/whizard-docs/blob/main/Architecture/components/whizard-monitoring-gateway.md) setup to run in a Kubernetes cluster. It allows to specify many options such as the number of replicas, and many more.
+
+
+          For each `Gateway` resource, the Operator deploys a `Deployment` in the same namespace.
         properties:
           apiVersion:
             description: |-
@@ -2842,25 +2890,31 @@ spec:
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
               debug:
-                description: If debug mode is on, gateway will proxy Query UI
+                description: |-
+                  If debug mode is on, gateway will proxy Query UI
+
+
+                  This is an *experimental feature*, it may change in any upcoming release in a breaking way.
                 type: boolean
               enabledTenantsAdmission:
                 description: Deny unknown tenant data remote-write and query if enabled
                 type: boolean
               flags:
-                description: Flags is the flags of component.
+                description: Flags allows setting additional flags for the component
+                  container.
                 items:
                   type: string
                 type: array
               image:
-                description: Image is the component image with tag/version.
+                description: Component container image URL.
                 type: string
               imagePullPolicy:
-                description: |-
-                  Image pull policy.
-                  One of Always, Never, IfNotPresent.
-                  Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-                  Cannot be updated.
+                description: Image pull policy.
+                enum:
+                - ""
+                - Always
+                - Never
+                - IfNotPresent
                 type: string
               imagePullSecrets:
                 description: |-
@@ -2881,11 +2935,20 @@ spec:
                   x-kubernetes-map-type: atomic
                 type: array
               logFormat:
-                description: 'Log format to use. Possible options: logfmt or json.'
+                description: Log format for component to be configured with.
+                enum:
+                - ""
+                - logfmt
+                - json
                 type: string
               logLevel:
-                description: 'Log filtering level. Possible options: error, warn,
-                  info, debug.'
+                description: Log level for component to be configured with.
+                enum:
+                - ""
+                - debug
+                - info
+                - warn
+                - error
                 type: string
               nodePort:
                 description: |-
@@ -2899,11 +2962,8 @@ spec:
                 description: Define which Nodes the Pods are scheduled on.
                 type: object
               podMetadata:
-                description: |-
-                  PodMetadata configures labels and annotations which are propagated to the pods.
-
-
-                  * "kubectl.kubernetes.io/default-container" annotation, set to main pod.
+                description: PodMetadata configures labels and annotations which are
+                  propagated to the pods.
                 properties:
                   annotations:
                     additionalProperties:
@@ -2934,11 +2994,12 @@ spec:
                     type: string
                 type: object
               replicas:
-                description: Number of replicas for a component.
+                description: Number of component instances to deploy.
                 format: int32
                 type: integer
               resources:
-                description: Define resources requests and limits for main container.
+                description: Resources defines the resource requirements for single
+                  Pods.
                 properties:
                   claims:
                     description: |-
@@ -3242,6 +3303,7 @@ spec:
                   type: object
                 type: array
               webConfig:
+                description: Defines the configuration of the Gatewat web server.
                 properties:
                   basicAuthUsers:
                     items:
@@ -3394,10 +3456,26 @@ spec:
     singular: ingester
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - description: The number of desired replicas
+      jsonPath: .spec.replicas
+      name: Replicas
+      type: integer
+    - description: How long to retain raw samples on local storage.
+      jsonPath: .spec.localTsdbRetention
+      name: LocalTsdbRetention
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Ingester is the Schema for the ingesters API
+        description: |-
+          The `Ingester` custom resource definition (CRD) defines a desired [Ingesting Receive](https://thanos.io/tip/components/receive.md/) setup to run in a Kubernetes cluster. It allows to specify many options such as the number of replicas, persistent storage and many more.
+
+
+          For each `Ingester` resource, the Operator deploys a `StatefulSet` in the same namespace.
         properties:
           apiVersion:
             description: |-
@@ -4360,9 +4438,8 @@ spec:
                 description: DataVolume specifies how volume shall be used
                 properties:
                   emptyDir:
-                    description: |-
-                      Represents an empty directory for a pod.
-                      Empty directory volumes support ownership management and SELinux relabeling.
+                    description: emptyDir represents a temporary directory that shares
+                      a pod's lifetime.
                     properties:
                       medium:
                         description: |-
@@ -4386,8 +4463,8 @@ spec:
                         x-kubernetes-int-or-string: true
                     type: object
                   persistentVolumeClaim:
-                    description: PersistentVolumeClaim is a user's request for and
-                      claim to a persistent volume
+                    description: Defines the PVC spec to be used by the component
+                      StatefulSets.
                     properties:
                       apiVersion:
                         description: |-
@@ -4796,6 +4873,9 @@ spec:
                       persistentVolumeClaimRetentionPolicy describes the lifecycle of persistent
                       volume claims created from persistentVolumeClaim.
                       This requires the kubernetes version >= 1.23 and its StatefulSetAutoDeletePVC feature gate to be enabled.
+
+
+                      This is an *experimental feature*, it may change in any upcoming release in a breaking way.
                     properties:
                       whenDeleted:
                         description: |-
@@ -4815,19 +4895,21 @@ spec:
                     type: object
                 type: object
               flags:
-                description: Flags is the flags of component.
+                description: Flags allows setting additional flags for the component
+                  container.
                 items:
                   type: string
                 type: array
               image:
-                description: Image is the component image with tag/version.
+                description: Component container image URL.
                 type: string
               imagePullPolicy:
-                description: |-
-                  Image pull policy.
-                  One of Always, Never, IfNotPresent.
-                  Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-                  Cannot be updated.
+                description: Image pull policy.
+                enum:
+                - ""
+                - Always
+                - Never
+                - IfNotPresent
                 type: string
               imagePullSecrets:
                 description: |-
@@ -4914,11 +4996,20 @@ spec:
                   on local storage.
                 type: string
               logFormat:
-                description: 'Log format to use. Possible options: logfmt or json.'
+                description: Log format for component to be configured with.
+                enum:
+                - ""
+                - logfmt
+                - json
                 type: string
               logLevel:
-                description: 'Log filtering level. Possible options: error, warn,
-                  info, debug.'
+                description: Log level for component to be configured with.
+                enum:
+                - ""
+                - debug
+                - info
+                - warn
+                - error
                 type: string
               nodeSelector:
                 additionalProperties:
@@ -4926,11 +5017,8 @@ spec:
                 description: Define which Nodes the Pods are scheduled on.
                 type: object
               podMetadata:
-                description: |-
-                  PodMetadata configures labels and annotations which are propagated to the pods.
-
-
-                  * "kubectl.kubernetes.io/default-container" annotation, set to main pod.
+                description: PodMetadata configures labels and annotations which are
+                  propagated to the pods.
                 properties:
                   annotations:
                     additionalProperties:
@@ -4961,11 +5049,12 @@ spec:
                     type: string
                 type: object
               replicas:
-                description: Number of replicas for a component.
+                description: Number of component instances to deploy.
                 format: int32
                 type: integer
               resources:
-                description: Define resources requests and limits for main container.
+                description: Resources defines the resource requirements for single
+                  Pods.
                 properties:
                   claims:
                     description: |-
@@ -5230,8 +5319,8 @@ spec:
                     type: object
                 type: object
               tenants:
-                description: Tenants if not empty indicates current config is for
-                  hard tenants; otherwise, it is for soft tenants.
+                description: The tenants whose data is being ingested by the Ingester(ingesting
+                  receiver).
                 items:
                   type: string
                 type: array
@@ -5317,10 +5406,22 @@ spec:
     singular: query
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - description: The number of desired replicas
+      jsonPath: .spec.replicas
+      name: Replicas
+      type: integer
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Query is the Schema for the queries API
+        description: |-
+          The `Query` custom resource definition (CRD) defines a desired [Query](https://thanos.io/tip/components/query.md/) setup to run in a Kubernetes cluster. It allows to specify many options such as the number of replicas, and many more.
+
+
+          For each `Query` resource, the Operator deploys a `Deployment` in the same namespace.
         properties:
           apiVersion:
             description: |-
@@ -6344,19 +6445,21 @@ spec:
                     type: object
                 type: object
               flags:
-                description: Flags is the flags of component.
+                description: Flags allows setting additional flags for the component
+                  container.
                 items:
                   type: string
                 type: array
               image:
-                description: Image is the component image with tag/version.
+                description: Component container image URL.
                 type: string
               imagePullPolicy:
-                description: |-
-                  Image pull policy.
-                  One of Always, Never, IfNotPresent.
-                  Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-                  Cannot be updated.
+                description: Image pull policy.
+                enum:
+                - ""
+                - Always
+                - Never
+                - IfNotPresent
                 type: string
               imagePullSecrets:
                 description: |-
@@ -6377,11 +6480,20 @@ spec:
                   x-kubernetes-map-type: atomic
                 type: array
               logFormat:
-                description: 'Log format to use. Possible options: logfmt or json.'
+                description: Log format for component to be configured with.
+                enum:
+                - ""
+                - logfmt
+                - json
                 type: string
               logLevel:
-                description: 'Log filtering level. Possible options: error, warn,
-                  info, debug.'
+                description: Log level for component to be configured with.
+                enum:
+                - ""
+                - debug
+                - info
+                - warn
+                - error
                 type: string
               nodeSelector:
                 additionalProperties:
@@ -6389,11 +6501,8 @@ spec:
                 description: Define which Nodes the Pods are scheduled on.
                 type: object
               podMetadata:
-                description: |-
-                  PodMetadata configures labels and annotations which are propagated to the pods.
-
-
-                  * "kubectl.kubernetes.io/default-container" annotation, set to main pod.
+                description: PodMetadata configures labels and annotations which are
+                  propagated to the pods.
                 properties:
                   annotations:
                     additionalProperties:
@@ -6424,6 +6533,13 @@ spec:
                     type: string
                 type: object
               promqlEngine:
+                description: |-
+                  experimental PromQL engine, more info thanos.io/tip/components/query.md#promql-engine
+                  default: prometheus
+                enum:
+                - ""
+                - prometheus
+                - thanos
                 type: string
               replicaLabelNames:
                 description: Labels to treat as a replica indicator along which data
@@ -6432,11 +6548,12 @@ spec:
                   type: string
                 type: array
               replicas:
-                description: Number of replicas for a component.
+                description: Number of component instances to deploy.
                 format: int32
                 type: integer
               resources:
-                description: Define resources requests and limits for main container.
+                description: Resources defines the resource requirements for single
+                  Pods.
                 properties:
                   claims:
                     description: |-
@@ -6781,6 +6898,7 @@ spec:
                   type: object
                 type: array
               webConfig:
+                description: Defines the configuration of the Thanos Query web server.
                 properties:
                   basicAuthUsers:
                     items:
@@ -6933,10 +7051,22 @@ spec:
     singular: queryfrontend
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - description: The number of desired replicas
+      jsonPath: .spec.replicas
+      name: Replicas
+      type: integer
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: QueryFrontend is the Schema for the queryfrontends API
+        description: |-
+          The `QueryFrontend` custom resource definition (CRD) defines a desired [QueryFrontend](https://thanos.io/tip/components/query-frontend.md/) setup to run in a Kubernetes cluster. It allows to specify many options such as the number of replicas, and many more.
+
+
+          For each `QueryFrontend` resource, the Operator deploys a `Deployment` in the same namespace.
         properties:
           apiVersion:
             description: |-
@@ -7879,7 +8009,7 @@ spec:
                     type: object
                 type: object
               cacheConfig:
-                description: CacheProviderConfig ...
+                description: CacheProviderConfig specifies response cache configuration.
                 properties:
                   inMemory:
                     description: InMemoryResponseCacheConfig holds the configs for
@@ -7926,19 +8056,21 @@ spec:
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
               flags:
-                description: Flags is the flags of component.
+                description: Flags allows setting additional flags for the component
+                  container.
                 items:
                   type: string
                 type: array
               image:
-                description: Image is the component image with tag/version.
+                description: Component container image URL.
                 type: string
               imagePullPolicy:
-                description: |-
-                  Image pull policy.
-                  One of Always, Never, IfNotPresent.
-                  Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-                  Cannot be updated.
+                description: Image pull policy.
+                enum:
+                - ""
+                - Always
+                - Never
+                - IfNotPresent
                 type: string
               imagePullSecrets:
                 description: |-
@@ -7959,11 +8091,20 @@ spec:
                   x-kubernetes-map-type: atomic
                 type: array
               logFormat:
-                description: 'Log format to use. Possible options: logfmt or json.'
+                description: Log format for component to be configured with.
+                enum:
+                - ""
+                - logfmt
+                - json
                 type: string
               logLevel:
-                description: 'Log filtering level. Possible options: error, warn,
-                  info, debug.'
+                description: Log level for component to be configured with.
+                enum:
+                - ""
+                - debug
+                - info
+                - warn
+                - error
                 type: string
               nodeSelector:
                 additionalProperties:
@@ -7971,11 +8112,8 @@ spec:
                 description: Define which Nodes the Pods are scheduled on.
                 type: object
               podMetadata:
-                description: |-
-                  PodMetadata configures labels and annotations which are propagated to the pods.
-
-
-                  * "kubectl.kubernetes.io/default-container" annotation, set to main pod.
+                description: PodMetadata configures labels and annotations which are
+                  propagated to the pods.
                 properties:
                   annotations:
                     additionalProperties:
@@ -8006,11 +8144,12 @@ spec:
                     type: string
                 type: object
               replicas:
-                description: Number of replicas for a component.
+                description: Number of component instances to deploy.
                 format: int32
                 type: integer
               resources:
-                description: Define resources requests and limits for main container.
+                description: Resources defines the resource requirements for single
+                  Pods.
                 properties:
                   claims:
                     description: |-
@@ -8314,6 +8453,8 @@ spec:
                   type: object
                 type: array
               webConfig:
+                description: Defines the configuration of the Thanos QueryFrontend
+                  web server.
                 properties:
                   basicAuthUsers:
                     items:
@@ -8466,10 +8607,26 @@ spec:
     singular: router
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - description: The number of desired replicas
+      jsonPath: .spec.replicas
+      name: Replicas
+      type: integer
+    - description: How many times to replicate incoming write requests
+      jsonPath: .spec.replicationFactor
+      name: ReplicationFactor
+      type: integer
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Router is the Schema for the routers API
+        description: |-
+          The `Router` custom resource definition (CRD) defines a desired [Routing Receivers](https://thanos.io/tip/components/receive.md/) setup to run in a Kubernetes cluster. It allows to specify many options such as the number of replicas, and many more.
+
+
+          For each `Router` resource, the Operator deploys a `Deployment` in the same namespace.
         properties:
           apiVersion:
             description: |-
@@ -9429,19 +9586,21 @@ spec:
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
               flags:
-                description: Flags is the flags of component.
+                description: Flags allows setting additional flags for the component
+                  container.
                 items:
                   type: string
                 type: array
               image:
-                description: Image is the component image with tag/version.
+                description: Component container image URL.
                 type: string
               imagePullPolicy:
-                description: |-
-                  Image pull policy.
-                  One of Always, Never, IfNotPresent.
-                  Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-                  Cannot be updated.
+                description: Image pull policy.
+                enum:
+                - ""
+                - Always
+                - Never
+                - IfNotPresent
                 type: string
               imagePullSecrets:
                 description: |-
@@ -9462,11 +9621,20 @@ spec:
                   x-kubernetes-map-type: atomic
                 type: array
               logFormat:
-                description: 'Log format to use. Possible options: logfmt or json.'
+                description: Log format for component to be configured with.
+                enum:
+                - ""
+                - logfmt
+                - json
                 type: string
               logLevel:
-                description: 'Log filtering level. Possible options: error, warn,
-                  info, debug.'
+                description: Log level for component to be configured with.
+                enum:
+                - ""
+                - debug
+                - info
+                - warn
+                - error
                 type: string
               nodeSelector:
                 additionalProperties:
@@ -9474,11 +9642,8 @@ spec:
                 description: Define which Nodes the Pods are scheduled on.
                 type: object
               podMetadata:
-                description: |-
-                  PodMetadata configures labels and annotations which are propagated to the pods.
-
-
-                  * "kubectl.kubernetes.io/default-container" annotation, set to main pod.
+                description: PodMetadata configures labels and annotations which are
+                  propagated to the pods.
                 properties:
                   annotations:
                     additionalProperties:
@@ -9509,7 +9674,7 @@ spec:
                     type: string
                 type: object
               replicas:
-                description: Number of replicas for a component.
+                description: Number of component instances to deploy.
                 format: int32
                 type: integer
               replicationFactor:
@@ -9517,7 +9682,8 @@ spec:
                 format: int64
                 type: integer
               resources:
-                description: Define resources requests and limits for main container.
+                description: Resources defines the resource requirements for single
+                  Pods.
                 properties:
                   claims:
                     description: |-
@@ -9821,6 +9987,8 @@ spec:
                   type: object
                 type: array
               webConfig:
+                description: Defines the configuration of the Route(routing receiver)
+                  web server.
                 properties:
                   basicAuthUsers:
                     items:
@@ -10975,9 +11143,8 @@ spec:
                 description: DataVolume specifies how volume shall be used
                 properties:
                   emptyDir:
-                    description: |-
-                      Represents an empty directory for a pod.
-                      Empty directory volumes support ownership management and SELinux relabeling.
+                    description: emptyDir represents a temporary directory that shares
+                      a pod's lifetime.
                     properties:
                       medium:
                         description: |-
@@ -11001,8 +11168,8 @@ spec:
                         x-kubernetes-int-or-string: true
                     type: object
                   persistentVolumeClaim:
-                    description: PersistentVolumeClaim is a user's request for and
-                      claim to a persistent volume
+                    description: Defines the PVC spec to be used by the component
+                      StatefulSets.
                     properties:
                       apiVersion:
                         description: |-
@@ -11411,6 +11578,9 @@ spec:
                       persistentVolumeClaimRetentionPolicy describes the lifecycle of persistent
                       volume claims created from persistentVolumeClaim.
                       This requires the kubernetes version >= 1.23 and its StatefulSetAutoDeletePVC feature gate to be enabled.
+
+
+                      This is an *experimental feature*, it may change in any upcoming release in a breaking way.
                     properties:
                       whenDeleted:
                         description: |-
@@ -11439,19 +11609,21 @@ spec:
                 pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
                 type: string
               flags:
-                description: Flags is the flags of component.
+                description: Flags allows setting additional flags for the component
+                  container.
                 items:
                   type: string
                 type: array
               image:
-                description: Image is the component image with tag/version.
+                description: Component container image URL.
                 type: string
               imagePullPolicy:
-                description: |-
-                  Image pull policy.
-                  One of Always, Never, IfNotPresent.
-                  Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-                  Cannot be updated.
+                description: Image pull policy.
+                enum:
+                - ""
+                - Always
+                - Never
+                - IfNotPresent
                 type: string
               imagePullSecrets:
                 description: |-
@@ -11479,11 +11651,20 @@ spec:
                   `ruler_replica` will be always added  as a label with the value of the pod's name and it will be dropped in the alerts.
                 type: object
               logFormat:
-                description: 'Log format to use. Possible options: logfmt or json.'
+                description: Log format for component to be configured with.
+                enum:
+                - ""
+                - logfmt
+                - json
                 type: string
               logLevel:
-                description: 'Log filtering level. Possible options: error, warn,
-                  info, debug.'
+                description: Log level for component to be configured with.
+                enum:
+                - ""
+                - debug
+                - info
+                - warn
+                - error
                 type: string
               nodeSelector:
                 additionalProperties:
@@ -11491,11 +11672,8 @@ spec:
                 description: Define which Nodes the Pods are scheduled on.
                 type: object
               podMetadata:
-                description: |-
-                  PodMetadata configures labels and annotations which are propagated to the pods.
-
-
-                  * "kubectl.kubernetes.io/default-container" annotation, set to main pod.
+                description: PodMetadata configures labels and annotations which are
+                  propagated to the pods.
                 properties:
                   annotations:
                     additionalProperties:
@@ -11628,11 +11806,12 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               replicas:
-                description: Number of replicas for a component.
+                description: Number of component instances to deploy.
                 format: int32
                 type: integer
               resources:
-                description: Define resources requests and limits for main container.
+                description: Resources defines the resource requirements for single
+                  Pods.
                 properties:
                   claims:
                     description: |-
@@ -12202,7 +12381,9 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Service is the Schema for the services API
+        description: |-
+          The `Service` custom resource definition (CRD) defines the Whizard service configuration.
+          The `ServiceSpec“ has component configuration templates. Some components scale based on the number of tenants and load service configurations
         properties:
           apiVersion:
             description: |-
@@ -12225,6 +12406,8 @@ spec:
             description: ServiceSpec defines the desired state of Service
             properties:
               compactorTemplateSpec:
+                description: CompactorTemplateSpec defines the Compactor configuration
+                  template.
                 properties:
                   affinity:
                     description: If specified, the pod's scheduling constraints.
@@ -13174,9 +13357,8 @@ spec:
                     description: DataVolume specifies how volume shall be used
                     properties:
                       emptyDir:
-                        description: |-
-                          Represents an empty directory for a pod.
-                          Empty directory volumes support ownership management and SELinux relabeling.
+                        description: emptyDir represents a temporary directory that
+                          shares a pod's lifetime.
                         properties:
                           medium:
                             description: |-
@@ -13200,8 +13382,8 @@ spec:
                             x-kubernetes-int-or-string: true
                         type: object
                       persistentVolumeClaim:
-                        description: PersistentVolumeClaim is a user's request for
-                          and claim to a persistent volume
+                        description: Defines the PVC spec to be used by the component
+                          StatefulSets.
                         properties:
                           apiVersion:
                             description: |-
@@ -13623,6 +13805,9 @@ spec:
                           persistentVolumeClaimRetentionPolicy describes the lifecycle of persistent
                           volume claims created from persistentVolumeClaim.
                           This requires the kubernetes version >= 1.23 and its StatefulSetAutoDeletePVC feature gate to be enabled.
+
+
+                          This is an *experimental feature*, it may change in any upcoming release in a breaking way.
                         properties:
                           whenDeleted:
                             description: |-
@@ -13648,23 +13833,27 @@ spec:
                       Default: 10
                     type: integer
                   disableDownsampling:
-                    description: DisableDownsampling specifies whether to disable
-                      downsampling
+                    description: |-
+                      Disables downsampling.
+                      This is not recommended, as querying long time ranges without non-downsampled data is not efficient and useful.
+                      default: false
                     type: boolean
                   flags:
-                    description: Flags is the flags of component.
+                    description: Flags allows setting additional flags for the component
+                      container.
                     items:
                       type: string
                     type: array
                   image:
-                    description: Image is the component image with tag/version.
+                    description: Component container image URL.
                     type: string
                   imagePullPolicy:
-                    description: |-
-                      Image pull policy.
-                      One of Always, Never, IfNotPresent.
-                      Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-                      Cannot be updated.
+                    description: Image pull policy.
+                    enum:
+                    - ""
+                    - Always
+                    - Never
+                    - IfNotPresent
                     type: string
                   imagePullSecrets:
                     description: |-
@@ -13685,11 +13874,20 @@ spec:
                       x-kubernetes-map-type: atomic
                     type: array
                   logFormat:
-                    description: 'Log format to use. Possible options: logfmt or json.'
+                    description: Log format for component to be configured with.
+                    enum:
+                    - ""
+                    - logfmt
+                    - json
                     type: string
                   logLevel:
-                    description: 'Log filtering level. Possible options: error, warn,
-                      info, debug.'
+                    description: Log level for component to be configured with.
+                    enum:
+                    - ""
+                    - debug
+                    - info
+                    - warn
+                    - error
                     type: string
                   nodeSelector:
                     additionalProperties:
@@ -13697,11 +13895,8 @@ spec:
                     description: Define which Nodes the Pods are scheduled on.
                     type: object
                   podMetadata:
-                    description: |-
-                      PodMetadata configures labels and annotations which are propagated to the pods.
-
-
-                      * "kubectl.kubernetes.io/default-container" annotation, set to main pod.
+                    description: PodMetadata configures labels and annotations which
+                      are propagated to the pods.
                     properties:
                       annotations:
                         additionalProperties:
@@ -13732,11 +13927,12 @@ spec:
                         type: string
                     type: object
                   replicas:
-                    description: Number of replicas for a component.
+                    description: Number of component instances to deploy.
                     format: int32
                     type: integer
                   resources:
-                    description: Define resources requests and limits for main container.
+                    description: Resources defines the resource requirements for single
+                      Pods.
                     properties:
                       claims:
                         description: |-
@@ -13794,18 +13990,21 @@ spec:
                     description: Retention configs how long to retain samples
                     properties:
                       retention1h:
-                        description: Retention1h specifies how long to retain samples
-                          of 1h resolution in bucket
+                        description: |-
+                          How long to retain samples of resolution 2 (1 hour) in bucket. Setting this to 0d will retain samples of this resolution forever
+                          default: 0d
                         pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
                         type: string
                       retention5m:
-                        description: Retention5m specifies how long to retain samples
-                          of 5m resolution in bucket
+                        description: |-
+                          How long to retain samples of resolution 1 (5 minutes) in bucket. Setting this to 0d will retain samples of this resolution forever
+                          default: 0d
                         pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
                         type: string
                       retentionRaw:
-                        description: RetentionRaw specifies how long to retain raw
-                          samples in bucket
+                        description: |-
+                          How long to retain raw samples in bucket. Setting this to 0d will retain samples of this resolution forever
+                          default: 0d
                         pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
                         type: string
                     type: object
@@ -14020,8 +14219,8 @@ spec:
                         type: object
                     type: object
                   tenants:
-                    description: Tenants if not empty indicates current config is
-                      for hard tenants; otherwise, it is for soft tenants.
+                    description: The tenants whose data is being compacted by the
+                      Compactor.
                     items:
                       type: string
                     type: array
@@ -14070,7 +14269,8 @@ spec:
                   header.
                 type: string
               gatewayTemplateSpec:
-                description: GatewaySpec defines the desired state of Gateway
+                description: GatewayTemplateSpec defines the Gateway configuration
+                  template.
                 properties:
                   affinity:
                     description: If specified, the pod's scheduling constraints.
@@ -15017,26 +15217,32 @@ spec:
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
                   debug:
-                    description: If debug mode is on, gateway will proxy Query UI
+                    description: |-
+                      If debug mode is on, gateway will proxy Query UI
+
+
+                      This is an *experimental feature*, it may change in any upcoming release in a breaking way.
                     type: boolean
                   enabledTenantsAdmission:
                     description: Deny unknown tenant data remote-write and query if
                       enabled
                     type: boolean
                   flags:
-                    description: Flags is the flags of component.
+                    description: Flags allows setting additional flags for the component
+                      container.
                     items:
                       type: string
                     type: array
                   image:
-                    description: Image is the component image with tag/version.
+                    description: Component container image URL.
                     type: string
                   imagePullPolicy:
-                    description: |-
-                      Image pull policy.
-                      One of Always, Never, IfNotPresent.
-                      Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-                      Cannot be updated.
+                    description: Image pull policy.
+                    enum:
+                    - ""
+                    - Always
+                    - Never
+                    - IfNotPresent
                     type: string
                   imagePullSecrets:
                     description: |-
@@ -15057,11 +15263,20 @@ spec:
                       x-kubernetes-map-type: atomic
                     type: array
                   logFormat:
-                    description: 'Log format to use. Possible options: logfmt or json.'
+                    description: Log format for component to be configured with.
+                    enum:
+                    - ""
+                    - logfmt
+                    - json
                     type: string
                   logLevel:
-                    description: 'Log filtering level. Possible options: error, warn,
-                      info, debug.'
+                    description: Log level for component to be configured with.
+                    enum:
+                    - ""
+                    - debug
+                    - info
+                    - warn
+                    - error
                     type: string
                   nodePort:
                     description: |-
@@ -15075,11 +15290,8 @@ spec:
                     description: Define which Nodes the Pods are scheduled on.
                     type: object
                   podMetadata:
-                    description: |-
-                      PodMetadata configures labels and annotations which are propagated to the pods.
-
-
-                      * "kubectl.kubernetes.io/default-container" annotation, set to main pod.
+                    description: PodMetadata configures labels and annotations which
+                      are propagated to the pods.
                     properties:
                       annotations:
                         additionalProperties:
@@ -15110,11 +15322,12 @@ spec:
                         type: string
                     type: object
                   replicas:
-                    description: Number of replicas for a component.
+                    description: Number of component instances to deploy.
                     format: int32
                     type: integer
                   resources:
-                    description: Define resources requests and limits for main container.
+                    description: Resources defines the resource requirements for single
+                      Pods.
                     properties:
                       claims:
                         description: |-
@@ -15418,6 +15631,7 @@ spec:
                       type: object
                     type: array
                   webConfig:
+                    description: Defines the configuration of the Gatewat web server.
                     properties:
                       basicAuthUsers:
                         items:
@@ -15547,6 +15761,8 @@ spec:
                     type: object
                 type: object
               ingesterTemplateSpec:
+                description: IngesterTemplateSpec defines the Ingester configuration
+                  template.
                 properties:
                   affinity:
                     description: If specified, the pod's scheduling constraints.
@@ -16496,9 +16712,8 @@ spec:
                     description: DataVolume specifies how volume shall be used
                     properties:
                       emptyDir:
-                        description: |-
-                          Represents an empty directory for a pod.
-                          Empty directory volumes support ownership management and SELinux relabeling.
+                        description: emptyDir represents a temporary directory that
+                          shares a pod's lifetime.
                         properties:
                           medium:
                             description: |-
@@ -16522,8 +16737,8 @@ spec:
                             x-kubernetes-int-or-string: true
                         type: object
                       persistentVolumeClaim:
-                        description: PersistentVolumeClaim is a user's request for
-                          and claim to a persistent volume
+                        description: Defines the PVC spec to be used by the component
+                          StatefulSets.
                         properties:
                           apiVersion:
                             description: |-
@@ -16945,6 +17160,9 @@ spec:
                           persistentVolumeClaimRetentionPolicy describes the lifecycle of persistent
                           volume claims created from persistentVolumeClaim.
                           This requires the kubernetes version >= 1.23 and its StatefulSetAutoDeletePVC feature gate to be enabled.
+
+
+                          This is an *experimental feature*, it may change in any upcoming release in a breaking way.
                         properties:
                           whenDeleted:
                             description: |-
@@ -16990,19 +17208,21 @@ spec:
                       Default: true
                     type: boolean
                   flags:
-                    description: Flags is the flags of component.
+                    description: Flags allows setting additional flags for the component
+                      container.
                     items:
                       type: string
                     type: array
                   image:
-                    description: Image is the component image with tag/version.
+                    description: Component container image URL.
                     type: string
                   imagePullPolicy:
-                    description: |-
-                      Image pull policy.
-                      One of Always, Never, IfNotPresent.
-                      Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-                      Cannot be updated.
+                    description: Image pull policy.
+                    enum:
+                    - ""
+                    - Always
+                    - Never
+                    - IfNotPresent
                     type: string
                   imagePullSecrets:
                     description: |-
@@ -17089,11 +17309,20 @@ spec:
                       samples on local storage.
                     type: string
                   logFormat:
-                    description: 'Log format to use. Possible options: logfmt or json.'
+                    description: Log format for component to be configured with.
+                    enum:
+                    - ""
+                    - logfmt
+                    - json
                     type: string
                   logLevel:
-                    description: 'Log filtering level. Possible options: error, warn,
-                      info, debug.'
+                    description: Log level for component to be configured with.
+                    enum:
+                    - ""
+                    - debug
+                    - info
+                    - warn
+                    - error
                     type: string
                   nodeSelector:
                     additionalProperties:
@@ -17101,11 +17330,8 @@ spec:
                     description: Define which Nodes the Pods are scheduled on.
                     type: object
                   podMetadata:
-                    description: |-
-                      PodMetadata configures labels and annotations which are propagated to the pods.
-
-
-                      * "kubectl.kubernetes.io/default-container" annotation, set to main pod.
+                    description: PodMetadata configures labels and annotations which
+                      are propagated to the pods.
                     properties:
                       annotations:
                         additionalProperties:
@@ -17136,11 +17362,12 @@ spec:
                         type: string
                     type: object
                   replicas:
-                    description: Number of replicas for a component.
+                    description: Number of component instances to deploy.
                     format: int32
                     type: integer
                   resources:
-                    description: Define resources requests and limits for main container.
+                    description: Resources defines the resource requirements for single
+                      Pods.
                     properties:
                       claims:
                         description: |-
@@ -17405,8 +17632,8 @@ spec:
                         type: object
                     type: object
                   tenants:
-                    description: Tenants if not empty indicates current config is
-                      for hard tenants; otherwise, it is for soft tenants.
+                    description: The tenants whose data is being ingested by the Ingester(ingesting
+                      receiver).
                     items:
                       type: string
                     type: array
@@ -17451,7 +17678,8 @@ spec:
                     type: array
                 type: object
               queryFrontendTemplateSpec:
-                description: QueryFrontendSpec defines the desired state of QueryFrontend
+                description: QueryFrontendTemplateSpec defines the QueryFrontend configuration
+                  template.
                 properties:
                   affinity:
                     description: If specified, the pod's scheduling constraints.
@@ -18381,7 +18609,7 @@ spec:
                         type: object
                     type: object
                   cacheConfig:
-                    description: CacheProviderConfig ...
+                    description: CacheProviderConfig specifies response cache configuration.
                     properties:
                       inMemory:
                         description: InMemoryResponseCacheConfig holds the configs
@@ -18428,19 +18656,21 @@ spec:
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
                   flags:
-                    description: Flags is the flags of component.
+                    description: Flags allows setting additional flags for the component
+                      container.
                     items:
                       type: string
                     type: array
                   image:
-                    description: Image is the component image with tag/version.
+                    description: Component container image URL.
                     type: string
                   imagePullPolicy:
-                    description: |-
-                      Image pull policy.
-                      One of Always, Never, IfNotPresent.
-                      Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-                      Cannot be updated.
+                    description: Image pull policy.
+                    enum:
+                    - ""
+                    - Always
+                    - Never
+                    - IfNotPresent
                     type: string
                   imagePullSecrets:
                     description: |-
@@ -18461,11 +18691,20 @@ spec:
                       x-kubernetes-map-type: atomic
                     type: array
                   logFormat:
-                    description: 'Log format to use. Possible options: logfmt or json.'
+                    description: Log format for component to be configured with.
+                    enum:
+                    - ""
+                    - logfmt
+                    - json
                     type: string
                   logLevel:
-                    description: 'Log filtering level. Possible options: error, warn,
-                      info, debug.'
+                    description: Log level for component to be configured with.
+                    enum:
+                    - ""
+                    - debug
+                    - info
+                    - warn
+                    - error
                     type: string
                   nodeSelector:
                     additionalProperties:
@@ -18473,11 +18712,8 @@ spec:
                     description: Define which Nodes the Pods are scheduled on.
                     type: object
                   podMetadata:
-                    description: |-
-                      PodMetadata configures labels and annotations which are propagated to the pods.
-
-
-                      * "kubectl.kubernetes.io/default-container" annotation, set to main pod.
+                    description: PodMetadata configures labels and annotations which
+                      are propagated to the pods.
                     properties:
                       annotations:
                         additionalProperties:
@@ -18508,11 +18744,12 @@ spec:
                         type: string
                     type: object
                   replicas:
-                    description: Number of replicas for a component.
+                    description: Number of component instances to deploy.
                     format: int32
                     type: integer
                   resources:
-                    description: Define resources requests and limits for main container.
+                    description: Resources defines the resource requirements for single
+                      Pods.
                     properties:
                       claims:
                         description: |-
@@ -18816,6 +19053,8 @@ spec:
                       type: object
                     type: array
                   webConfig:
+                    description: Defines the configuration of the Thanos QueryFrontend
+                      web server.
                     properties:
                       basicAuthUsers:
                         items:
@@ -18945,7 +19184,7 @@ spec:
                     type: object
                 type: object
               queryTemplateSpec:
-                description: QuerySpec defines the desired state of Query
+                description: QueryTemplateSpec defines the Query configuration template.
                 properties:
                   affinity:
                     description: If specified, the pod's scheduling constraints.
@@ -19956,19 +20195,21 @@ spec:
                         type: object
                     type: object
                   flags:
-                    description: Flags is the flags of component.
+                    description: Flags allows setting additional flags for the component
+                      container.
                     items:
                       type: string
                     type: array
                   image:
-                    description: Image is the component image with tag/version.
+                    description: Component container image URL.
                     type: string
                   imagePullPolicy:
-                    description: |-
-                      Image pull policy.
-                      One of Always, Never, IfNotPresent.
-                      Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-                      Cannot be updated.
+                    description: Image pull policy.
+                    enum:
+                    - ""
+                    - Always
+                    - Never
+                    - IfNotPresent
                     type: string
                   imagePullSecrets:
                     description: |-
@@ -19989,11 +20230,20 @@ spec:
                       x-kubernetes-map-type: atomic
                     type: array
                   logFormat:
-                    description: 'Log format to use. Possible options: logfmt or json.'
+                    description: Log format for component to be configured with.
+                    enum:
+                    - ""
+                    - logfmt
+                    - json
                     type: string
                   logLevel:
-                    description: 'Log filtering level. Possible options: error, warn,
-                      info, debug.'
+                    description: Log level for component to be configured with.
+                    enum:
+                    - ""
+                    - debug
+                    - info
+                    - warn
+                    - error
                     type: string
                   nodeSelector:
                     additionalProperties:
@@ -20001,11 +20251,8 @@ spec:
                     description: Define which Nodes the Pods are scheduled on.
                     type: object
                   podMetadata:
-                    description: |-
-                      PodMetadata configures labels and annotations which are propagated to the pods.
-
-
-                      * "kubectl.kubernetes.io/default-container" annotation, set to main pod.
+                    description: PodMetadata configures labels and annotations which
+                      are propagated to the pods.
                     properties:
                       annotations:
                         additionalProperties:
@@ -20036,6 +20283,13 @@ spec:
                         type: string
                     type: object
                   promqlEngine:
+                    description: |-
+                      experimental PromQL engine, more info thanos.io/tip/components/query.md#promql-engine
+                      default: prometheus
+                    enum:
+                    - ""
+                    - prometheus
+                    - thanos
                     type: string
                   replicaLabelNames:
                     description: Labels to treat as a replica indicator along which
@@ -20044,11 +20298,12 @@ spec:
                       type: string
                     type: array
                   replicas:
-                    description: Number of replicas for a component.
+                    description: Number of component instances to deploy.
                     format: int32
                     type: integer
                   resources:
-                    description: Define resources requests and limits for main container.
+                    description: Resources defines the resource requirements for single
+                      Pods.
                     properties:
                       claims:
                         description: |-
@@ -20393,6 +20648,8 @@ spec:
                       type: object
                     type: array
                   webConfig:
+                    description: Defines the configuration of the Thanos Query web
+                      server.
                     properties:
                       basicAuthUsers:
                         items:
@@ -20669,7 +20926,7 @@ spec:
                   type: object
                 type: array
               routerTemplateSpec:
-                description: RouterSpec defines the desired state of Router
+                description: RouterTemplateSpec defines the Router configuration template.
                 properties:
                   affinity:
                     description: If specified, the pod's scheduling constraints.
@@ -21616,19 +21873,21 @@ spec:
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
                   flags:
-                    description: Flags is the flags of component.
+                    description: Flags allows setting additional flags for the component
+                      container.
                     items:
                       type: string
                     type: array
                   image:
-                    description: Image is the component image with tag/version.
+                    description: Component container image URL.
                     type: string
                   imagePullPolicy:
-                    description: |-
-                      Image pull policy.
-                      One of Always, Never, IfNotPresent.
-                      Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-                      Cannot be updated.
+                    description: Image pull policy.
+                    enum:
+                    - ""
+                    - Always
+                    - Never
+                    - IfNotPresent
                     type: string
                   imagePullSecrets:
                     description: |-
@@ -21649,11 +21908,20 @@ spec:
                       x-kubernetes-map-type: atomic
                     type: array
                   logFormat:
-                    description: 'Log format to use. Possible options: logfmt or json.'
+                    description: Log format for component to be configured with.
+                    enum:
+                    - ""
+                    - logfmt
+                    - json
                     type: string
                   logLevel:
-                    description: 'Log filtering level. Possible options: error, warn,
-                      info, debug.'
+                    description: Log level for component to be configured with.
+                    enum:
+                    - ""
+                    - debug
+                    - info
+                    - warn
+                    - error
                     type: string
                   nodeSelector:
                     additionalProperties:
@@ -21661,11 +21929,8 @@ spec:
                     description: Define which Nodes the Pods are scheduled on.
                     type: object
                   podMetadata:
-                    description: |-
-                      PodMetadata configures labels and annotations which are propagated to the pods.
-
-
-                      * "kubectl.kubernetes.io/default-container" annotation, set to main pod.
+                    description: PodMetadata configures labels and annotations which
+                      are propagated to the pods.
                     properties:
                       annotations:
                         additionalProperties:
@@ -21696,7 +21961,7 @@ spec:
                         type: string
                     type: object
                   replicas:
-                    description: Number of replicas for a component.
+                    description: Number of component instances to deploy.
                     format: int32
                     type: integer
                   replicationFactor:
@@ -21704,7 +21969,8 @@ spec:
                     format: int64
                     type: integer
                   resources:
-                    description: Define resources requests and limits for main container.
+                    description: Resources defines the resource requirements for single
+                      Pods.
                     properties:
                       claims:
                         description: |-
@@ -22008,6 +22274,8 @@ spec:
                       type: object
                     type: array
                   webConfig:
+                    description: Defines the configuration of the Route(routing receiver)
+                      web server.
                     properties:
                       basicAuthUsers:
                         items:
@@ -22137,6 +22405,7 @@ spec:
                     type: object
                 type: object
               rulerTemplateSpec:
+                description: RulerTemplateSpec defines the Ruler configuration template.
                 properties:
                   affinity:
                     description: If specified, the pod's scheduling constraints.
@@ -23123,9 +23392,8 @@ spec:
                     description: DataVolume specifies how volume shall be used
                     properties:
                       emptyDir:
-                        description: |-
-                          Represents an empty directory for a pod.
-                          Empty directory volumes support ownership management and SELinux relabeling.
+                        description: emptyDir represents a temporary directory that
+                          shares a pod's lifetime.
                         properties:
                           medium:
                             description: |-
@@ -23149,8 +23417,8 @@ spec:
                             x-kubernetes-int-or-string: true
                         type: object
                       persistentVolumeClaim:
-                        description: PersistentVolumeClaim is a user's request for
-                          and claim to a persistent volume
+                        description: Defines the PVC spec to be used by the component
+                          StatefulSets.
                         properties:
                           apiVersion:
                             description: |-
@@ -23572,6 +23840,9 @@ spec:
                           persistentVolumeClaimRetentionPolicy describes the lifecycle of persistent
                           volume claims created from persistentVolumeClaim.
                           This requires the kubernetes version >= 1.23 and its StatefulSetAutoDeletePVC feature gate to be enabled.
+
+
+                          This is an *experimental feature*, it may change in any upcoming release in a breaking way.
                         properties:
                           whenDeleted:
                             description: |-
@@ -23608,19 +23879,21 @@ spec:
                     pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
                     type: string
                   flags:
-                    description: Flags is the flags of component.
+                    description: Flags allows setting additional flags for the component
+                      container.
                     items:
                       type: string
                     type: array
                   image:
-                    description: Image is the component image with tag/version.
+                    description: Component container image URL.
                     type: string
                   imagePullPolicy:
-                    description: |-
-                      Image pull policy.
-                      One of Always, Never, IfNotPresent.
-                      Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-                      Cannot be updated.
+                    description: Image pull policy.
+                    enum:
+                    - ""
+                    - Always
+                    - Never
+                    - IfNotPresent
                     type: string
                   imagePullSecrets:
                     description: |-
@@ -23648,11 +23921,20 @@ spec:
                       `ruler_replica` will be always added  as a label with the value of the pod's name and it will be dropped in the alerts.
                     type: object
                   logFormat:
-                    description: 'Log format to use. Possible options: logfmt or json.'
+                    description: Log format for component to be configured with.
+                    enum:
+                    - ""
+                    - logfmt
+                    - json
                     type: string
                   logLevel:
-                    description: 'Log filtering level. Possible options: error, warn,
-                      info, debug.'
+                    description: Log level for component to be configured with.
+                    enum:
+                    - ""
+                    - debug
+                    - info
+                    - warn
+                    - error
                     type: string
                   nodeSelector:
                     additionalProperties:
@@ -23660,11 +23942,8 @@ spec:
                     description: Define which Nodes the Pods are scheduled on.
                     type: object
                   podMetadata:
-                    description: |-
-                      PodMetadata configures labels and annotations which are propagated to the pods.
-
-
-                      * "kubectl.kubernetes.io/default-container" annotation, set to main pod.
+                    description: PodMetadata configures labels and annotations which
+                      are propagated to the pods.
                     properties:
                       annotations:
                         additionalProperties:
@@ -23799,11 +24078,12 @@ spec:
                     type: object
                     x-kubernetes-map-type: atomic
                   replicas:
-                    description: Number of replicas for a component.
+                    description: Number of component instances to deploy.
                     format: int32
                     type: integer
                   resources:
-                    description: Define resources requests and limits for main container.
+                    description: Resources defines the resource requirements for single
+                      Pods.
                     properties:
                       claims:
                         description: |-
@@ -24354,7 +24634,7 @@ spec:
                     type: string
                 type: object
               storeTemplateSpec:
-                description: StoreSpec defines the desired state of Store
+                description: StoreTemplateSpec defines the Store configuration template.
                 properties:
                   affinity:
                     description: If specified, the pod's scheduling constraints.
@@ -25304,9 +25584,8 @@ spec:
                     description: DataVolume specifies how volume shall be used
                     properties:
                       emptyDir:
-                        description: |-
-                          Represents an empty directory for a pod.
-                          Empty directory volumes support ownership management and SELinux relabeling.
+                        description: emptyDir represents a temporary directory that
+                          shares a pod's lifetime.
                         properties:
                           medium:
                             description: |-
@@ -25330,8 +25609,8 @@ spec:
                             x-kubernetes-int-or-string: true
                         type: object
                       persistentVolumeClaim:
-                        description: PersistentVolumeClaim is a user's request for
-                          and claim to a persistent volume
+                        description: Defines the PVC spec to be used by the component
+                          StatefulSets.
                         properties:
                           apiVersion:
                             description: |-
@@ -25753,6 +26032,9 @@ spec:
                           persistentVolumeClaimRetentionPolicy describes the lifecycle of persistent
                           volume claims created from persistentVolumeClaim.
                           This requires the kubernetes version >= 1.23 and its StatefulSetAutoDeletePVC feature gate to be enabled.
+
+
+                          This is an *experimental feature*, it may change in any upcoming release in a breaking way.
                         properties:
                           whenDeleted:
                             description: |-
@@ -25772,19 +26054,21 @@ spec:
                         type: object
                     type: object
                   flags:
-                    description: Flags is the flags of component.
+                    description: Flags allows setting additional flags for the component
+                      container.
                     items:
                       type: string
                     type: array
                   image:
-                    description: Image is the component image with tag/version.
+                    description: Component container image URL.
                     type: string
                   imagePullPolicy:
-                    description: |-
-                      Image pull policy.
-                      One of Always, Never, IfNotPresent.
-                      Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-                      Cannot be updated.
+                    description: Image pull policy.
+                    enum:
+                    - ""
+                    - Always
+                    - Never
+                    - IfNotPresent
                     type: string
                   imagePullSecrets:
                     description: |-
@@ -25818,11 +26102,20 @@ spec:
                         type: object
                     type: object
                   logFormat:
-                    description: 'Log format to use. Possible options: logfmt or json.'
+                    description: Log format for component to be configured with.
+                    enum:
+                    - ""
+                    - logfmt
+                    - json
                     type: string
                   logLevel:
-                    description: 'Log filtering level. Possible options: error, warn,
-                      info, debug.'
+                    description: Log level for component to be configured with.
+                    enum:
+                    - ""
+                    - debug
+                    - info
+                    - warn
+                    - error
                     type: string
                   maxTime:
                     description: MaxTime specifies end of time range limit to serve
@@ -25836,11 +26129,8 @@ spec:
                     description: Define which Nodes the Pods are scheduled on.
                     type: object
                   podMetadata:
-                    description: |-
-                      PodMetadata configures labels and annotations which are propagated to the pods.
-
-
-                      * "kubectl.kubernetes.io/default-container" annotation, set to main pod.
+                    description: PodMetadata configures labels and annotations which
+                      are propagated to the pods.
                     properties:
                       annotations:
                         additionalProperties:
@@ -25871,11 +26161,12 @@ spec:
                         type: string
                     type: object
                   replicas:
-                    description: Number of replicas for a component.
+                    description: Number of component instances to deploy.
                     format: int32
                     type: integer
                   resources:
-                    description: Define resources requests and limits for main container.
+                    description: Resources defines the resource requirements for single
+                      Pods.
                     properties:
                       claims:
                         description: |-
@@ -26238,7 +26529,10 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Storage is the Schema for the storages API
+        description: |-
+          The `Storage` custom resource definition (CRD) defines how to configure access to object storage.
+          More info https://thanos.io/tip/thanos/storage.md/
+          Current object storage client implementations: S3, other in progress.
         properties:
           apiVersion:
             description: |-
@@ -27436,7 +27730,8 @@ spec:
                   enable:
                     type: boolean
                   flags:
-                    description: Flags is the flags of component.
+                    description: Flags allows setting additional flags for the component
+                      container.
                     items:
                       type: string
                     type: array
@@ -27523,14 +27818,15 @@ spec:
                         type: string
                     type: object
                   image:
-                    description: Image is the component image with tag/version.
+                    description: Component container image URL.
                     type: string
                   imagePullPolicy:
-                    description: |-
-                      Image pull policy.
-                      One of Always, Never, IfNotPresent.
-                      Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-                      Cannot be updated.
+                    description: Image pull policy.
+                    enum:
+                    - ""
+                    - Always
+                    - Never
+                    - IfNotPresent
                     type: string
                   imagePullSecrets:
                     description: |-
@@ -27551,11 +27847,20 @@ spec:
                       x-kubernetes-map-type: atomic
                     type: array
                   logFormat:
-                    description: 'Log format to use. Possible options: logfmt or json.'
+                    description: Log format for component to be configured with.
+                    enum:
+                    - ""
+                    - logfmt
+                    - json
                     type: string
                   logLevel:
-                    description: 'Log filtering level. Possible options: error, warn,
-                      info, debug.'
+                    description: Log level for component to be configured with.
+                    enum:
+                    - ""
+                    - debug
+                    - info
+                    - warn
+                    - error
                     type: string
                   nodePort:
                     description: |-
@@ -27569,11 +27874,8 @@ spec:
                     description: Define which Nodes the Pods are scheduled on.
                     type: object
                   podMetadata:
-                    description: |-
-                      PodMetadata configures labels and annotations which are propagated to the pods.
-
-
-                      * "kubectl.kubernetes.io/default-container" annotation, set to main pod.
+                    description: PodMetadata configures labels and annotations which
+                      are propagated to the pods.
                     properties:
                       annotations:
                         additionalProperties:
@@ -27604,11 +27906,12 @@ spec:
                         type: string
                     type: object
                   replicas:
-                    description: Number of replicas for a component.
+                    description: Number of component instances to deploy.
                     format: int32
                     type: integer
                   resources:
-                    description: Define resources requests and limits for main container.
+                    description: Resources defines the resource requirements for single
+                      Pods.
                     properties:
                       claims:
                         description: |-
@@ -27941,10 +28244,22 @@ spec:
     singular: store
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - description: The number of desired replicas
+      jsonPath: .spec.replicas
+      name: Replicas
+      type: integer
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Store is the Schema for the stores API
+        description: |-
+          The `Store` custom resource definition (CRD) defines a desired [Compactor](https://thanos.io/tip/components/store.md/) setup to run in a Kubernetes cluster. It allows to specify many options such as the number of replicas, persistent storage and many more.
+
+
+          For each `Store` resource, the Operator deploys a `StatefulSet` in the same namespace.
         properties:
           apiVersion:
             description: |-
@@ -28907,9 +29222,8 @@ spec:
                 description: DataVolume specifies how volume shall be used
                 properties:
                   emptyDir:
-                    description: |-
-                      Represents an empty directory for a pod.
-                      Empty directory volumes support ownership management and SELinux relabeling.
+                    description: emptyDir represents a temporary directory that shares
+                      a pod's lifetime.
                     properties:
                       medium:
                         description: |-
@@ -28933,8 +29247,8 @@ spec:
                         x-kubernetes-int-or-string: true
                     type: object
                   persistentVolumeClaim:
-                    description: PersistentVolumeClaim is a user's request for and
-                      claim to a persistent volume
+                    description: Defines the PVC spec to be used by the component
+                      StatefulSets.
                     properties:
                       apiVersion:
                         description: |-
@@ -29343,6 +29657,9 @@ spec:
                       persistentVolumeClaimRetentionPolicy describes the lifecycle of persistent
                       volume claims created from persistentVolumeClaim.
                       This requires the kubernetes version >= 1.23 and its StatefulSetAutoDeletePVC feature gate to be enabled.
+
+
+                      This is an *experimental feature*, it may change in any upcoming release in a breaking way.
                     properties:
                       whenDeleted:
                         description: |-
@@ -29362,19 +29679,21 @@ spec:
                     type: object
                 type: object
               flags:
-                description: Flags is the flags of component.
+                description: Flags allows setting additional flags for the component
+                  container.
                 items:
                   type: string
                 type: array
               image:
-                description: Image is the component image with tag/version.
+                description: Component container image URL.
                 type: string
               imagePullPolicy:
-                description: |-
-                  Image pull policy.
-                  One of Always, Never, IfNotPresent.
-                  Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-                  Cannot be updated.
+                description: Image pull policy.
+                enum:
+                - ""
+                - Always
+                - Never
+                - IfNotPresent
                 type: string
               imagePullSecrets:
                 description: |-
@@ -29408,11 +29727,20 @@ spec:
                     type: object
                 type: object
               logFormat:
-                description: 'Log format to use. Possible options: logfmt or json.'
+                description: Log format for component to be configured with.
+                enum:
+                - ""
+                - logfmt
+                - json
                 type: string
               logLevel:
-                description: 'Log filtering level. Possible options: error, warn,
-                  info, debug.'
+                description: Log level for component to be configured with.
+                enum:
+                - ""
+                - debug
+                - info
+                - warn
+                - error
                 type: string
               maxTime:
                 description: MaxTime specifies end of time range limit to serve
@@ -29426,11 +29754,8 @@ spec:
                 description: Define which Nodes the Pods are scheduled on.
                 type: object
               podMetadata:
-                description: |-
-                  PodMetadata configures labels and annotations which are propagated to the pods.
-
-
-                  * "kubectl.kubernetes.io/default-container" annotation, set to main pod.
+                description: PodMetadata configures labels and annotations which are
+                  propagated to the pods.
                 properties:
                   annotations:
                     additionalProperties:
@@ -29461,11 +29786,12 @@ spec:
                     type: string
                 type: object
               replicas:
-                description: Number of replicas for a component.
+                description: Number of component instances to deploy.
                 format: int32
                 type: integer
               resources:
-                description: Define resources requests and limits for main container.
+                description: Resources defines the resource requirements for single
+                  Pods.
                 properties:
                   claims:
                     description: |-
@@ -29811,7 +30137,17 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Tenant is the Schema for the tenants API
+        description: |-
+          The `Tenant` custom resource definition (CRD) defines the tenant configuration for multi-tenant data separation in Whizard.
+          In Whizard, a tenant can represent various types of data sources, such as:
+
+
+          - Monitoring data from a specific Kubernetes cluster
+          - Monitoring data from a physical machine in a specific region
+          - Monitoring data from a specific type of application
+
+
+          When data is ingested, it will be tagged with the tenant label to ensure proper separation.
         properties:
           apiVersion:
             description: |-
@@ -29870,12 +30206,18 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: whizard
   name: whizard-controller-manager
   namespace: kubesphere-monitoring-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: whizard
   name: whizard-leader-election-role
   namespace: kubesphere-monitoring-system
 rules:
@@ -29914,13 +30256,15 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  creationTimestamp: null
-  name: whizard-adapter-role
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: whizard
+  name: whizard-compactor-editor-role
 rules:
 - apiGroups:
   - monitoring.whizard.io
   resources:
-  - tenants
+  - compactors
   verbs:
   - create
   - delete
@@ -29930,13 +30274,134 @@ rules:
   - update
   - watch
 - apiGroups:
-  - cluster.kubesphere.io
+  - monitoring.whizard.io
   resources:
-  - clusters
+  - compactors/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: whizard
+  name: whizard-compactor-viewer-role
+rules:
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - compactors
   verbs:
   - get
   - list
   - watch
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - compactors/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: whizard
+  name: whizard-gateway-editor-role
+rules:
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - gateways
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - gateways/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: whizard
+  name: whizard-gateway-viewer-role
+rules:
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - gateways
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - gateways/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: whizard
+  name: whizard-ingester-editor-role
+rules:
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - ingesters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - ingesters/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: whizard
+  name: whizard-ingester-viewer-role
+rules:
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - ingesters
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - ingesters/status
+  verbs:
+  - get
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -30329,17 +30794,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: whizard-metrics-reader
-rules:
-- nonResourceURLs:
-  - /metrics
-  verbs:
-  - get
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: whizard-proxy-role
+  name: whizard-metrics-auth-role
 rules:
 - apiGroups:
   - authentication.k8s.io
@@ -30355,8 +30810,421 @@ rules:
   - create
 ---
 apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: whizard-metrics-reader
+rules:
+- nonResourceURLs:
+  - /metrics
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: whizard
+  name: whizard-query-editor-role
+rules:
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - queries
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - queries/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: whizard
+  name: whizard-query-viewer-role
+rules:
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - queries
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - queries/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: whizard
+  name: whizard-queryfrontend-editor-role
+rules:
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - queryfrontends
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - queryfrontends/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: whizard
+  name: whizard-queryfrontend-viewer-role
+rules:
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - queryfrontends
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - queryfrontends/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: whizard
+  name: whizard-router-editor-role
+rules:
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - routers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - routers/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: whizard
+  name: whizard-router-viewer-role
+rules:
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - routers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - routers/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: whizard
+  name: whizard-ruler-editor-role
+rules:
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - rulers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - rulers/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: whizard
+  name: whizard-ruler-viewer-role
+rules:
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - rulers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - rulers/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: whizard
+  name: whizard-service-editor-role
+rules:
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - services
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - services/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: whizard
+  name: whizard-service-viewer-role
+rules:
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - services/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: whizard
+  name: whizard-storage-editor-role
+rules:
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - storages
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - storages/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: whizard
+  name: whizard-storage-viewer-role
+rules:
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - storages
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - storages/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: whizard
+  name: whizard-store-editor-role
+rules:
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - stores
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - stores/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: whizard
+  name: whizard-store-viewer-role
+rules:
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - stores
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - stores/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: whizard
+  name: whizard-tenant-editor-role
+rules:
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - tenants
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - tenants/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: whizard
+  name: whizard-tenant-viewer-role
+rules:
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - tenants
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - monitoring.whizard.io
+  resources:
+  - tenants/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: whizard
   name: whizard-leader-election-rolebinding
   namespace: kubesphere-monitoring-system
 roleRef:
@@ -30371,19 +31239,9 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: whizard-adapter-rolebinding
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: whizard-adapter-role
-subjects:
-- kind: ServiceAccount
-  name: whizard-controller-manager
-  namespace: kubesphere-monitoring-system
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: whizard
   name: whizard-manager-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -30397,39 +31255,22 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: whizard-proxy-rolebinding
+  name: whizard-metrics-auth-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: whizard-proxy-role
+  name: whizard-metrics-auth-role
 subjects:
 - kind: ServiceAccount
   name: whizard-controller-manager
   namespace: kubesphere-monitoring-system
 ---
 apiVersion: v1
-data:
-  controller_manager_config.yaml: |
-    apiVersion: controller-runtime.sigs.k8s.io/v1alpha1
-    kind: ControllerManagerConfig
-    health:
-      healthProbeBindAddress: :8081
-    metrics:
-      bindAddress: 127.0.0.1:8080
-    webhook:
-      port: 9443
-    leaderElection:
-      leaderElect: true
-      resourceName: whizard-controller-manager-leader-election
-kind: ConfigMap
-metadata:
-  name: whizard-manager-config
-  namespace: kubesphere-monitoring-system
----
-apiVersion: v1
 kind: Service
 metadata:
   labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: whizard
     control-plane: controller-manager
   name: whizard-controller-manager-metrics-service
   namespace: kubesphere-monitoring-system
@@ -30437,7 +31278,8 @@ spec:
   ports:
   - name: https
     port: 8443
-    targetPort: https
+    protocol: TCP
+    targetPort: 8443
   selector:
     control-plane: controller-manager
 ---
@@ -30445,7 +31287,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: whizard-controller-manager
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: whizard
     control-plane: controller-manager
   name: whizard-controller-manager
   namespace: kubesphere-monitoring-system
@@ -30453,42 +31296,19 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: whizard-controller-manager
       control-plane: controller-manager
   template:
     metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
       labels:
-        app: whizard-controller-manager
         control-plane: controller-manager
     spec:
       containers:
       - args:
-        - --secure-listen-address=0.0.0.0:8443
-        - --upstream=http://127.0.0.1:8080/
-        - --logtostderr=true
-        - --v=0
-        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.15.0
-        name: kube-rbac-proxy
-        ports:
-        - containerPort: 8443
-          name: https
-          protocol: TCP
-        resources:
-          limits:
-            cpu: 500m
-            memory: 128Mi
-          requests:
-            cpu: 5m
-            memory: 64Mi
-        securityContext:
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-            - ALL
-      - args:
-        - --health-probe-bind-address=:8081
-        - --metrics-bind-address=127.0.0.1:8080
+        - --metrics-bind-address=:8443
         - --leader-elect
+        - --health-probe-bind-address=:8081
         command:
         - /manager
         image: kubesphere/whizard-controller-manager:latest
@@ -30507,13 +31327,16 @@ spec:
           periodSeconds: 10
         resources:
           limits:
-            cpu: 100m
-            memory: 300Mi
+            cpu: 500m
+            memory: 128Mi
           requests:
-            cpu: 100m
-            memory: 200Mi
+            cpu: 10m
+            memory: 64Mi
         securityContext:
           allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
       securityContext:
         runAsNonRoot: true
       serviceAccountName: whizard-controller-manager

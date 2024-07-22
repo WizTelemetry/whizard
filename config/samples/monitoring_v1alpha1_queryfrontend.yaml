@@ -1,0 +1,11 @@
+apiVersion: monitoring.whizard.io/v1alpha1
+kind: QueryFrontend
+metadata:
+  labels:
+    app.kubernetes.io/name: whizard
+    app.kubernetes.io/managed-by: kustomize
+    monitoring.whizard.io/service: kubesphere-monitoring-system.whizard
+  name: whizard
+  namespace: kubesphere-monitoring-system
+spec:
+  # TODO(user): Add fields here

@@ -1,0 +1,73 @@
+apiVersion: monitoring.whizard.io/v1alpha1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/name: whizard
+    app.kubernetes.io/managed-by: kustomize
+  name: whizard
+  namespace: kubesphere-monitoring-system
+spec:
+  tenantHeader: "WHIZARD-TENANT"
+  defaultTenantId: "default-tenant"
+  tenantLabelName: "tenant_id"
+  compactorTemplateSpec:
+    securityContext:
+      fsGroup: 0
+    dataVolume:
+      emptyDir: {}
+    flags:
+      - --block-files-concurrency=20
+      - --compact.blocks-fetch-concurrency=5
+      - --web.disable
+      - --compact.enable-vertical-compaction
+    image: thanosio/thanos:v0.33.0
+  gatewayTemplateSpec: {}
+  ingesterTemplateSpec: 
+    securityContext:
+      fsGroup: 0
+    dataVolume:
+      emptyDir: {}
+    flags:
+      - --tsdb.out-of-order.time-window=10m
+  queryTemplateSpec:
+    image: thanosio/thanos:v0.33.0
+    flags: 
+      - --query.max-concurrent=200
+  queryFrontendTemplateSpec:
+    image: thanosio/thanos:v0.33.0
+  routerTemplateSpec:
+    image: thanosio/thanos:v0.33.0
+  rulerTemplateSpec:
+    rulerWriteProxy:
+      image: kubesphere/cortex-tenant:v1.12.5
+    securityContext:
+      fsGroup: 0
+    dataVolume:
+      emptyDir: {}
+    ruleSelectors:
+      - matchLabels:
+          role: alert-rules
+    flags:
+      - |
+        --alert.relabel-config=
+          - source_labels: ['job','namespace']
+            separator: ;
+            regex: '(node-exporter);.*'
+            target_label: 'namespace'
+            replacement: '$2'
+          - source_labels: ['job','pod']
+            separator: ;
+            regex: '(node-exporter);.*'
+            target_label: 'pod'
+            replacement: '$2'
+    image: thanosio/thanos:v0.33.0
+  storeTemplateSpec:
+    securityContext:
+      fsGroup: 0
+    dataVolume:
+      emptyDir: {}
+    image: thanosio/thanos:v0.33.0
+    flags:
+      - --web.disable
+      - --no-cache-index-header  
+

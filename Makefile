@@ -191,7 +191,7 @@ undeploy: kustomize ## Undeploy controller from the K8s cluster specified in ~/.
 ##@ Others
 
 generate-api-docs: gen-crd-api-reference-docs manifests ## Generate API documentation
-	$(API_DOC_GEN) -api-dir "github.com/WhizardTelemetry/whizard/pkg/api/monitoring/v1alpha1" -config "$(PWD)/tools/docs/config.json" -template-dir "$(PWD)/tools/docs/templates" -out-file "$(PWD)/docs/api.md"
+	$(API_DOC_GEN) -api-dir "github.com/WhizardTelemetry/whizard/pkg/api/monitoring/v1alpha1" -config "$(PWD)/tools/docs/config.json" -template-dir "$(PWD)/tools/docs/templates" -out-file "$(PWD)/docs/monitoring/api.md"
 
 # stripped-down-crds is a version of the whizard CRDs with all
 # description fields being removed. It is meant as a workaround for the issue

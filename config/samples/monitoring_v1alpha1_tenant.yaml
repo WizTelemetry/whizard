@@ -1,0 +1,11 @@
+apiVersion: monitoring.whizard.io/v1alpha1
+kind: Tenant
+metadata:
+  labels:
+    app.kubernetes.io/name: whizard
+    app.kubernetes.io/managed-by: kustomize
+    monitoring.whizard.io/service: kubesphere-monitoring-system.whizard
+    monitoring.whizard.io/storage: default
+  name: tenant-sample
+spec:
+  tenant: tenant-sample

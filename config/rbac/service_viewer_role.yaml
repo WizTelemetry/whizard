@@ -1,13 +1,16 @@
-# permissions for end users to view service.
+# permissions for end users to view services.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
+  labels:
+    app.kubernetes.io/name: whizard
+    app.kubernetes.io/managed-by: kustomize
   name: service-viewer-role
 rules:
 - apiGroups:
   - monitoring.whizard.io
   resources:
-  - service
+  - services
   verbs:
   - get
   - list
@@ -15,6 +18,6 @@ rules:
 - apiGroups:
   - monitoring.whizard.io
   resources:
-  - service/status
+  - services/status
   verbs:
   - get

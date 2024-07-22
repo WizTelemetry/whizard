@@ -17,7 +17,17 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Tenant is the Schema for the tenants API
+        description: |-
+          The `Tenant` custom resource definition (CRD) defines the tenant configuration for multi-tenant data separation in Whizard.
+          In Whizard, a tenant can represent various types of data sources, such as:
+
+
+          - Monitoring data from a specific Kubernetes cluster
+          - Monitoring data from a physical machine in a specific region
+          - Monitoring data from a specific type of application
+
+
+          When data is ingested, it will be tagged with the tenant label to ensure proper separation.
         properties:
           apiVersion:
             description: |-

@@ -1,27 +1,23 @@
-# permissions for end users to edit services.
+# permissions for end users to view stores.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
     app.kubernetes.io/name: whizard
     app.kubernetes.io/managed-by: kustomize
-  name: service-editor-role
+  name: store-viewer-role
 rules:
 - apiGroups:
   - monitoring.whizard.io
   resources:
-  - services
+  - stores
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - monitoring.whizard.io
   resources:
-  - services/status
+  - stores/status
   verbs:
   - get

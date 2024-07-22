@@ -1,0 +1,10 @@
+## Append samples of your project ##
+resources:
+- monitoring_v1alpha1_service.yaml
+- monitoring_v1alpha1_tenant.yaml
+- monitoring_v1alpha1_gateway.yaml
+- monitoring_v1alpha1_query.yaml
+- monitoring_v1alpha1_queryfrontend.yaml
+- monitoring_v1alpha1_router.yaml
+- monitoring_v1alpha1_ruler.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples
