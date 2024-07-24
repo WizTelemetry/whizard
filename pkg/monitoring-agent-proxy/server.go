@@ -17,7 +17,8 @@ const (
 	series      = "/api/v1/series"
 	labels      = "/api/v1/labels"
 	labelValues = "/api/v1/label/*path"
-	receive     = "/api/v1/receive"
+	receive     = "/api/v1/receive" // thanos receive endpoint
+	write       = "/api/v1/write"   // prometheus remote write endpoint
 	rules       = "/api/v1/rules"
 	alerts      = "/api/v1/alerts"
 )
@@ -67,6 +68,7 @@ func NewServer(logger log.Logger, opt *Options) *Server {
 	// s.router.Get(alerts, s.wrap(alerts))
 
 	s.router.Post(receive, s.wrap())
+	s.router.Post(write, s.wrap())
 
 	return s
 }
@@ -78,6 +80,10 @@ func (s *Server) Router() *route.Router {
 func (s *Server) wrap() http.HandlerFunc {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		// rewrite /api/v1/write to /api/v1/receive
+		if req.URL.Path == write {
+			req.URL.Path = receive
+		}
 
 		if s.options.Tenant != "" {
 			// add the prefix /:tenant_id from path
