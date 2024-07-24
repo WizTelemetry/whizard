@@ -53,14 +53,22 @@ type ServiceSpec struct {
 	// but proxy rules read requests directly to the Query.
 	RemoteQuery *RemoteQuerySpec `json:"remoteQuery,omitempty"`
 
-	GatewayTemplateSpec       GatewaySpec           `json:"gatewayTemplateSpec"`
-	QueryFrontendTemplateSpec QueryFrontendSpec     `json:"queryFrontendTemplateSpec"`
-	QueryTemplateSpec         QuerySpec             `json:"queryTemplateSpec"`
-	RulerTemplateSpec         RulerTemplateSpec     `json:"rulerTemplateSpec"`
-	RouterTemplateSpec        RouterSpec            `json:"routerTemplateSpec"`
-	IngesterTemplateSpec      IngesterTemplateSpec  `json:"ingesterTemplateSpec"`
-	StoreTemplateSpec         StoreSpec             `json:"storeTemplateSpec"`
-	CompactorTemplateSpec     CompactorTemplateSpec `json:"compactorTemplateSpec"`
+	// GatewayTemplateSpec defines the Gateway configuration template.
+	GatewayTemplateSpec GatewaySpec `json:"gatewayTemplateSpec"`
+	// QueryFrontendTemplateSpec defines the QueryFrontend configuration template.
+	QueryFrontendTemplateSpec QueryFrontendSpec `json:"queryFrontendTemplateSpec"`
+	// QueryTemplateSpec defines the Query configuration template.
+	QueryTemplateSpec QuerySpec `json:"queryTemplateSpec"`
+	// RulerTemplateSpec defines the Ruler configuration template.
+	RulerTemplateSpec RulerTemplateSpec `json:"rulerTemplateSpec"`
+	// RouterTemplateSpec defines the Router configuration template.
+	RouterTemplateSpec RouterSpec `json:"routerTemplateSpec"`
+	// IngesterTemplateSpec defines the Ingester configuration template.
+	IngesterTemplateSpec IngesterTemplateSpec `json:"ingesterTemplateSpec"`
+	// StoreTemplateSpec defines the Store configuration template.
+	StoreTemplateSpec StoreSpec `json:"storeTemplateSpec"`
+	// CompactorTemplateSpec defines the Compactor configuration template.
+	CompactorTemplateSpec CompactorTemplateSpec `json:"compactorTemplateSpec"`
 }
 
 type CompactorTemplateSpec struct {
@@ -133,7 +141,8 @@ type ServiceStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
-// Service is the Schema for the services API
+// The `Service` custom resource definition (CRD) defines the Whizard service configuration.
+// The `ServiceSpec“ has component configuration templates. Some components scale based on the number of tenants and load service configurations
 type Service struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

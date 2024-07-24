@@ -41,6 +41,45 @@ import (
 type Duration string
 
 type CommonSpec struct {
+	// Number of component instances to deploy.
+	Replicas *int32 `json:"replicas,omitempty"`
+
+	// Component container image URL.
+	Image string `json:"image,omitempty"`
+
+	// Image pull policy.
+	// +kubebuilder:validation:Enum="";Always;Never;IfNotPresent
+	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+
+	// Resources defines the resource requirements for single Pods.
+	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
+
+	// Log level for component to be configured with.
+	// +kubebuilder:validation:Enum="";debug;info;warn;error
+	LogLevel string `json:"logLevel,omitempty"`
+
+	// Log format for component to be configured with.
+	// +kubebuilder:validation:Enum="";logfmt;json
+	LogFormat string `json:"logFormat,omitempty"`
+
+	// Flags allows setting additional flags for the component container.
+	Flags []string `json:"flags,omitempty"`
+
+	// PodMetadata configures labels and annotations which are propagated to the pods.
+	PodMetadata *EmbeddedObjectMetadata `json:"podMetadata,omitempty"`
+
+	// ConfigMaps is a list of ConfigMaps in the same namespace as the component
+	// object, which shall be mounted into the default Pods.
+	// Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named `configmap-<configmap-name>`.
+	// The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.
+	ConfigMaps []string `json:"configMaps,omitempty"`
+
+	// Secrets is a list of Secrets in the same namespace as the component
+	// object, which shall be mounted into the Prometheus Pods.
+	// Each Secret is added to the StatefulSet/Deployment definition as a volume named `secret-<secret-name>`.
+	// The Secrets are mounted into /etc/whizard/secrets/<secret-name> in the default container.
+	Secrets []string `json:"secrets,omitempty"`
+
 	// Containers allows injecting additional containers or modifying operator generated containers.
 	// Containers described here modify an operator generated
 	// container if they share the same name and modifications are done via a
@@ -50,67 +89,43 @@ type CommonSpec struct {
 	// EmbeddedContainers
 	EmbeddedContainers []corev1.Container `json:"-"`
 
-	// PodMetadata configures labels and annotations which are propagated to the pods.
-	//
-	// * "kubectl.kubernetes.io/default-container" annotation, set to main pod.
-	PodMetadata *EmbeddedObjectMetadata `json:"podMetadata,omitempty"`
-
-	// Secrets is a list of Secrets in the same namespace as the component
-	// object, which shall be mounted into the Prometheus Pods.
-	// Each Secret is added to the StatefulSet/Deployment definition as a volume named `secret-<secret-name>`.
-	// The Secrets are mounted into /etc/whizard/secrets/<secret-name> in the default container.
-	Secrets []string `json:"secrets,omitempty"`
-	// ConfigMaps is a list of ConfigMaps in the same namespace as the component
-	// object, which shall be mounted into the default Pods.
-	// Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named `configmap-<configmap-name>`.
-	// The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.
-	ConfigMaps []string `json:"configMaps,omitempty"`
-
-	// If specified, the pod's scheduling constraints.
-	Affinity *corev1.Affinity `json:"affinity,omitempty"`
-	// Define which Nodes the Pods are scheduled on.
-	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
-	// If specified, the pod's tolerations.
-	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
-	// Define resources requests and limits for main container.
-	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-	// SecurityContext holds pod-level security attributes and common container settings.
-	// This defaults to the default PodSecurityContext.
-	// +optional
-	SecurityContext *corev1.PodSecurityContext `json:"securityContext,omitempty"`
-	// Number of replicas for a component.
-	Replicas *int32 `json:"replicas,omitempty"`
-
-	// Image is the component image with tag/version.
-	Image string `json:"image,omitempty"`
-	// Image pull policy.
-	// One of Always, Never, IfNotPresent.
-	// Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-	// Cannot be updated.
-	// +optional
-	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 	// An optional list of references to secrets in the same namespace
 	// to use for pulling images from registries
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
 
-	// Log filtering level. Possible options: error, warn, info, debug.
-	LogLevel string `json:"logLevel,omitempty"`
+	// SecurityContext holds pod-level security attributes and common container settings.
+	// This defaults to the default PodSecurityContext.
+	SecurityContext *corev1.PodSecurityContext `json:"securityContext,omitempty"`
 
-	// Log format to use. Possible options: logfmt or json.
-	LogFormat string `json:"logFormat,omitempty"`
+	// If specified, the pod's scheduling constraints.
+	Affinity *corev1.Affinity `json:"affinity,omitempty"`
 
-	// Flags is the flags of component.
-	Flags []string `json:"flags,omitempty"`
+	// Define which Nodes the Pods are scheduled on.
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+
+	// If specified, the pod's tolerations.
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 }
 
-// KubernetesVolume defines the configured volume for a instance.
+// KubernetesVolume defines the configured storage for component.
+// If no storage option is specified, then by default an [EmptyDir](https://kubernetes.io/docs/concepts/storage/volumes/#emptydir) will be used.
+//
+// If multiple storage options are specified, priority will be given as follows:
+//  1. emptyDir
+//  2. persistentVolumeClaim
 type KubernetesVolume struct {
-	EmptyDir              *corev1.EmptyDirVolumeSource  `json:"emptyDir,omitempty"`
+	// emptyDir represents a temporary directory that shares a pod's lifetime.
+	EmptyDir *corev1.EmptyDirVolumeSource `json:"emptyDir,omitempty"`
+
+	// Defines the PVC spec to be used by the component StatefulSets.
 	PersistentVolumeClaim *corev1.PersistentVolumeClaim `json:"persistentVolumeClaim,omitempty"`
+
 	// persistentVolumeClaimRetentionPolicy describes the lifecycle of persistent
 	// volume claims created from persistentVolumeClaim.
 	// This requires the kubernetes version >= 1.23 and its StatefulSetAutoDeletePVC feature gate to be enabled.
-	// +optional
+	//
+	// This is an *experimental feature*, it may change in any upcoming release in a breaking way.
+	//
 	PersistentVolumeClaimRetentionPolicy *appsv1.StatefulSetPersistentVolumeClaimRetentionPolicy `json:"persistentVolumeClaimRetentionPolicy,omitempty"`
 }
 

@@ -157,7 +157,9 @@ type StorageStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
-// Storage is the Schema for the storages API
+// The `Storage` custom resource definition (CRD) defines how to configure access to object storage.
+// More info https://thanos.io/tip/thanos/storage.md/
+// Current object storage client implementations: S3, other in progress.
 type Storage struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

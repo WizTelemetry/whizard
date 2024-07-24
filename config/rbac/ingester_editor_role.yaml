@@ -1,15 +1,16 @@
-
----
+# permissions for end users to edit ingesters.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  creationTimestamp: null
-  name: adapter-role
+  labels:
+    app.kubernetes.io/name: whizard
+    app.kubernetes.io/managed-by: kustomize
+  name: ingester-editor-role
 rules:
 - apiGroups:
   - monitoring.whizard.io
   resources:
-  - tenants
+  - ingesters
   verbs:
   - create
   - delete
@@ -19,10 +20,8 @@ rules:
   - update
   - watch
 - apiGroups:
-  - cluster.kubesphere.io
+  - monitoring.whizard.io
   resources:
-  - clusters
+  - ingesters/status
   verbs:
   - get
-  - list
-  - watch

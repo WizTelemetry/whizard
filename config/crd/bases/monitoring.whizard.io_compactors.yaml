@@ -14,10 +14,22 @@ spec:
     singular: compactor
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - description: The number of desired replicas
+      jsonPath: .spec.replicas
+      name: Replicas
+      type: integer
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Compactor is the Schema for the compactors API
+        description: |-
+          The `Compactor` custom resource definition (CRD) defines a desired [Compactor](https://thanos.io/tip/components/compactor.md/) setup to run in a Kubernetes cluster. It allows to specify many options such as the number of replicas, persistent storage and many more.
+
+
+          For each `Compactor` resource, the Operator deploys a `StatefulSet` in the same namespace.
         properties:
           apiVersion:
             description: |-
@@ -980,9 +992,8 @@ spec:
                 description: DataVolume specifies how volume shall be used
                 properties:
                   emptyDir:
-                    description: |-
-                      Represents an empty directory for a pod.
-                      Empty directory volumes support ownership management and SELinux relabeling.
+                    description: emptyDir represents a temporary directory that shares
+                      a pod's lifetime.
                     properties:
                       medium:
                         description: |-
@@ -1006,8 +1017,8 @@ spec:
                         x-kubernetes-int-or-string: true
                     type: object
                   persistentVolumeClaim:
-                    description: PersistentVolumeClaim is a user's request for and
-                      claim to a persistent volume
+                    description: Defines the PVC spec to be used by the component
+                      StatefulSets.
                     properties:
                       apiVersion:
                         description: |-
@@ -1416,6 +1427,9 @@ spec:
                       persistentVolumeClaimRetentionPolicy describes the lifecycle of persistent
                       volume claims created from persistentVolumeClaim.
                       This requires the kubernetes version >= 1.23 and its StatefulSetAutoDeletePVC feature gate to be enabled.
+
+
+                      This is an *experimental feature*, it may change in any upcoming release in a breaking way.
                     properties:
                       whenDeleted:
                         description: |-
@@ -1435,22 +1449,27 @@ spec:
                     type: object
                 type: object
               disableDownsampling:
-                description: DisableDownsampling specifies whether to disable downsampling
+                description: |-
+                  Disables downsampling.
+                  This is not recommended, as querying long time ranges without non-downsampled data is not efficient and useful.
+                  default: false
                 type: boolean
               flags:
-                description: Flags is the flags of component.
+                description: Flags allows setting additional flags for the component
+                  container.
                 items:
                   type: string
                 type: array
               image:
-                description: Image is the component image with tag/version.
+                description: Component container image URL.
                 type: string
               imagePullPolicy:
-                description: |-
-                  Image pull policy.
-                  One of Always, Never, IfNotPresent.
-                  Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-                  Cannot be updated.
+                description: Image pull policy.
+                enum:
+                - ""
+                - Always
+                - Never
+                - IfNotPresent
                 type: string
               imagePullSecrets:
                 description: |-
@@ -1471,11 +1490,20 @@ spec:
                   x-kubernetes-map-type: atomic
                 type: array
               logFormat:
-                description: 'Log format to use. Possible options: logfmt or json.'
+                description: Log format for component to be configured with.
+                enum:
+                - ""
+                - logfmt
+                - json
                 type: string
               logLevel:
-                description: 'Log filtering level. Possible options: error, warn,
-                  info, debug.'
+                description: Log level for component to be configured with.
+                enum:
+                - ""
+                - debug
+                - info
+                - warn
+                - error
                 type: string
               nodeSelector:
                 additionalProperties:
@@ -1483,11 +1511,8 @@ spec:
                 description: Define which Nodes the Pods are scheduled on.
                 type: object
               podMetadata:
-                description: |-
-                  PodMetadata configures labels and annotations which are propagated to the pods.
-
-
-                  * "kubectl.kubernetes.io/default-container" annotation, set to main pod.
+                description: PodMetadata configures labels and annotations which are
+                  propagated to the pods.
                 properties:
                   annotations:
                     additionalProperties:
@@ -1518,11 +1543,12 @@ spec:
                     type: string
                 type: object
               replicas:
-                description: Number of replicas for a component.
+                description: Number of component instances to deploy.
                 format: int32
                 type: integer
               resources:
-                description: Define resources requests and limits for main container.
+                description: Resources defines the resource requirements for single
+                  Pods.
                 properties:
                   claims:
                     description: |-
@@ -1580,18 +1606,21 @@ spec:
                 description: Retention configs how long to retain samples
                 properties:
                   retention1h:
-                    description: Retention1h specifies how long to retain samples
-                      of 1h resolution in bucket
+                    description: |-
+                      How long to retain samples of resolution 2 (1 hour) in bucket. Setting this to 0d will retain samples of this resolution forever
+                      default: 0d
                     pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
                     type: string
                   retention5m:
-                    description: Retention5m specifies how long to retain samples
-                      of 5m resolution in bucket
+                    description: |-
+                      How long to retain samples of resolution 1 (5 minutes) in bucket. Setting this to 0d will retain samples of this resolution forever
+                      default: 0d
                     pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
                     type: string
                   retentionRaw:
-                    description: RetentionRaw specifies how long to retain raw samples
-                      in bucket
+                    description: |-
+                      How long to retain raw samples in bucket. Setting this to 0d will retain samples of this resolution forever
+                      default: 0d
                     pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
                     type: string
                 type: object
@@ -1806,8 +1835,7 @@ spec:
                     type: object
                 type: object
               tenants:
-                description: Tenants if not empty indicates current config is for
-                  hard tenants; otherwise, it is for soft tenants.
+                description: The tenants whose data is being compacted by the Compactor.
                 items:
                   type: string
                 type: array

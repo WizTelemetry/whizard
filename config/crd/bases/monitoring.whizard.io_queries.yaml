@@ -14,10 +14,22 @@ spec:
     singular: query
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - description: The number of desired replicas
+      jsonPath: .spec.replicas
+      name: Replicas
+      type: integer
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Query is the Schema for the queries API
+        description: |-
+          The `Query` custom resource definition (CRD) defines a desired [Query](https://thanos.io/tip/components/query.md/) setup to run in a Kubernetes cluster. It allows to specify many options such as the number of replicas, and many more.
+
+
+          For each `Query` resource, the Operator deploys a `Deployment` in the same namespace.
         properties:
           apiVersion:
             description: |-
@@ -1041,19 +1053,21 @@ spec:
                     type: object
                 type: object
               flags:
-                description: Flags is the flags of component.
+                description: Flags allows setting additional flags for the component
+                  container.
                 items:
                   type: string
                 type: array
               image:
-                description: Image is the component image with tag/version.
+                description: Component container image URL.
                 type: string
               imagePullPolicy:
-                description: |-
-                  Image pull policy.
-                  One of Always, Never, IfNotPresent.
-                  Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-                  Cannot be updated.
+                description: Image pull policy.
+                enum:
+                - ""
+                - Always
+                - Never
+                - IfNotPresent
                 type: string
               imagePullSecrets:
                 description: |-
@@ -1074,11 +1088,20 @@ spec:
                   x-kubernetes-map-type: atomic
                 type: array
               logFormat:
-                description: 'Log format to use. Possible options: logfmt or json.'
+                description: Log format for component to be configured with.
+                enum:
+                - ""
+                - logfmt
+                - json
                 type: string
               logLevel:
-                description: 'Log filtering level. Possible options: error, warn,
-                  info, debug.'
+                description: Log level for component to be configured with.
+                enum:
+                - ""
+                - debug
+                - info
+                - warn
+                - error
                 type: string
               nodeSelector:
                 additionalProperties:
@@ -1086,11 +1109,8 @@ spec:
                 description: Define which Nodes the Pods are scheduled on.
                 type: object
               podMetadata:
-                description: |-
-                  PodMetadata configures labels and annotations which are propagated to the pods.
-
-
-                  * "kubectl.kubernetes.io/default-container" annotation, set to main pod.
+                description: PodMetadata configures labels and annotations which are
+                  propagated to the pods.
                 properties:
                   annotations:
                     additionalProperties:
@@ -1121,6 +1141,13 @@ spec:
                     type: string
                 type: object
               promqlEngine:
+                description: |-
+                  experimental PromQL engine, more info thanos.io/tip/components/query.md#promql-engine
+                  default: prometheus
+                enum:
+                - ""
+                - prometheus
+                - thanos
                 type: string
               replicaLabelNames:
                 description: Labels to treat as a replica indicator along which data
@@ -1129,11 +1156,12 @@ spec:
                   type: string
                 type: array
               replicas:
-                description: Number of replicas for a component.
+                description: Number of component instances to deploy.
                 format: int32
                 type: integer
               resources:
-                description: Define resources requests and limits for main container.
+                description: Resources defines the resource requirements for single
+                  Pods.
                 properties:
                   claims:
                     description: |-
@@ -1478,6 +1506,7 @@ spec:
                   type: object
                 type: array
               webConfig:
+                description: Defines the configuration of the Thanos Query web server.
                 properties:
                   basicAuthUsers:
                     items:

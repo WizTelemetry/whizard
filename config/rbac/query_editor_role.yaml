@@ -1,16 +1,16 @@
-# permissions for end users to edit services.
+# permissions for end users to edit queries.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
     app.kubernetes.io/name: whizard
     app.kubernetes.io/managed-by: kustomize
-  name: service-editor-role
+  name: query-editor-role
 rules:
 - apiGroups:
   - monitoring.whizard.io
   resources:
-  - services
+  - queries
   verbs:
   - create
   - delete
@@ -22,6 +22,6 @@ rules:
 - apiGroups:
   - monitoring.whizard.io
   resources:
-  - services/status
+  - queries/status
   verbs:
   - get

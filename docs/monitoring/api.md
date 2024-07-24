@@ -44,7 +44,8 @@ Resource Types:
 <h3 id="monitoring.whizard.io/v1alpha1.Compactor">Compactor
 </h3>
 <div>
-<p>Compactor is the Schema for the compactors API</p>
+<p>The <code>Compactor</code> custom resource definition (CRD) defines a desired <a href="https://thanos.io/tip/components/compactor.md/">Compactor</a> setup to run in a Kubernetes cluster. It allows to specify many options such as the number of replicas, persistent storage and many more.</p>
+<p>For each <code>Compactor</code> resource, the Operator deploys a <code>StatefulSet</code> in the same namespace.</p>
 </div>
 <table>
 <thead>
@@ -100,18 +101,133 @@ CompactorSpec
 <table>
 <tr>
 <td>
-<code>containers</code><br/>
+<code>tenants</code><br/>
 <em>
-<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
-k8s.io/apimachinery/pkg/runtime.RawExtension
+[]string
+</em>
+</td>
+<td>
+<p>The tenants whose data is being compacted by the Compactor.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>disableDownsampling</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>Disables downsampling.
+This is not recommended, as querying long time ranges without non-downsampled data is not efficient and useful.
+default: false</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>retention</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.Retention">
+Retention
 </a>
 </em>
 </td>
 <td>
-<p>Containers allows injecting additional containers or modifying operator generated containers.
-Containers described here modify an operator generated
-container if they share the same name and modifications are done via a
-strategic merge patch.</p>
+<p>Retention configs how long to retain samples</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dataVolume</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.KubernetesVolume">
+KubernetesVolume
+</a>
+</em>
+</td>
+<td>
+<p>DataVolume specifies how volume shall be used</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>replicas</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>Number of component instances to deploy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>image</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Component container image URL.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullPolicy</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
+Kubernetes core/v1.PullPolicy
+</a>
+</em>
+</td>
+<td>
+<p>Image pull policy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resources</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
+Kubernetes core/v1.ResourceRequirements
+</a>
+</em>
+</td>
+<td>
+<p>Resources defines the resource requirements for single Pods.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logLevel</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log level for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logFormat</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log format for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>flags</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Flags allows setting additional flags for the component container.</p>
 </td>
 </tr>
 <tr>
@@ -125,9 +241,20 @@ EmbeddedObjectMetadata
 </td>
 <td>
 <p>PodMetadata configures labels and annotations which are propagated to the pods.</p>
-<ul>
-<li>&ldquo;kubectl.kubernetes.io/default-container&rdquo; annotation, set to main pod.</li>
-</ul>
+</td>
+</tr>
+<tr>
+<td>
+<code>configMaps</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
+object, which shall be mounted into the default Pods.
+Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
+The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
 </td>
 </tr>
 <tr>
@@ -146,16 +273,46 @@ The Secrets are mounted into /etc/whizard/secrets/<secret-name> in the default c
 </tr>
 <tr>
 <td>
-<code>configMaps</code><br/>
+<code>containers</code><br/>
 <em>
-[]string
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
+k8s.io/apimachinery/pkg/runtime.RawExtension
+</a>
 </em>
 </td>
 <td>
-<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
-object, which shall be mounted into the default Pods.
-Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
-The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
+<p>Containers allows injecting additional containers or modifying operator generated containers.
+Containers described here modify an operator generated
+container if they share the same name and modifications are done via a
+strategic merge patch.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullSecrets</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
+[]Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>An optional list of references to secrets in the same namespace
+to use for pulling images from registries</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>securityContext</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
+Kubernetes core/v1.PodSecurityContext
+</a>
+</em>
+</td>
+<td>
+<p>SecurityContext holds pod-level security attributes and common container settings.
+This defaults to the default PodSecurityContext.</p>
 </td>
 </tr>
 <tr>
@@ -195,168 +352,6 @@ map[string]string
 <p>If specified, the pod&rsquo;s tolerations.</p>
 </td>
 </tr>
-<tr>
-<td>
-<code>resources</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
-Kubernetes core/v1.ResourceRequirements
-</a>
-</em>
-</td>
-<td>
-<p>Define resources requests and limits for main container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>securityContext</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
-Kubernetes core/v1.PodSecurityContext
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>SecurityContext holds pod-level security attributes and common container settings.
-This defaults to the default PodSecurityContext.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>replicas</code><br/>
-<em>
-int32
-</em>
-</td>
-<td>
-<p>Number of replicas for a component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>image</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Image is the component image with tag/version.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullPolicy</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
-Kubernetes core/v1.PullPolicy
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Image pull policy.
-One of Always, Never, IfNotPresent.
-Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-Cannot be updated.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullSecrets</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
-[]Kubernetes core/v1.LocalObjectReference
-</a>
-</em>
-</td>
-<td>
-<p>An optional list of references to secrets in the same namespace
-to use for pulling images from registries</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logLevel</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log filtering level. Possible options: error, warn, info, debug.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logFormat</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log format to use. Possible options: logfmt or json.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>flags</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Flags is the flags of component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>disableDownsampling</code><br/>
-<em>
-bool
-</em>
-</td>
-<td>
-<p>DisableDownsampling specifies whether to disable downsampling</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>retention</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.Retention">
-Retention
-</a>
-</em>
-</td>
-<td>
-<p>Retention configs how long to retain samples</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>dataVolume</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.KubernetesVolume">
-KubernetesVolume
-</a>
-</em>
-</td>
-<td>
-<p>DataVolume specifies how volume shall be used</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>tenants</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Tenants if not empty indicates current config is for hard tenants; otherwise, it is for soft tenants.</p>
-</td>
-</tr>
 </table>
 </td>
 </tr>
@@ -377,7 +372,8 @@ CompactorStatus
 <h3 id="monitoring.whizard.io/v1alpha1.Gateway">Gateway
 </h3>
 <div>
-<p>Gateway is the Schema for the gateways API</p>
+<p>The <code>Gateway</code> custom resource definition (CRD) defines a desired <a href="https://github.com/WhizardTelemetry/whizard-docs/blob/main/Architecture/components/whizard-monitoring-gateway.md">Gateway</a> setup to run in a Kubernetes cluster. It allows to specify many options such as the number of replicas, and many more.</p>
+<p>For each <code>Gateway</code> resource, the Operator deploys a <code>Deployment</code> in the same namespace.</p>
 </div>
 <table>
 <thead>
@@ -433,18 +429,131 @@ GatewaySpec
 <table>
 <tr>
 <td>
-<code>containers</code><br/>
+<code>webConfig</code><br/>
 <em>
-<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
-k8s.io/apimachinery/pkg/runtime.RawExtension
+<a href="#monitoring.whizard.io/v1alpha1.WebConfig">
+WebConfig
 </a>
 </em>
 </td>
 <td>
-<p>Containers allows injecting additional containers or modifying operator generated containers.
-Containers described here modify an operator generated
-container if they share the same name and modifications are done via a
-strategic merge patch.</p>
+<p>Defines the configuration of the Gatewat web server.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>debug</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>If debug mode is on, gateway will proxy Query UI</p>
+<p>This is an <em>experimental feature</em>, it may change in any upcoming release in a breaking way.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>enabledTenantsAdmission</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>Deny unknown tenant data remote-write and query if enabled</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>nodePort</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>NodePort is the port used to expose the gateway service.
+If this is a valid node port, the gateway service type will be set to NodePort accordingly.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>replicas</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>Number of component instances to deploy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>image</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Component container image URL.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullPolicy</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
+Kubernetes core/v1.PullPolicy
+</a>
+</em>
+</td>
+<td>
+<p>Image pull policy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resources</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
+Kubernetes core/v1.ResourceRequirements
+</a>
+</em>
+</td>
+<td>
+<p>Resources defines the resource requirements for single Pods.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logLevel</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log level for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logFormat</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log format for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>flags</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Flags allows setting additional flags for the component container.</p>
 </td>
 </tr>
 <tr>
@@ -458,9 +567,20 @@ EmbeddedObjectMetadata
 </td>
 <td>
 <p>PodMetadata configures labels and annotations which are propagated to the pods.</p>
-<ul>
-<li>&ldquo;kubectl.kubernetes.io/default-container&rdquo; annotation, set to main pod.</li>
-</ul>
+</td>
+</tr>
+<tr>
+<td>
+<code>configMaps</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
+object, which shall be mounted into the default Pods.
+Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
+The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
 </td>
 </tr>
 <tr>
@@ -479,16 +599,46 @@ The Secrets are mounted into /etc/whizard/secrets/<secret-name> in the default c
 </tr>
 <tr>
 <td>
-<code>configMaps</code><br/>
+<code>containers</code><br/>
 <em>
-[]string
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
+k8s.io/apimachinery/pkg/runtime.RawExtension
+</a>
 </em>
 </td>
 <td>
-<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
-object, which shall be mounted into the default Pods.
-Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
-The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
+<p>Containers allows injecting additional containers or modifying operator generated containers.
+Containers described here modify an operator generated
+container if they share the same name and modifications are done via a
+strategic merge patch.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullSecrets</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
+[]Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>An optional list of references to secrets in the same namespace
+to use for pulling images from registries</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>securityContext</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
+Kubernetes core/v1.PodSecurityContext
+</a>
+</em>
+</td>
+<td>
+<p>SecurityContext holds pod-level security attributes and common container settings.
+This defaults to the default PodSecurityContext.</p>
 </td>
 </tr>
 <tr>
@@ -528,166 +678,6 @@ map[string]string
 <p>If specified, the pod&rsquo;s tolerations.</p>
 </td>
 </tr>
-<tr>
-<td>
-<code>resources</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
-Kubernetes core/v1.ResourceRequirements
-</a>
-</em>
-</td>
-<td>
-<p>Define resources requests and limits for main container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>securityContext</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
-Kubernetes core/v1.PodSecurityContext
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>SecurityContext holds pod-level security attributes and common container settings.
-This defaults to the default PodSecurityContext.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>replicas</code><br/>
-<em>
-int32
-</em>
-</td>
-<td>
-<p>Number of replicas for a component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>image</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Image is the component image with tag/version.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullPolicy</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
-Kubernetes core/v1.PullPolicy
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Image pull policy.
-One of Always, Never, IfNotPresent.
-Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-Cannot be updated.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullSecrets</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
-[]Kubernetes core/v1.LocalObjectReference
-</a>
-</em>
-</td>
-<td>
-<p>An optional list of references to secrets in the same namespace
-to use for pulling images from registries</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logLevel</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log filtering level. Possible options: error, warn, info, debug.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logFormat</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log format to use. Possible options: logfmt or json.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>flags</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Flags is the flags of component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>webConfig</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.WebConfig">
-WebConfig
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>debug</code><br/>
-<em>
-bool
-</em>
-</td>
-<td>
-<p>If debug mode is on, gateway will proxy Query UI</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>enabledTenantsAdmission</code><br/>
-<em>
-bool
-</em>
-</td>
-<td>
-<p>Deny unknown tenant data remote-write and query if enabled</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>nodePort</code><br/>
-<em>
-int32
-</em>
-</td>
-<td>
-<p>NodePort is the port used to expose the gateway service.
-If this is a valid node port, the gateway service type will be set to NodePort accordingly.</p>
-</td>
-</tr>
 </table>
 </td>
 </tr>
@@ -708,7 +698,8 @@ GatewayStatus
 <h3 id="monitoring.whizard.io/v1alpha1.Ingester">Ingester
 </h3>
 <div>
-<p>Ingester is the Schema for the ingesters API</p>
+<p>The <code>Ingester</code> custom resource definition (CRD) defines a desired <a href="https://thanos.io/tip/components/receive.md/">Ingesting Receive</a> setup to run in a Kubernetes cluster. It allows to specify many options such as the number of replicas, persistent storage and many more.</p>
+<p>For each <code>Ingester</code> resource, the Operator deploys a <code>StatefulSet</code> in the same namespace.</p>
 </div>
 <table>
 <thead>
@@ -764,18 +755,118 @@ IngesterSpec
 <table>
 <tr>
 <td>
-<code>containers</code><br/>
+<code>tenants</code><br/>
 <em>
-<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
-k8s.io/apimachinery/pkg/runtime.RawExtension
+[]string
+</em>
+</td>
+<td>
+<p>The tenants whose data is being ingested by the Ingester(ingesting receiver).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>localTsdbRetention</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>LocalTsdbRetention configs how long to retain raw samples on local storage.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dataVolume</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.KubernetesVolume">
+KubernetesVolume
 </a>
 </em>
 </td>
 <td>
-<p>Containers allows injecting additional containers or modifying operator generated containers.
-Containers described here modify an operator generated
-container if they share the same name and modifications are done via a
-strategic merge patch.</p>
+<p>DataVolume specifies how volume shall be used</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>replicas</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>Number of component instances to deploy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>image</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Component container image URL.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullPolicy</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
+Kubernetes core/v1.PullPolicy
+</a>
+</em>
+</td>
+<td>
+<p>Image pull policy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resources</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
+Kubernetes core/v1.ResourceRequirements
+</a>
+</em>
+</td>
+<td>
+<p>Resources defines the resource requirements for single Pods.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logLevel</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log level for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logFormat</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log format for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>flags</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Flags allows setting additional flags for the component container.</p>
 </td>
 </tr>
 <tr>
@@ -789,9 +880,20 @@ EmbeddedObjectMetadata
 </td>
 <td>
 <p>PodMetadata configures labels and annotations which are propagated to the pods.</p>
-<ul>
-<li>&ldquo;kubectl.kubernetes.io/default-container&rdquo; annotation, set to main pod.</li>
-</ul>
+</td>
+</tr>
+<tr>
+<td>
+<code>configMaps</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
+object, which shall be mounted into the default Pods.
+Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
+The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
 </td>
 </tr>
 <tr>
@@ -810,16 +912,46 @@ The Secrets are mounted into /etc/whizard/secrets/<secret-name> in the default c
 </tr>
 <tr>
 <td>
-<code>configMaps</code><br/>
+<code>containers</code><br/>
 <em>
-[]string
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
+k8s.io/apimachinery/pkg/runtime.RawExtension
+</a>
 </em>
 </td>
 <td>
-<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
-object, which shall be mounted into the default Pods.
-Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
-The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
+<p>Containers allows injecting additional containers or modifying operator generated containers.
+Containers described here modify an operator generated
+container if they share the same name and modifications are done via a
+strategic merge patch.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullSecrets</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
+[]Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>An optional list of references to secrets in the same namespace
+to use for pulling images from registries</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>securityContext</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
+Kubernetes core/v1.PodSecurityContext
+</a>
+</em>
+</td>
+<td>
+<p>SecurityContext holds pod-level security attributes and common container settings.
+This defaults to the default PodSecurityContext.</p>
 </td>
 </tr>
 <tr>
@@ -861,120 +993,6 @@ map[string]string
 </tr>
 <tr>
 <td>
-<code>resources</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
-Kubernetes core/v1.ResourceRequirements
-</a>
-</em>
-</td>
-<td>
-<p>Define resources requests and limits for main container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>securityContext</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
-Kubernetes core/v1.PodSecurityContext
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>SecurityContext holds pod-level security attributes and common container settings.
-This defaults to the default PodSecurityContext.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>replicas</code><br/>
-<em>
-int32
-</em>
-</td>
-<td>
-<p>Number of replicas for a component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>image</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Image is the component image with tag/version.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullPolicy</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
-Kubernetes core/v1.PullPolicy
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Image pull policy.
-One of Always, Never, IfNotPresent.
-Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-Cannot be updated.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullSecrets</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
-[]Kubernetes core/v1.LocalObjectReference
-</a>
-</em>
-</td>
-<td>
-<p>An optional list of references to secrets in the same namespace
-to use for pulling images from registries</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logLevel</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log filtering level. Possible options: error, warn, info, debug.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logFormat</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log format to use. Possible options: logfmt or json.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>flags</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Flags is the flags of component.</p>
-</td>
-</tr>
-<tr>
-<td>
 <code>ingesterTsdbCleanup</code><br/>
 <em>
 <a href="#monitoring.whizard.io/v1alpha1.SidecarSpec">
@@ -983,41 +1001,6 @@ SidecarSpec
 </em>
 </td>
 <td>
-</td>
-</tr>
-<tr>
-<td>
-<code>tenants</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Tenants if not empty indicates current config is for hard tenants; otherwise, it is for soft tenants.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>localTsdbRetention</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>LocalTsdbRetention configs how long to retain raw samples on local storage.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>dataVolume</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.KubernetesVolume">
-KubernetesVolume
-</a>
-</em>
-</td>
-<td>
-<p>DataVolume specifies how volume shall be used</p>
 </td>
 </tr>
 </table>
@@ -1040,7 +1023,8 @@ IngesterStatus
 <h3 id="monitoring.whizard.io/v1alpha1.Query">Query
 </h3>
 <div>
-<p>Query is the Schema for the queries API</p>
+<p>The <code>Query</code> custom resource definition (CRD) defines a desired <a href="https://thanos.io/tip/components/query.md/">Query</a> setup to run in a Kubernetes cluster. It allows to specify many options such as the number of replicas, and many more.</p>
+<p>For each <code>Query</code> resource, the Operator deploys a <code>Deployment</code> in the same namespace.</p>
 </div>
 <table>
 <thead>
@@ -1096,18 +1080,156 @@ QuerySpec
 <table>
 <tr>
 <td>
-<code>containers</code><br/>
+<code>promqlEngine</code><br/>
 <em>
-<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
-k8s.io/apimachinery/pkg/runtime.RawExtension
+string
+</em>
+</td>
+<td>
+<p>experimental PromQL engine, more info thanos.io/tip/components/query.md#promql-engine
+default: prometheus</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>selectorLabels</code><br/>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<p>Selector labels that will be exposed in info endpoint.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>replicaLabelNames</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Labels to treat as a replica indicator along which data is deduplicated.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>webConfig</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.WebConfig">
+WebConfig
 </a>
 </em>
 </td>
 <td>
-<p>Containers allows injecting additional containers or modifying operator generated containers.
-Containers described here modify an operator generated
-container if they share the same name and modifications are done via a
-strategic merge patch.</p>
+<p>Defines the configuration of the Thanos Query web server.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>stores</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.QueryStores">
+[]QueryStores
+</a>
+</em>
+</td>
+<td>
+<p>Additional StoreApi servers from which Query component queries from</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>envoy</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.SidecarSpec">
+SidecarSpec
+</a>
+</em>
+</td>
+<td>
+<p>Envoy is used to config sidecar which proxies requests requiring auth to the secure stores</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>replicas</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>Number of component instances to deploy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>image</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Component container image URL.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullPolicy</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
+Kubernetes core/v1.PullPolicy
+</a>
+</em>
+</td>
+<td>
+<p>Image pull policy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resources</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
+Kubernetes core/v1.ResourceRequirements
+</a>
+</em>
+</td>
+<td>
+<p>Resources defines the resource requirements for single Pods.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logLevel</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log level for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logFormat</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log format for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>flags</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Flags allows setting additional flags for the component container.</p>
 </td>
 </tr>
 <tr>
@@ -1121,9 +1243,20 @@ EmbeddedObjectMetadata
 </td>
 <td>
 <p>PodMetadata configures labels and annotations which are propagated to the pods.</p>
-<ul>
-<li>&ldquo;kubectl.kubernetes.io/default-container&rdquo; annotation, set to main pod.</li>
-</ul>
+</td>
+</tr>
+<tr>
+<td>
+<code>configMaps</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
+object, which shall be mounted into the default Pods.
+Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
+The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
 </td>
 </tr>
 <tr>
@@ -1142,16 +1275,46 @@ The Secrets are mounted into /etc/whizard/secrets/<secret-name> in the default c
 </tr>
 <tr>
 <td>
-<code>configMaps</code><br/>
+<code>containers</code><br/>
 <em>
-[]string
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
+k8s.io/apimachinery/pkg/runtime.RawExtension
+</a>
 </em>
 </td>
 <td>
-<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
-object, which shall be mounted into the default Pods.
-Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
-The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
+<p>Containers allows injecting additional containers or modifying operator generated containers.
+Containers described here modify an operator generated
+container if they share the same name and modifications are done via a
+strategic merge patch.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullSecrets</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
+[]Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>An optional list of references to secrets in the same namespace
+to use for pulling images from registries</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>securityContext</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
+Kubernetes core/v1.PodSecurityContext
+</a>
+</em>
+</td>
+<td>
+<p>SecurityContext holds pod-level security attributes and common container settings.
+This defaults to the default PodSecurityContext.</p>
 </td>
 </tr>
 <tr>
@@ -1191,190 +1354,6 @@ map[string]string
 <p>If specified, the pod&rsquo;s tolerations.</p>
 </td>
 </tr>
-<tr>
-<td>
-<code>resources</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
-Kubernetes core/v1.ResourceRequirements
-</a>
-</em>
-</td>
-<td>
-<p>Define resources requests and limits for main container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>securityContext</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
-Kubernetes core/v1.PodSecurityContext
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>SecurityContext holds pod-level security attributes and common container settings.
-This defaults to the default PodSecurityContext.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>replicas</code><br/>
-<em>
-int32
-</em>
-</td>
-<td>
-<p>Number of replicas for a component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>image</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Image is the component image with tag/version.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullPolicy</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
-Kubernetes core/v1.PullPolicy
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Image pull policy.
-One of Always, Never, IfNotPresent.
-Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-Cannot be updated.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullSecrets</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
-[]Kubernetes core/v1.LocalObjectReference
-</a>
-</em>
-</td>
-<td>
-<p>An optional list of references to secrets in the same namespace
-to use for pulling images from registries</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logLevel</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log filtering level. Possible options: error, warn, info, debug.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logFormat</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log format to use. Possible options: logfmt or json.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>flags</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Flags is the flags of component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>webConfig</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.WebConfig">
-WebConfig
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>promqlEngine</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>stores</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.QueryStores">
-[]QueryStores
-</a>
-</em>
-</td>
-<td>
-<p>Additional StoreApi servers from which Query component queries from</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>selectorLabels</code><br/>
-<em>
-map[string]string
-</em>
-</td>
-<td>
-<p>Selector labels that will be exposed in info endpoint.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>replicaLabelNames</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Labels to treat as a replica indicator along which data is deduplicated.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>envoy</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.SidecarSpec">
-SidecarSpec
-</a>
-</em>
-</td>
-<td>
-<p>Envoy is used to config sidecar which proxies requests requiring auth to the secure stores</p>
-</td>
-</tr>
 </table>
 </td>
 </tr>
@@ -1395,7 +1374,8 @@ QueryStatus
 <h3 id="monitoring.whizard.io/v1alpha1.QueryFrontend">QueryFrontend
 </h3>
 <div>
-<p>QueryFrontend is the Schema for the queryfrontends API</p>
+<p>The <code>QueryFrontend</code> custom resource definition (CRD) defines a desired <a href="https://thanos.io/tip/components/query-frontend.md/">QueryFrontend</a> setup to run in a Kubernetes cluster. It allows to specify many options such as the number of replicas, and many more.</p>
+<p>For each <code>QueryFrontend</code> resource, the Operator deploys a <code>Deployment</code> in the same namespace.</p>
 </div>
 <table>
 <thead>
@@ -1451,18 +1431,109 @@ QueryFrontendSpec
 <table>
 <tr>
 <td>
-<code>containers</code><br/>
+<code>cacheConfig</code><br/>
 <em>
-<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
-k8s.io/apimachinery/pkg/runtime.RawExtension
+<a href="#monitoring.whizard.io/v1alpha1.ResponseCacheProviderConfig">
+ResponseCacheProviderConfig
 </a>
 </em>
 </td>
 <td>
-<p>Containers allows injecting additional containers or modifying operator generated containers.
-Containers described here modify an operator generated
-container if they share the same name and modifications are done via a
-strategic merge patch.</p>
+<p>CacheProviderConfig specifies response cache configuration.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>webConfig</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.WebConfig">
+WebConfig
+</a>
+</em>
+</td>
+<td>
+<p>Defines the configuration of the Thanos QueryFrontend web server.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>replicas</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>Number of component instances to deploy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>image</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Component container image URL.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullPolicy</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
+Kubernetes core/v1.PullPolicy
+</a>
+</em>
+</td>
+<td>
+<p>Image pull policy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resources</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
+Kubernetes core/v1.ResourceRequirements
+</a>
+</em>
+</td>
+<td>
+<p>Resources defines the resource requirements for single Pods.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logLevel</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log level for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logFormat</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log format for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>flags</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Flags allows setting additional flags for the component container.</p>
 </td>
 </tr>
 <tr>
@@ -1476,9 +1547,20 @@ EmbeddedObjectMetadata
 </td>
 <td>
 <p>PodMetadata configures labels and annotations which are propagated to the pods.</p>
-<ul>
-<li>&ldquo;kubectl.kubernetes.io/default-container&rdquo; annotation, set to main pod.</li>
-</ul>
+</td>
+</tr>
+<tr>
+<td>
+<code>configMaps</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
+object, which shall be mounted into the default Pods.
+Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
+The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
 </td>
 </tr>
 <tr>
@@ -1497,16 +1579,46 @@ The Secrets are mounted into /etc/whizard/secrets/<secret-name> in the default c
 </tr>
 <tr>
 <td>
-<code>configMaps</code><br/>
+<code>containers</code><br/>
 <em>
-[]string
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
+k8s.io/apimachinery/pkg/runtime.RawExtension
+</a>
 </em>
 </td>
 <td>
-<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
-object, which shall be mounted into the default Pods.
-Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
-The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
+<p>Containers allows injecting additional containers or modifying operator generated containers.
+Containers described here modify an operator generated
+container if they share the same name and modifications are done via a
+strategic merge patch.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullSecrets</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
+[]Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>An optional list of references to secrets in the same namespace
+to use for pulling images from registries</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>securityContext</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
+Kubernetes core/v1.PodSecurityContext
+</a>
+</em>
+</td>
+<td>
+<p>SecurityContext holds pod-level security attributes and common container settings.
+This defaults to the default PodSecurityContext.</p>
 </td>
 </tr>
 <tr>
@@ -1546,145 +1658,6 @@ map[string]string
 <p>If specified, the pod&rsquo;s tolerations.</p>
 </td>
 </tr>
-<tr>
-<td>
-<code>resources</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
-Kubernetes core/v1.ResourceRequirements
-</a>
-</em>
-</td>
-<td>
-<p>Define resources requests and limits for main container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>securityContext</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
-Kubernetes core/v1.PodSecurityContext
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>SecurityContext holds pod-level security attributes and common container settings.
-This defaults to the default PodSecurityContext.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>replicas</code><br/>
-<em>
-int32
-</em>
-</td>
-<td>
-<p>Number of replicas for a component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>image</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Image is the component image with tag/version.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullPolicy</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
-Kubernetes core/v1.PullPolicy
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Image pull policy.
-One of Always, Never, IfNotPresent.
-Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-Cannot be updated.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullSecrets</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
-[]Kubernetes core/v1.LocalObjectReference
-</a>
-</em>
-</td>
-<td>
-<p>An optional list of references to secrets in the same namespace
-to use for pulling images from registries</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logLevel</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log filtering level. Possible options: error, warn, info, debug.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logFormat</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log format to use. Possible options: logfmt or json.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>flags</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Flags is the flags of component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>webConfig</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.WebConfig">
-WebConfig
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>cacheConfig</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.ResponseCacheProviderConfig">
-ResponseCacheProviderConfig
-</a>
-</em>
-</td>
-<td>
-<p>CacheProviderConfig &hellip;</p>
-</td>
-</tr>
 </table>
 </td>
 </tr>
@@ -1705,7 +1678,8 @@ QueryFrontendStatus
 <h3 id="monitoring.whizard.io/v1alpha1.Router">Router
 </h3>
 <div>
-<p>Router is the Schema for the routers API</p>
+<p>The <code>Router</code> custom resource definition (CRD) defines a desired <a href="https://thanos.io/tip/components/receive.md/">Routing Receivers</a> setup to run in a Kubernetes cluster. It allows to specify many options such as the number of replicas, and many more.</p>
+<p>For each <code>Router</code> resource, the Operator deploys a <code>Deployment</code> in the same namespace.</p>
 </div>
 <table>
 <thead>
@@ -1761,18 +1735,107 @@ RouterSpec
 <table>
 <tr>
 <td>
-<code>containers</code><br/>
+<code>replicationFactor</code><br/>
 <em>
-<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
-k8s.io/apimachinery/pkg/runtime.RawExtension
+uint64
+</em>
+</td>
+<td>
+<p>How many times to replicate incoming write requests</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>webConfig</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.WebConfig">
+WebConfig
 </a>
 </em>
 </td>
 <td>
-<p>Containers allows injecting additional containers or modifying operator generated containers.
-Containers described here modify an operator generated
-container if they share the same name and modifications are done via a
-strategic merge patch.</p>
+<p>Defines the configuration of the Route(routing receiver) web server.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>replicas</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>Number of component instances to deploy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>image</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Component container image URL.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullPolicy</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
+Kubernetes core/v1.PullPolicy
+</a>
+</em>
+</td>
+<td>
+<p>Image pull policy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resources</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
+Kubernetes core/v1.ResourceRequirements
+</a>
+</em>
+</td>
+<td>
+<p>Resources defines the resource requirements for single Pods.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logLevel</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log level for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logFormat</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log format for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>flags</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Flags allows setting additional flags for the component container.</p>
 </td>
 </tr>
 <tr>
@@ -1786,9 +1849,20 @@ EmbeddedObjectMetadata
 </td>
 <td>
 <p>PodMetadata configures labels and annotations which are propagated to the pods.</p>
-<ul>
-<li>&ldquo;kubectl.kubernetes.io/default-container&rdquo; annotation, set to main pod.</li>
-</ul>
+</td>
+</tr>
+<tr>
+<td>
+<code>configMaps</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
+object, which shall be mounted into the default Pods.
+Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
+The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
 </td>
 </tr>
 <tr>
@@ -1807,16 +1881,46 @@ The Secrets are mounted into /etc/whizard/secrets/<secret-name> in the default c
 </tr>
 <tr>
 <td>
-<code>configMaps</code><br/>
+<code>containers</code><br/>
 <em>
-[]string
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
+k8s.io/apimachinery/pkg/runtime.RawExtension
+</a>
 </em>
 </td>
 <td>
-<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
-object, which shall be mounted into the default Pods.
-Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
-The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
+<p>Containers allows injecting additional containers or modifying operator generated containers.
+Containers described here modify an operator generated
+container if they share the same name and modifications are done via a
+strategic merge patch.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullSecrets</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
+[]Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>An optional list of references to secrets in the same namespace
+to use for pulling images from registries</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>securityContext</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
+Kubernetes core/v1.PodSecurityContext
+</a>
+</em>
+</td>
+<td>
+<p>SecurityContext holds pod-level security attributes and common container settings.
+This defaults to the default PodSecurityContext.</p>
 </td>
 </tr>
 <tr>
@@ -1854,143 +1958,6 @@ map[string]string
 </td>
 <td>
 <p>If specified, the pod&rsquo;s tolerations.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>resources</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
-Kubernetes core/v1.ResourceRequirements
-</a>
-</em>
-</td>
-<td>
-<p>Define resources requests and limits for main container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>securityContext</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
-Kubernetes core/v1.PodSecurityContext
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>SecurityContext holds pod-level security attributes and common container settings.
-This defaults to the default PodSecurityContext.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>replicas</code><br/>
-<em>
-int32
-</em>
-</td>
-<td>
-<p>Number of replicas for a component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>image</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Image is the component image with tag/version.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullPolicy</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
-Kubernetes core/v1.PullPolicy
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Image pull policy.
-One of Always, Never, IfNotPresent.
-Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-Cannot be updated.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullSecrets</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
-[]Kubernetes core/v1.LocalObjectReference
-</a>
-</em>
-</td>
-<td>
-<p>An optional list of references to secrets in the same namespace
-to use for pulling images from registries</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logLevel</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log filtering level. Possible options: error, warn, info, debug.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logFormat</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log format to use. Possible options: logfmt or json.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>flags</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Flags is the flags of component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>webConfig</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.WebConfig">
-WebConfig
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>replicationFactor</code><br/>
-<em>
-uint64
-</em>
-</td>
-<td>
-<p>How many times to replicate incoming write requests</p>
 </td>
 </tr>
 </table>
@@ -2067,253 +2034,6 @@ RulerSpec
 <br/>
 <br/>
 <table>
-<tr>
-<td>
-<code>containers</code><br/>
-<em>
-<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
-k8s.io/apimachinery/pkg/runtime.RawExtension
-</a>
-</em>
-</td>
-<td>
-<p>Containers allows injecting additional containers or modifying operator generated containers.
-Containers described here modify an operator generated
-container if they share the same name and modifications are done via a
-strategic merge patch.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>podMetadata</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.EmbeddedObjectMetadata">
-EmbeddedObjectMetadata
-</a>
-</em>
-</td>
-<td>
-<p>PodMetadata configures labels and annotations which are propagated to the pods.</p>
-<ul>
-<li>&ldquo;kubectl.kubernetes.io/default-container&rdquo; annotation, set to main pod.</li>
-</ul>
-</td>
-</tr>
-<tr>
-<td>
-<code>secrets</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Secrets is a list of Secrets in the same namespace as the component
-object, which shall be mounted into the Prometheus Pods.
-Each Secret is added to the StatefulSet/Deployment definition as a volume named <code>secret-&lt;secret-name&gt;</code>.
-The Secrets are mounted into /etc/whizard/secrets/<secret-name> in the default container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>configMaps</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
-object, which shall be mounted into the default Pods.
-Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
-The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>affinity</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#affinity-v1-core">
-Kubernetes core/v1.Affinity
-</a>
-</em>
-</td>
-<td>
-<p>If specified, the pod&rsquo;s scheduling constraints.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>nodeSelector</code><br/>
-<em>
-map[string]string
-</em>
-</td>
-<td>
-<p>Define which Nodes the Pods are scheduled on.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>tolerations</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#toleration-v1-core">
-[]Kubernetes core/v1.Toleration
-</a>
-</em>
-</td>
-<td>
-<p>If specified, the pod&rsquo;s tolerations.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>resources</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
-Kubernetes core/v1.ResourceRequirements
-</a>
-</em>
-</td>
-<td>
-<p>Define resources requests and limits for main container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>securityContext</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
-Kubernetes core/v1.PodSecurityContext
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>SecurityContext holds pod-level security attributes and common container settings.
-This defaults to the default PodSecurityContext.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>replicas</code><br/>
-<em>
-int32
-</em>
-</td>
-<td>
-<p>Number of replicas for a component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>image</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Image is the component image with tag/version.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullPolicy</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
-Kubernetes core/v1.PullPolicy
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Image pull policy.
-One of Always, Never, IfNotPresent.
-Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-Cannot be updated.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullSecrets</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
-[]Kubernetes core/v1.LocalObjectReference
-</a>
-</em>
-</td>
-<td>
-<p>An optional list of references to secrets in the same namespace
-to use for pulling images from registries</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logLevel</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log filtering level. Possible options: error, warn, info, debug.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logFormat</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log format to use. Possible options: logfmt or json.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>flags</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Flags is the flags of component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>rulerQueryProxy</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.SidecarSpec">
-SidecarSpec
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>rulerWriteProxy</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.SidecarSpec">
-SidecarSpec
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>prometheusConfigReloader</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.SidecarSpec">
-SidecarSpec
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
 <tr>
 <td>
 <code>ruleSelectors</code><br/>
@@ -2468,6 +2188,245 @@ KubernetesVolume
 <p>DataVolume specifies how volume shall be used</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>rulerQueryProxy</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.SidecarSpec">
+SidecarSpec
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>rulerWriteProxy</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.SidecarSpec">
+SidecarSpec
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>prometheusConfigReloader</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.SidecarSpec">
+SidecarSpec
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>replicas</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>Number of component instances to deploy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>image</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Component container image URL.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullPolicy</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
+Kubernetes core/v1.PullPolicy
+</a>
+</em>
+</td>
+<td>
+<p>Image pull policy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resources</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
+Kubernetes core/v1.ResourceRequirements
+</a>
+</em>
+</td>
+<td>
+<p>Resources defines the resource requirements for single Pods.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logLevel</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log level for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logFormat</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log format for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>flags</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Flags allows setting additional flags for the component container.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>podMetadata</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.EmbeddedObjectMetadata">
+EmbeddedObjectMetadata
+</a>
+</em>
+</td>
+<td>
+<p>PodMetadata configures labels and annotations which are propagated to the pods.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>configMaps</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
+object, which shall be mounted into the default Pods.
+Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
+The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secrets</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Secrets is a list of Secrets in the same namespace as the component
+object, which shall be mounted into the Prometheus Pods.
+Each Secret is added to the StatefulSet/Deployment definition as a volume named <code>secret-&lt;secret-name&gt;</code>.
+The Secrets are mounted into /etc/whizard/secrets/<secret-name> in the default container.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>containers</code><br/>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
+k8s.io/apimachinery/pkg/runtime.RawExtension
+</a>
+</em>
+</td>
+<td>
+<p>Containers allows injecting additional containers or modifying operator generated containers.
+Containers described here modify an operator generated
+container if they share the same name and modifications are done via a
+strategic merge patch.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullSecrets</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
+[]Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>An optional list of references to secrets in the same namespace
+to use for pulling images from registries</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>securityContext</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
+Kubernetes core/v1.PodSecurityContext
+</a>
+</em>
+</td>
+<td>
+<p>SecurityContext holds pod-level security attributes and common container settings.
+This defaults to the default PodSecurityContext.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>affinity</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#affinity-v1-core">
+Kubernetes core/v1.Affinity
+</a>
+</em>
+</td>
+<td>
+<p>If specified, the pod&rsquo;s scheduling constraints.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>nodeSelector</code><br/>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<p>Define which Nodes the Pods are scheduled on.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tolerations</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#toleration-v1-core">
+[]Kubernetes core/v1.Toleration
+</a>
+</em>
+</td>
+<td>
+<p>If specified, the pod&rsquo;s tolerations.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -2488,7 +2447,8 @@ RulerStatus
 <h3 id="monitoring.whizard.io/v1alpha1.Service">Service
 </h3>
 <div>
-<p>Service is the Schema for the services API</p>
+<p>The <code>Service</code> custom resource definition (CRD) defines the Whizard service configuration.
+The `ServiceSpec“ has component configuration templates. Some components scale based on the number of tenants and load service configurations</p>
 </div>
 <table>
 <thead>
@@ -2627,6 +2587,7 @@ GatewaySpec
 </em>
 </td>
 <td>
+<p>GatewayTemplateSpec defines the Gateway configuration template.</p>
 </td>
 </tr>
 <tr>
@@ -2639,6 +2600,7 @@ QueryFrontendSpec
 </em>
 </td>
 <td>
+<p>QueryFrontendTemplateSpec defines the QueryFrontend configuration template.</p>
 </td>
 </tr>
 <tr>
@@ -2651,6 +2613,7 @@ QuerySpec
 </em>
 </td>
 <td>
+<p>QueryTemplateSpec defines the Query configuration template.</p>
 </td>
 </tr>
 <tr>
@@ -2663,6 +2626,7 @@ RulerTemplateSpec
 </em>
 </td>
 <td>
+<p>RulerTemplateSpec defines the Ruler configuration template.</p>
 </td>
 </tr>
 <tr>
@@ -2675,6 +2639,7 @@ RouterSpec
 </em>
 </td>
 <td>
+<p>RouterTemplateSpec defines the Router configuration template.</p>
 </td>
 </tr>
 <tr>
@@ -2687,6 +2652,7 @@ IngesterTemplateSpec
 </em>
 </td>
 <td>
+<p>IngesterTemplateSpec defines the Ingester configuration template.</p>
 </td>
 </tr>
 <tr>
@@ -2699,6 +2665,7 @@ StoreSpec
 </em>
 </td>
 <td>
+<p>StoreTemplateSpec defines the Store configuration template.</p>
 </td>
 </tr>
 <tr>
@@ -2711,6 +2678,7 @@ CompactorTemplateSpec
 </em>
 </td>
 <td>
+<p>CompactorTemplateSpec defines the Compactor configuration template.</p>
 </td>
 </tr>
 </table>
@@ -2733,7 +2701,9 @@ ServiceStatus
 <h3 id="monitoring.whizard.io/v1alpha1.Storage">Storage
 </h3>
 <div>
-<p>Storage is the Schema for the storages API</p>
+<p>The <code>Storage</code> custom resource definition (CRD) defines how to configure access to object storage.
+More info <a href="https://thanos.io/tip/thanos/storage.md/">https://thanos.io/tip/thanos/storage.md/</a>
+Current object storage client implementations: S3, other in progress.</p>
 </div>
 <table>
 <thead>
@@ -2831,7 +2801,8 @@ StorageStatus
 <h3 id="monitoring.whizard.io/v1alpha1.Store">Store
 </h3>
 <div>
-<p>Store is the Schema for the stores API</p>
+<p>The <code>Store</code> custom resource definition (CRD) defines a desired <a href="https://thanos.io/tip/components/store.md/">Compactor</a> setup to run in a Kubernetes cluster. It allows to specify many options such as the number of replicas, persistent storage and many more.</p>
+<p>For each <code>Store</code> resource, the Operator deploys a <code>StatefulSet</code> in the same namespace.</p>
 </div>
 <table>
 <thead>
@@ -2885,217 +2856,6 @@ StoreSpec
 <br/>
 <br/>
 <table>
-<tr>
-<td>
-<code>containers</code><br/>
-<em>
-<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
-k8s.io/apimachinery/pkg/runtime.RawExtension
-</a>
-</em>
-</td>
-<td>
-<p>Containers allows injecting additional containers or modifying operator generated containers.
-Containers described here modify an operator generated
-container if they share the same name and modifications are done via a
-strategic merge patch.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>podMetadata</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.EmbeddedObjectMetadata">
-EmbeddedObjectMetadata
-</a>
-</em>
-</td>
-<td>
-<p>PodMetadata configures labels and annotations which are propagated to the pods.</p>
-<ul>
-<li>&ldquo;kubectl.kubernetes.io/default-container&rdquo; annotation, set to main pod.</li>
-</ul>
-</td>
-</tr>
-<tr>
-<td>
-<code>secrets</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Secrets is a list of Secrets in the same namespace as the component
-object, which shall be mounted into the Prometheus Pods.
-Each Secret is added to the StatefulSet/Deployment definition as a volume named <code>secret-&lt;secret-name&gt;</code>.
-The Secrets are mounted into /etc/whizard/secrets/<secret-name> in the default container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>configMaps</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
-object, which shall be mounted into the default Pods.
-Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
-The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>affinity</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#affinity-v1-core">
-Kubernetes core/v1.Affinity
-</a>
-</em>
-</td>
-<td>
-<p>If specified, the pod&rsquo;s scheduling constraints.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>nodeSelector</code><br/>
-<em>
-map[string]string
-</em>
-</td>
-<td>
-<p>Define which Nodes the Pods are scheduled on.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>tolerations</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#toleration-v1-core">
-[]Kubernetes core/v1.Toleration
-</a>
-</em>
-</td>
-<td>
-<p>If specified, the pod&rsquo;s tolerations.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>resources</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
-Kubernetes core/v1.ResourceRequirements
-</a>
-</em>
-</td>
-<td>
-<p>Define resources requests and limits for main container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>securityContext</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
-Kubernetes core/v1.PodSecurityContext
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>SecurityContext holds pod-level security attributes and common container settings.
-This defaults to the default PodSecurityContext.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>replicas</code><br/>
-<em>
-int32
-</em>
-</td>
-<td>
-<p>Number of replicas for a component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>image</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Image is the component image with tag/version.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullPolicy</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
-Kubernetes core/v1.PullPolicy
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Image pull policy.
-One of Always, Never, IfNotPresent.
-Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-Cannot be updated.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullSecrets</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
-[]Kubernetes core/v1.LocalObjectReference
-</a>
-</em>
-</td>
-<td>
-<p>An optional list of references to secrets in the same namespace
-to use for pulling images from registries</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logLevel</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log filtering level. Possible options: error, warn, info, debug.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logFormat</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log format to use. Possible options: logfmt or json.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>flags</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Flags is the flags of component.</p>
-</td>
-</tr>
 <tr>
 <td>
 <code>minTime</code><br/>
@@ -3158,6 +2918,209 @@ KubernetesVolume
 <p>DataVolume specifies how volume shall be used</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>replicas</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>Number of component instances to deploy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>image</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Component container image URL.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullPolicy</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
+Kubernetes core/v1.PullPolicy
+</a>
+</em>
+</td>
+<td>
+<p>Image pull policy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resources</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
+Kubernetes core/v1.ResourceRequirements
+</a>
+</em>
+</td>
+<td>
+<p>Resources defines the resource requirements for single Pods.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logLevel</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log level for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logFormat</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log format for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>flags</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Flags allows setting additional flags for the component container.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>podMetadata</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.EmbeddedObjectMetadata">
+EmbeddedObjectMetadata
+</a>
+</em>
+</td>
+<td>
+<p>PodMetadata configures labels and annotations which are propagated to the pods.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>configMaps</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
+object, which shall be mounted into the default Pods.
+Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
+The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secrets</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Secrets is a list of Secrets in the same namespace as the component
+object, which shall be mounted into the Prometheus Pods.
+Each Secret is added to the StatefulSet/Deployment definition as a volume named <code>secret-&lt;secret-name&gt;</code>.
+The Secrets are mounted into /etc/whizard/secrets/<secret-name> in the default container.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>containers</code><br/>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
+k8s.io/apimachinery/pkg/runtime.RawExtension
+</a>
+</em>
+</td>
+<td>
+<p>Containers allows injecting additional containers or modifying operator generated containers.
+Containers described here modify an operator generated
+container if they share the same name and modifications are done via a
+strategic merge patch.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullSecrets</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
+[]Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>An optional list of references to secrets in the same namespace
+to use for pulling images from registries</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>securityContext</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
+Kubernetes core/v1.PodSecurityContext
+</a>
+</em>
+</td>
+<td>
+<p>SecurityContext holds pod-level security attributes and common container settings.
+This defaults to the default PodSecurityContext.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>affinity</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#affinity-v1-core">
+Kubernetes core/v1.Affinity
+</a>
+</em>
+</td>
+<td>
+<p>If specified, the pod&rsquo;s scheduling constraints.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>nodeSelector</code><br/>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<p>Define which Nodes the Pods are scheduled on.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tolerations</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#toleration-v1-core">
+[]Kubernetes core/v1.Toleration
+</a>
+</em>
+</td>
+<td>
+<p>If specified, the pod&rsquo;s tolerations.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -3178,7 +3141,14 @@ StoreStatus
 <h3 id="monitoring.whizard.io/v1alpha1.Tenant">Tenant
 </h3>
 <div>
-<p>Tenant is the Schema for the tenants API</p>
+<p>The <code>Tenant</code> custom resource definition (CRD) defines the tenant configuration for multi-tenant data separation in Whizard.
+In Whizard, a tenant can represent various types of data sources, such as:</p>
+<ul>
+<li>Monitoring data from a specific Kubernetes cluster</li>
+<li>Monitoring data from a physical machine in a specific region</li>
+<li>Monitoring data from a specific type of application</li>
+</ul>
+<p>When data is ingested, it will be tagged with the tenant label to ensure proper separation.</p>
 </div>
 <table>
 <thead>
@@ -3446,18 +3416,83 @@ bool
 </tr>
 <tr>
 <td>
-<code>containers</code><br/>
+<code>replicas</code><br/>
 <em>
-<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
-k8s.io/apimachinery/pkg/runtime.RawExtension
+int32
+</em>
+</td>
+<td>
+<p>Number of component instances to deploy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>image</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Component container image URL.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullPolicy</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
+Kubernetes core/v1.PullPolicy
 </a>
 </em>
 </td>
 <td>
-<p>Containers allows injecting additional containers or modifying operator generated containers.
-Containers described here modify an operator generated
-container if they share the same name and modifications are done via a
-strategic merge patch.</p>
+<p>Image pull policy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resources</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
+Kubernetes core/v1.ResourceRequirements
+</a>
+</em>
+</td>
+<td>
+<p>Resources defines the resource requirements for single Pods.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logLevel</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log level for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logFormat</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log format for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>flags</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Flags allows setting additional flags for the component container.</p>
 </td>
 </tr>
 <tr>
@@ -3471,9 +3506,20 @@ EmbeddedObjectMetadata
 </td>
 <td>
 <p>PodMetadata configures labels and annotations which are propagated to the pods.</p>
-<ul>
-<li>&ldquo;kubectl.kubernetes.io/default-container&rdquo; annotation, set to main pod.</li>
-</ul>
+</td>
+</tr>
+<tr>
+<td>
+<code>configMaps</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
+object, which shall be mounted into the default Pods.
+Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
+The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
 </td>
 </tr>
 <tr>
@@ -3492,16 +3538,46 @@ The Secrets are mounted into /etc/whizard/secrets/<secret-name> in the default c
 </tr>
 <tr>
 <td>
-<code>configMaps</code><br/>
+<code>containers</code><br/>
 <em>
-[]string
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
+k8s.io/apimachinery/pkg/runtime.RawExtension
+</a>
 </em>
 </td>
 <td>
-<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
-object, which shall be mounted into the default Pods.
-Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
-The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
+<p>Containers allows injecting additional containers or modifying operator generated containers.
+Containers described here modify an operator generated
+container if they share the same name and modifications are done via a
+strategic merge patch.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullSecrets</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
+[]Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>An optional list of references to secrets in the same namespace
+to use for pulling images from registries</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>securityContext</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
+Kubernetes core/v1.PodSecurityContext
+</a>
+</em>
+</td>
+<td>
+<p>SecurityContext holds pod-level security attributes and common container settings.
+This defaults to the default PodSecurityContext.</p>
 </td>
 </tr>
 <tr>
@@ -3539,120 +3615,6 @@ map[string]string
 </td>
 <td>
 <p>If specified, the pod&rsquo;s tolerations.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>resources</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
-Kubernetes core/v1.ResourceRequirements
-</a>
-</em>
-</td>
-<td>
-<p>Define resources requests and limits for main container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>securityContext</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
-Kubernetes core/v1.PodSecurityContext
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>SecurityContext holds pod-level security attributes and common container settings.
-This defaults to the default PodSecurityContext.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>replicas</code><br/>
-<em>
-int32
-</em>
-</td>
-<td>
-<p>Number of replicas for a component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>image</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Image is the component image with tag/version.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullPolicy</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
-Kubernetes core/v1.PullPolicy
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Image pull policy.
-One of Always, Never, IfNotPresent.
-Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-Cannot be updated.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullSecrets</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
-[]Kubernetes core/v1.LocalObjectReference
-</a>
-</em>
-</td>
-<td>
-<p>An optional list of references to secrets in the same namespace
-to use for pulling images from registries</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logLevel</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log filtering level. Possible options: error, warn, info, debug.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logFormat</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log format to use. Possible options: logfmt or json.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>flags</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Flags is the flags of component.</p>
 </td>
 </tr>
 <tr>
@@ -3744,18 +3706,83 @@ BlockGC
 <tbody>
 <tr>
 <td>
-<code>containers</code><br/>
+<code>replicas</code><br/>
 <em>
-<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
-k8s.io/apimachinery/pkg/runtime.RawExtension
+int32
+</em>
+</td>
+<td>
+<p>Number of component instances to deploy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>image</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Component container image URL.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullPolicy</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
+Kubernetes core/v1.PullPolicy
 </a>
 </em>
 </td>
 <td>
-<p>Containers allows injecting additional containers or modifying operator generated containers.
-Containers described here modify an operator generated
-container if they share the same name and modifications are done via a
-strategic merge patch.</p>
+<p>Image pull policy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resources</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
+Kubernetes core/v1.ResourceRequirements
+</a>
+</em>
+</td>
+<td>
+<p>Resources defines the resource requirements for single Pods.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logLevel</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log level for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logFormat</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log format for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>flags</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Flags allows setting additional flags for the component container.</p>
 </td>
 </tr>
 <tr>
@@ -3769,9 +3796,20 @@ EmbeddedObjectMetadata
 </td>
 <td>
 <p>PodMetadata configures labels and annotations which are propagated to the pods.</p>
-<ul>
-<li>&ldquo;kubectl.kubernetes.io/default-container&rdquo; annotation, set to main pod.</li>
-</ul>
+</td>
+</tr>
+<tr>
+<td>
+<code>configMaps</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
+object, which shall be mounted into the default Pods.
+Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
+The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
 </td>
 </tr>
 <tr>
@@ -3790,16 +3828,46 @@ The Secrets are mounted into /etc/whizard/secrets/<secret-name> in the default c
 </tr>
 <tr>
 <td>
-<code>configMaps</code><br/>
+<code>containers</code><br/>
 <em>
-[]string
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
+k8s.io/apimachinery/pkg/runtime.RawExtension
+</a>
 </em>
 </td>
 <td>
-<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
-object, which shall be mounted into the default Pods.
-Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
-The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
+<p>Containers allows injecting additional containers or modifying operator generated containers.
+Containers described here modify an operator generated
+container if they share the same name and modifications are done via a
+strategic merge patch.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullSecrets</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
+[]Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>An optional list of references to secrets in the same namespace
+to use for pulling images from registries</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>securityContext</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
+Kubernetes core/v1.PodSecurityContext
+</a>
+</em>
+</td>
+<td>
+<p>SecurityContext holds pod-level security attributes and common container settings.
+This defaults to the default PodSecurityContext.</p>
 </td>
 </tr>
 <tr>
@@ -3837,120 +3905,6 @@ map[string]string
 </td>
 <td>
 <p>If specified, the pod&rsquo;s tolerations.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>resources</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
-Kubernetes core/v1.ResourceRequirements
-</a>
-</em>
-</td>
-<td>
-<p>Define resources requests and limits for main container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>securityContext</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
-Kubernetes core/v1.PodSecurityContext
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>SecurityContext holds pod-level security attributes and common container settings.
-This defaults to the default PodSecurityContext.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>replicas</code><br/>
-<em>
-int32
-</em>
-</td>
-<td>
-<p>Number of replicas for a component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>image</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Image is the component image with tag/version.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullPolicy</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
-Kubernetes core/v1.PullPolicy
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Image pull policy.
-One of Always, Never, IfNotPresent.
-Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-Cannot be updated.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullSecrets</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
-[]Kubernetes core/v1.LocalObjectReference
-</a>
-</em>
-</td>
-<td>
-<p>An optional list of references to secrets in the same namespace
-to use for pulling images from registries</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logLevel</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log filtering level. Possible options: error, warn, info, debug.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logFormat</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log format to use. Possible options: logfmt or json.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>flags</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Flags is the flags of component.</p>
 </td>
 </tr>
 </tbody>
@@ -3973,213 +3927,13 @@ string
 <tbody>
 <tr>
 <td>
-<code>containers</code><br/>
-<em>
-<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
-k8s.io/apimachinery/pkg/runtime.RawExtension
-</a>
-</em>
-</td>
-<td>
-<p>Containers allows injecting additional containers or modifying operator generated containers.
-Containers described here modify an operator generated
-container if they share the same name and modifications are done via a
-strategic merge patch.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>podMetadata</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.EmbeddedObjectMetadata">
-EmbeddedObjectMetadata
-</a>
-</em>
-</td>
-<td>
-<p>PodMetadata configures labels and annotations which are propagated to the pods.</p>
-<ul>
-<li>&ldquo;kubectl.kubernetes.io/default-container&rdquo; annotation, set to main pod.</li>
-</ul>
-</td>
-</tr>
-<tr>
-<td>
-<code>secrets</code><br/>
+<code>tenants</code><br/>
 <em>
 []string
 </em>
 </td>
 <td>
-<p>Secrets is a list of Secrets in the same namespace as the component
-object, which shall be mounted into the Prometheus Pods.
-Each Secret is added to the StatefulSet/Deployment definition as a volume named <code>secret-&lt;secret-name&gt;</code>.
-The Secrets are mounted into /etc/whizard/secrets/<secret-name> in the default container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>configMaps</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
-object, which shall be mounted into the default Pods.
-Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
-The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>affinity</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#affinity-v1-core">
-Kubernetes core/v1.Affinity
-</a>
-</em>
-</td>
-<td>
-<p>If specified, the pod&rsquo;s scheduling constraints.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>nodeSelector</code><br/>
-<em>
-map[string]string
-</em>
-</td>
-<td>
-<p>Define which Nodes the Pods are scheduled on.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>tolerations</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#toleration-v1-core">
-[]Kubernetes core/v1.Toleration
-</a>
-</em>
-</td>
-<td>
-<p>If specified, the pod&rsquo;s tolerations.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>resources</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
-Kubernetes core/v1.ResourceRequirements
-</a>
-</em>
-</td>
-<td>
-<p>Define resources requests and limits for main container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>securityContext</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
-Kubernetes core/v1.PodSecurityContext
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>SecurityContext holds pod-level security attributes and common container settings.
-This defaults to the default PodSecurityContext.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>replicas</code><br/>
-<em>
-int32
-</em>
-</td>
-<td>
-<p>Number of replicas for a component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>image</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Image is the component image with tag/version.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullPolicy</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
-Kubernetes core/v1.PullPolicy
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Image pull policy.
-One of Always, Never, IfNotPresent.
-Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-Cannot be updated.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullSecrets</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
-[]Kubernetes core/v1.LocalObjectReference
-</a>
-</em>
-</td>
-<td>
-<p>An optional list of references to secrets in the same namespace
-to use for pulling images from registries</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logLevel</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log filtering level. Possible options: error, warn, info, debug.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logFormat</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log format to use. Possible options: logfmt or json.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>flags</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Flags is the flags of component.</p>
+<p>The tenants whose data is being compacted by the Compactor.</p>
 </td>
 </tr>
 <tr>
@@ -4190,7 +3944,9 @@ bool
 </em>
 </td>
 <td>
-<p>DisableDownsampling specifies whether to disable downsampling</p>
+<p>Disables downsampling.
+This is not recommended, as querying long time ranges without non-downsampled data is not efficient and useful.
+default: false</p>
 </td>
 </tr>
 <tr>
@@ -4221,13 +3977,205 @@ KubernetesVolume
 </tr>
 <tr>
 <td>
-<code>tenants</code><br/>
+<code>replicas</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>Number of component instances to deploy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>image</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Component container image URL.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullPolicy</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
+Kubernetes core/v1.PullPolicy
+</a>
+</em>
+</td>
+<td>
+<p>Image pull policy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resources</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
+Kubernetes core/v1.ResourceRequirements
+</a>
+</em>
+</td>
+<td>
+<p>Resources defines the resource requirements for single Pods.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logLevel</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log level for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logFormat</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log format for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>flags</code><br/>
 <em>
 []string
 </em>
 </td>
 <td>
-<p>Tenants if not empty indicates current config is for hard tenants; otherwise, it is for soft tenants.</p>
+<p>Flags allows setting additional flags for the component container.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>podMetadata</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.EmbeddedObjectMetadata">
+EmbeddedObjectMetadata
+</a>
+</em>
+</td>
+<td>
+<p>PodMetadata configures labels and annotations which are propagated to the pods.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>configMaps</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
+object, which shall be mounted into the default Pods.
+Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
+The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secrets</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Secrets is a list of Secrets in the same namespace as the component
+object, which shall be mounted into the Prometheus Pods.
+Each Secret is added to the StatefulSet/Deployment definition as a volume named <code>secret-&lt;secret-name&gt;</code>.
+The Secrets are mounted into /etc/whizard/secrets/<secret-name> in the default container.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>containers</code><br/>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
+k8s.io/apimachinery/pkg/runtime.RawExtension
+</a>
+</em>
+</td>
+<td>
+<p>Containers allows injecting additional containers or modifying operator generated containers.
+Containers described here modify an operator generated
+container if they share the same name and modifications are done via a
+strategic merge patch.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullSecrets</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
+[]Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>An optional list of references to secrets in the same namespace
+to use for pulling images from registries</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>securityContext</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
+Kubernetes core/v1.PodSecurityContext
+</a>
+</em>
+</td>
+<td>
+<p>SecurityContext holds pod-level security attributes and common container settings.
+This defaults to the default PodSecurityContext.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>affinity</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#affinity-v1-core">
+Kubernetes core/v1.Affinity
+</a>
+</em>
+</td>
+<td>
+<p>If specified, the pod&rsquo;s scheduling constraints.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>nodeSelector</code><br/>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<p>Define which Nodes the Pods are scheduled on.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tolerations</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#toleration-v1-core">
+[]Kubernetes core/v1.Toleration
+</a>
+</em>
+</td>
+<td>
+<p>If specified, the pod&rsquo;s tolerations.</p>
 </td>
 </tr>
 </tbody>
@@ -4257,18 +4205,133 @@ KubernetesVolume
 <tbody>
 <tr>
 <td>
-<code>containers</code><br/>
+<code>tenants</code><br/>
 <em>
-<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
-k8s.io/apimachinery/pkg/runtime.RawExtension
+[]string
+</em>
+</td>
+<td>
+<p>The tenants whose data is being compacted by the Compactor.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>disableDownsampling</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>Disables downsampling.
+This is not recommended, as querying long time ranges without non-downsampled data is not efficient and useful.
+default: false</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>retention</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.Retention">
+Retention
 </a>
 </em>
 </td>
 <td>
-<p>Containers allows injecting additional containers or modifying operator generated containers.
-Containers described here modify an operator generated
-container if they share the same name and modifications are done via a
-strategic merge patch.</p>
+<p>Retention configs how long to retain samples</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dataVolume</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.KubernetesVolume">
+KubernetesVolume
+</a>
+</em>
+</td>
+<td>
+<p>DataVolume specifies how volume shall be used</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>replicas</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>Number of component instances to deploy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>image</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Component container image URL.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullPolicy</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
+Kubernetes core/v1.PullPolicy
+</a>
+</em>
+</td>
+<td>
+<p>Image pull policy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resources</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
+Kubernetes core/v1.ResourceRequirements
+</a>
+</em>
+</td>
+<td>
+<p>Resources defines the resource requirements for single Pods.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logLevel</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log level for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logFormat</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log format for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>flags</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Flags allows setting additional flags for the component container.</p>
 </td>
 </tr>
 <tr>
@@ -4282,9 +4345,20 @@ EmbeddedObjectMetadata
 </td>
 <td>
 <p>PodMetadata configures labels and annotations which are propagated to the pods.</p>
-<ul>
-<li>&ldquo;kubectl.kubernetes.io/default-container&rdquo; annotation, set to main pod.</li>
-</ul>
+</td>
+</tr>
+<tr>
+<td>
+<code>configMaps</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
+object, which shall be mounted into the default Pods.
+Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
+The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
 </td>
 </tr>
 <tr>
@@ -4303,16 +4377,46 @@ The Secrets are mounted into /etc/whizard/secrets/<secret-name> in the default c
 </tr>
 <tr>
 <td>
-<code>configMaps</code><br/>
+<code>containers</code><br/>
 <em>
-[]string
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
+k8s.io/apimachinery/pkg/runtime.RawExtension
+</a>
 </em>
 </td>
 <td>
-<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
-object, which shall be mounted into the default Pods.
-Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
-The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
+<p>Containers allows injecting additional containers or modifying operator generated containers.
+Containers described here modify an operator generated
+container if they share the same name and modifications are done via a
+strategic merge patch.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullSecrets</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
+[]Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>An optional list of references to secrets in the same namespace
+to use for pulling images from registries</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>securityContext</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
+Kubernetes core/v1.PodSecurityContext
+</a>
+</em>
+</td>
+<td>
+<p>SecurityContext holds pod-level security attributes and common container settings.
+This defaults to the default PodSecurityContext.</p>
 </td>
 </tr>
 <tr>
@@ -4350,168 +4454,6 @@ map[string]string
 </td>
 <td>
 <p>If specified, the pod&rsquo;s tolerations.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>resources</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
-Kubernetes core/v1.ResourceRequirements
-</a>
-</em>
-</td>
-<td>
-<p>Define resources requests and limits for main container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>securityContext</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
-Kubernetes core/v1.PodSecurityContext
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>SecurityContext holds pod-level security attributes and common container settings.
-This defaults to the default PodSecurityContext.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>replicas</code><br/>
-<em>
-int32
-</em>
-</td>
-<td>
-<p>Number of replicas for a component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>image</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Image is the component image with tag/version.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullPolicy</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
-Kubernetes core/v1.PullPolicy
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Image pull policy.
-One of Always, Never, IfNotPresent.
-Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-Cannot be updated.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullSecrets</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
-[]Kubernetes core/v1.LocalObjectReference
-</a>
-</em>
-</td>
-<td>
-<p>An optional list of references to secrets in the same namespace
-to use for pulling images from registries</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logLevel</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log filtering level. Possible options: error, warn, info, debug.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logFormat</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log format to use. Possible options: logfmt or json.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>flags</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Flags is the flags of component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>disableDownsampling</code><br/>
-<em>
-bool
-</em>
-</td>
-<td>
-<p>DisableDownsampling specifies whether to disable downsampling</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>retention</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.Retention">
-Retention
-</a>
-</em>
-</td>
-<td>
-<p>Retention configs how long to retain samples</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>dataVolume</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.KubernetesVolume">
-KubernetesVolume
-</a>
-</em>
-</td>
-<td>
-<p>DataVolume specifies how volume shall be used</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>tenants</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Tenants if not empty indicates current config is for hard tenants; otherwise, it is for soft tenants.</p>
 </td>
 </tr>
 <tr>
@@ -4621,18 +4563,131 @@ More info: <a href="http://kubernetes.io/docs/user-guide/annotations">http://kub
 <tbody>
 <tr>
 <td>
-<code>containers</code><br/>
+<code>webConfig</code><br/>
 <em>
-<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
-k8s.io/apimachinery/pkg/runtime.RawExtension
+<a href="#monitoring.whizard.io/v1alpha1.WebConfig">
+WebConfig
 </a>
 </em>
 </td>
 <td>
-<p>Containers allows injecting additional containers or modifying operator generated containers.
-Containers described here modify an operator generated
-container if they share the same name and modifications are done via a
-strategic merge patch.</p>
+<p>Defines the configuration of the Gatewat web server.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>debug</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>If debug mode is on, gateway will proxy Query UI</p>
+<p>This is an <em>experimental feature</em>, it may change in any upcoming release in a breaking way.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>enabledTenantsAdmission</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>Deny unknown tenant data remote-write and query if enabled</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>nodePort</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>NodePort is the port used to expose the gateway service.
+If this is a valid node port, the gateway service type will be set to NodePort accordingly.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>replicas</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>Number of component instances to deploy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>image</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Component container image URL.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullPolicy</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
+Kubernetes core/v1.PullPolicy
+</a>
+</em>
+</td>
+<td>
+<p>Image pull policy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resources</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
+Kubernetes core/v1.ResourceRequirements
+</a>
+</em>
+</td>
+<td>
+<p>Resources defines the resource requirements for single Pods.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logLevel</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log level for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logFormat</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log format for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>flags</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Flags allows setting additional flags for the component container.</p>
 </td>
 </tr>
 <tr>
@@ -4646,9 +4701,20 @@ EmbeddedObjectMetadata
 </td>
 <td>
 <p>PodMetadata configures labels and annotations which are propagated to the pods.</p>
-<ul>
-<li>&ldquo;kubectl.kubernetes.io/default-container&rdquo; annotation, set to main pod.</li>
-</ul>
+</td>
+</tr>
+<tr>
+<td>
+<code>configMaps</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
+object, which shall be mounted into the default Pods.
+Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
+The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
 </td>
 </tr>
 <tr>
@@ -4667,16 +4733,46 @@ The Secrets are mounted into /etc/whizard/secrets/<secret-name> in the default c
 </tr>
 <tr>
 <td>
-<code>configMaps</code><br/>
+<code>containers</code><br/>
 <em>
-[]string
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
+k8s.io/apimachinery/pkg/runtime.RawExtension
+</a>
 </em>
 </td>
 <td>
-<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
-object, which shall be mounted into the default Pods.
-Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
-The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
+<p>Containers allows injecting additional containers or modifying operator generated containers.
+Containers described here modify an operator generated
+container if they share the same name and modifications are done via a
+strategic merge patch.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullSecrets</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
+[]Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>An optional list of references to secrets in the same namespace
+to use for pulling images from registries</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>securityContext</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
+Kubernetes core/v1.PodSecurityContext
+</a>
+</em>
+</td>
+<td>
+<p>SecurityContext holds pod-level security attributes and common container settings.
+This defaults to the default PodSecurityContext.</p>
 </td>
 </tr>
 <tr>
@@ -4714,166 +4810,6 @@ map[string]string
 </td>
 <td>
 <p>If specified, the pod&rsquo;s tolerations.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>resources</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
-Kubernetes core/v1.ResourceRequirements
-</a>
-</em>
-</td>
-<td>
-<p>Define resources requests and limits for main container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>securityContext</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
-Kubernetes core/v1.PodSecurityContext
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>SecurityContext holds pod-level security attributes and common container settings.
-This defaults to the default PodSecurityContext.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>replicas</code><br/>
-<em>
-int32
-</em>
-</td>
-<td>
-<p>Number of replicas for a component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>image</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Image is the component image with tag/version.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullPolicy</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
-Kubernetes core/v1.PullPolicy
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Image pull policy.
-One of Always, Never, IfNotPresent.
-Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-Cannot be updated.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullSecrets</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
-[]Kubernetes core/v1.LocalObjectReference
-</a>
-</em>
-</td>
-<td>
-<p>An optional list of references to secrets in the same namespace
-to use for pulling images from registries</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logLevel</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log filtering level. Possible options: error, warn, info, debug.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logFormat</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log format to use. Possible options: logfmt or json.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>flags</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Flags is the flags of component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>webConfig</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.WebConfig">
-WebConfig
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>debug</code><br/>
-<em>
-bool
-</em>
-</td>
-<td>
-<p>If debug mode is on, gateway will proxy Query UI</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>enabledTenantsAdmission</code><br/>
-<em>
-bool
-</em>
-</td>
-<td>
-<p>Deny unknown tenant data remote-write and query if enabled</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>nodePort</code><br/>
-<em>
-int32
-</em>
-</td>
-<td>
-<p>NodePort is the port used to expose the gateway service.
-If this is a valid node port, the gateway service type will be set to NodePort accordingly.</p>
 </td>
 </tr>
 </tbody>
@@ -5117,18 +5053,118 @@ InMemoryIndexCacheConfig
 <tbody>
 <tr>
 <td>
-<code>containers</code><br/>
+<code>tenants</code><br/>
 <em>
-<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
-k8s.io/apimachinery/pkg/runtime.RawExtension
+[]string
+</em>
+</td>
+<td>
+<p>The tenants whose data is being ingested by the Ingester(ingesting receiver).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>localTsdbRetention</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>LocalTsdbRetention configs how long to retain raw samples on local storage.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dataVolume</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.KubernetesVolume">
+KubernetesVolume
 </a>
 </em>
 </td>
 <td>
-<p>Containers allows injecting additional containers or modifying operator generated containers.
-Containers described here modify an operator generated
-container if they share the same name and modifications are done via a
-strategic merge patch.</p>
+<p>DataVolume specifies how volume shall be used</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>replicas</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>Number of component instances to deploy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>image</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Component container image URL.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullPolicy</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
+Kubernetes core/v1.PullPolicy
+</a>
+</em>
+</td>
+<td>
+<p>Image pull policy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resources</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
+Kubernetes core/v1.ResourceRequirements
+</a>
+</em>
+</td>
+<td>
+<p>Resources defines the resource requirements for single Pods.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logLevel</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log level for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logFormat</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log format for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>flags</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Flags allows setting additional flags for the component container.</p>
 </td>
 </tr>
 <tr>
@@ -5142,9 +5178,20 @@ EmbeddedObjectMetadata
 </td>
 <td>
 <p>PodMetadata configures labels and annotations which are propagated to the pods.</p>
-<ul>
-<li>&ldquo;kubectl.kubernetes.io/default-container&rdquo; annotation, set to main pod.</li>
-</ul>
+</td>
+</tr>
+<tr>
+<td>
+<code>configMaps</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
+object, which shall be mounted into the default Pods.
+Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
+The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
 </td>
 </tr>
 <tr>
@@ -5163,16 +5210,46 @@ The Secrets are mounted into /etc/whizard/secrets/<secret-name> in the default c
 </tr>
 <tr>
 <td>
-<code>configMaps</code><br/>
+<code>containers</code><br/>
 <em>
-[]string
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
+k8s.io/apimachinery/pkg/runtime.RawExtension
+</a>
 </em>
 </td>
 <td>
-<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
-object, which shall be mounted into the default Pods.
-Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
-The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
+<p>Containers allows injecting additional containers or modifying operator generated containers.
+Containers described here modify an operator generated
+container if they share the same name and modifications are done via a
+strategic merge patch.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullSecrets</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
+[]Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>An optional list of references to secrets in the same namespace
+to use for pulling images from registries</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>securityContext</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
+Kubernetes core/v1.PodSecurityContext
+</a>
+</em>
+</td>
+<td>
+<p>SecurityContext holds pod-level security attributes and common container settings.
+This defaults to the default PodSecurityContext.</p>
 </td>
 </tr>
 <tr>
@@ -5214,120 +5291,6 @@ map[string]string
 </tr>
 <tr>
 <td>
-<code>resources</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
-Kubernetes core/v1.ResourceRequirements
-</a>
-</em>
-</td>
-<td>
-<p>Define resources requests and limits for main container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>securityContext</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
-Kubernetes core/v1.PodSecurityContext
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>SecurityContext holds pod-level security attributes and common container settings.
-This defaults to the default PodSecurityContext.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>replicas</code><br/>
-<em>
-int32
-</em>
-</td>
-<td>
-<p>Number of replicas for a component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>image</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Image is the component image with tag/version.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullPolicy</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
-Kubernetes core/v1.PullPolicy
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Image pull policy.
-One of Always, Never, IfNotPresent.
-Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-Cannot be updated.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullSecrets</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
-[]Kubernetes core/v1.LocalObjectReference
-</a>
-</em>
-</td>
-<td>
-<p>An optional list of references to secrets in the same namespace
-to use for pulling images from registries</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logLevel</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log filtering level. Possible options: error, warn, info, debug.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logFormat</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log format to use. Possible options: logfmt or json.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>flags</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Flags is the flags of component.</p>
-</td>
-</tr>
-<tr>
-<td>
 <code>ingesterTsdbCleanup</code><br/>
 <em>
 <a href="#monitoring.whizard.io/v1alpha1.SidecarSpec">
@@ -5336,41 +5299,6 @@ SidecarSpec
 </em>
 </td>
 <td>
-</td>
-</tr>
-<tr>
-<td>
-<code>tenants</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Tenants if not empty indicates current config is for hard tenants; otherwise, it is for soft tenants.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>localTsdbRetention</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>LocalTsdbRetention configs how long to retain raw samples on local storage.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>dataVolume</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.KubernetesVolume">
-KubernetesVolume
-</a>
-</em>
-</td>
-<td>
-<p>DataVolume specifies how volume shall be used</p>
 </td>
 </tr>
 </tbody>
@@ -5424,18 +5352,118 @@ except those Tenant objects that have been deleted.</p>
 <tbody>
 <tr>
 <td>
-<code>containers</code><br/>
+<code>tenants</code><br/>
 <em>
-<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
-k8s.io/apimachinery/pkg/runtime.RawExtension
+[]string
+</em>
+</td>
+<td>
+<p>The tenants whose data is being ingested by the Ingester(ingesting receiver).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>localTsdbRetention</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>LocalTsdbRetention configs how long to retain raw samples on local storage.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dataVolume</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.KubernetesVolume">
+KubernetesVolume
 </a>
 </em>
 </td>
 <td>
-<p>Containers allows injecting additional containers or modifying operator generated containers.
-Containers described here modify an operator generated
-container if they share the same name and modifications are done via a
-strategic merge patch.</p>
+<p>DataVolume specifies how volume shall be used</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>replicas</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>Number of component instances to deploy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>image</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Component container image URL.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullPolicy</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
+Kubernetes core/v1.PullPolicy
+</a>
+</em>
+</td>
+<td>
+<p>Image pull policy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resources</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
+Kubernetes core/v1.ResourceRequirements
+</a>
+</em>
+</td>
+<td>
+<p>Resources defines the resource requirements for single Pods.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logLevel</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log level for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logFormat</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log format for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>flags</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Flags allows setting additional flags for the component container.</p>
 </td>
 </tr>
 <tr>
@@ -5449,9 +5477,20 @@ EmbeddedObjectMetadata
 </td>
 <td>
 <p>PodMetadata configures labels and annotations which are propagated to the pods.</p>
-<ul>
-<li>&ldquo;kubectl.kubernetes.io/default-container&rdquo; annotation, set to main pod.</li>
-</ul>
+</td>
+</tr>
+<tr>
+<td>
+<code>configMaps</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
+object, which shall be mounted into the default Pods.
+Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
+The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
 </td>
 </tr>
 <tr>
@@ -5470,16 +5509,46 @@ The Secrets are mounted into /etc/whizard/secrets/<secret-name> in the default c
 </tr>
 <tr>
 <td>
-<code>configMaps</code><br/>
+<code>containers</code><br/>
 <em>
-[]string
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
+k8s.io/apimachinery/pkg/runtime.RawExtension
+</a>
 </em>
 </td>
 <td>
-<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
-object, which shall be mounted into the default Pods.
-Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
-The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
+<p>Containers allows injecting additional containers or modifying operator generated containers.
+Containers described here modify an operator generated
+container if they share the same name and modifications are done via a
+strategic merge patch.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullSecrets</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
+[]Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>An optional list of references to secrets in the same namespace
+to use for pulling images from registries</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>securityContext</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
+Kubernetes core/v1.PodSecurityContext
+</a>
+</em>
+</td>
+<td>
+<p>SecurityContext holds pod-level security attributes and common container settings.
+This defaults to the default PodSecurityContext.</p>
 </td>
 </tr>
 <tr>
@@ -5521,120 +5590,6 @@ map[string]string
 </tr>
 <tr>
 <td>
-<code>resources</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
-Kubernetes core/v1.ResourceRequirements
-</a>
-</em>
-</td>
-<td>
-<p>Define resources requests and limits for main container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>securityContext</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
-Kubernetes core/v1.PodSecurityContext
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>SecurityContext holds pod-level security attributes and common container settings.
-This defaults to the default PodSecurityContext.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>replicas</code><br/>
-<em>
-int32
-</em>
-</td>
-<td>
-<p>Number of replicas for a component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>image</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Image is the component image with tag/version.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullPolicy</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
-Kubernetes core/v1.PullPolicy
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Image pull policy.
-One of Always, Never, IfNotPresent.
-Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-Cannot be updated.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullSecrets</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
-[]Kubernetes core/v1.LocalObjectReference
-</a>
-</em>
-</td>
-<td>
-<p>An optional list of references to secrets in the same namespace
-to use for pulling images from registries</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logLevel</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log filtering level. Possible options: error, warn, info, debug.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logFormat</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log format to use. Possible options: logfmt or json.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>flags</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Flags is the flags of component.</p>
-</td>
-</tr>
-<tr>
-<td>
 <code>ingesterTsdbCleanup</code><br/>
 <em>
 <a href="#monitoring.whizard.io/v1alpha1.SidecarSpec">
@@ -5643,41 +5598,6 @@ SidecarSpec
 </em>
 </td>
 <td>
-</td>
-</tr>
-<tr>
-<td>
-<code>tenants</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Tenants if not empty indicates current config is for hard tenants; otherwise, it is for soft tenants.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>localTsdbRetention</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>LocalTsdbRetention configs how long to retain raw samples on local storage.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>dataVolume</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.KubernetesVolume">
-KubernetesVolume
-</a>
-</em>
-</td>
-<td>
-<p>DataVolume specifies how volume shall be used</p>
 </td>
 </tr>
 <tr>
@@ -5765,7 +5685,11 @@ bool
 (<em>Appears on:</em><a href="#monitoring.whizard.io/v1alpha1.CompactorSpec">CompactorSpec</a>, <a href="#monitoring.whizard.io/v1alpha1.IngesterSpec">IngesterSpec</a>, <a href="#monitoring.whizard.io/v1alpha1.RulerSpec">RulerSpec</a>, <a href="#monitoring.whizard.io/v1alpha1.StoreSpec">StoreSpec</a>)
 </p>
 <div>
-<p>KubernetesVolume defines the configured volume for a instance.</p>
+<p>KubernetesVolume defines the configured storage for component.
+If no storage option is specified, then by default an <a href="https://kubernetes.io/docs/concepts/storage/volumes/#emptydir">EmptyDir</a> will be used.</p>
+<p>If multiple storage options are specified, priority will be given as follows:
+1. emptyDir
+2. persistentVolumeClaim</p>
 </div>
 <table>
 <thead>
@@ -5785,6 +5709,7 @@ Kubernetes core/v1.EmptyDirVolumeSource
 </em>
 </td>
 <td>
+<p>emptyDir represents a temporary directory that shares a pod&rsquo;s lifetime.</p>
 </td>
 </tr>
 <tr>
@@ -5797,6 +5722,7 @@ Kubernetes core/v1.PersistentVolumeClaim
 </em>
 </td>
 <td>
+<p>Defines the PVC spec to be used by the component StatefulSets.</p>
 </td>
 </tr>
 <tr>
@@ -5809,10 +5735,10 @@ Kubernetes apps/v1.StatefulSetPersistentVolumeClaimRetentionPolicy
 </em>
 </td>
 <td>
-<em>(Optional)</em>
 <p>persistentVolumeClaimRetentionPolicy describes the lifecycle of persistent
 volume claims created from persistentVolumeClaim.
 This requires the kubernetes version &gt;= 1.23 and its StatefulSetAutoDeletePVC feature gate to be enabled.</p>
+<p>This is an <em>experimental feature</em>, it may change in any upcoming release in a breaking way.</p>
 </td>
 </tr>
 </tbody>
@@ -5872,18 +5798,109 @@ string
 <tbody>
 <tr>
 <td>
-<code>containers</code><br/>
+<code>cacheConfig</code><br/>
 <em>
-<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
-k8s.io/apimachinery/pkg/runtime.RawExtension
+<a href="#monitoring.whizard.io/v1alpha1.ResponseCacheProviderConfig">
+ResponseCacheProviderConfig
 </a>
 </em>
 </td>
 <td>
-<p>Containers allows injecting additional containers or modifying operator generated containers.
-Containers described here modify an operator generated
-container if they share the same name and modifications are done via a
-strategic merge patch.</p>
+<p>CacheProviderConfig specifies response cache configuration.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>webConfig</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.WebConfig">
+WebConfig
+</a>
+</em>
+</td>
+<td>
+<p>Defines the configuration of the Thanos QueryFrontend web server.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>replicas</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>Number of component instances to deploy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>image</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Component container image URL.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullPolicy</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
+Kubernetes core/v1.PullPolicy
+</a>
+</em>
+</td>
+<td>
+<p>Image pull policy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resources</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
+Kubernetes core/v1.ResourceRequirements
+</a>
+</em>
+</td>
+<td>
+<p>Resources defines the resource requirements for single Pods.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logLevel</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log level for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logFormat</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log format for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>flags</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Flags allows setting additional flags for the component container.</p>
 </td>
 </tr>
 <tr>
@@ -5897,9 +5914,20 @@ EmbeddedObjectMetadata
 </td>
 <td>
 <p>PodMetadata configures labels and annotations which are propagated to the pods.</p>
-<ul>
-<li>&ldquo;kubectl.kubernetes.io/default-container&rdquo; annotation, set to main pod.</li>
-</ul>
+</td>
+</tr>
+<tr>
+<td>
+<code>configMaps</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
+object, which shall be mounted into the default Pods.
+Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
+The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
 </td>
 </tr>
 <tr>
@@ -5918,16 +5946,46 @@ The Secrets are mounted into /etc/whizard/secrets/<secret-name> in the default c
 </tr>
 <tr>
 <td>
-<code>configMaps</code><br/>
+<code>containers</code><br/>
 <em>
-[]string
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
+k8s.io/apimachinery/pkg/runtime.RawExtension
+</a>
 </em>
 </td>
 <td>
-<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
-object, which shall be mounted into the default Pods.
-Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
-The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
+<p>Containers allows injecting additional containers or modifying operator generated containers.
+Containers described here modify an operator generated
+container if they share the same name and modifications are done via a
+strategic merge patch.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullSecrets</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
+[]Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>An optional list of references to secrets in the same namespace
+to use for pulling images from registries</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>securityContext</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
+Kubernetes core/v1.PodSecurityContext
+</a>
+</em>
+</td>
+<td>
+<p>SecurityContext holds pod-level security attributes and common container settings.
+This defaults to the default PodSecurityContext.</p>
 </td>
 </tr>
 <tr>
@@ -5965,145 +6023,6 @@ map[string]string
 </td>
 <td>
 <p>If specified, the pod&rsquo;s tolerations.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>resources</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
-Kubernetes core/v1.ResourceRequirements
-</a>
-</em>
-</td>
-<td>
-<p>Define resources requests and limits for main container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>securityContext</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
-Kubernetes core/v1.PodSecurityContext
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>SecurityContext holds pod-level security attributes and common container settings.
-This defaults to the default PodSecurityContext.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>replicas</code><br/>
-<em>
-int32
-</em>
-</td>
-<td>
-<p>Number of replicas for a component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>image</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Image is the component image with tag/version.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullPolicy</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
-Kubernetes core/v1.PullPolicy
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Image pull policy.
-One of Always, Never, IfNotPresent.
-Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-Cannot be updated.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullSecrets</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
-[]Kubernetes core/v1.LocalObjectReference
-</a>
-</em>
-</td>
-<td>
-<p>An optional list of references to secrets in the same namespace
-to use for pulling images from registries</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logLevel</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log filtering level. Possible options: error, warn, info, debug.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logFormat</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log format to use. Possible options: logfmt or json.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>flags</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Flags is the flags of component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>webConfig</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.WebConfig">
-WebConfig
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>cacheConfig</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.ResponseCacheProviderConfig">
-ResponseCacheProviderConfig
-</a>
-</em>
-</td>
-<td>
-<p>CacheProviderConfig &hellip;</p>
 </td>
 </tr>
 </tbody>
@@ -6134,18 +6053,156 @@ ResponseCacheProviderConfig
 <tbody>
 <tr>
 <td>
-<code>containers</code><br/>
+<code>promqlEngine</code><br/>
 <em>
-<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
-k8s.io/apimachinery/pkg/runtime.RawExtension
+string
+</em>
+</td>
+<td>
+<p>experimental PromQL engine, more info thanos.io/tip/components/query.md#promql-engine
+default: prometheus</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>selectorLabels</code><br/>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<p>Selector labels that will be exposed in info endpoint.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>replicaLabelNames</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Labels to treat as a replica indicator along which data is deduplicated.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>webConfig</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.WebConfig">
+WebConfig
 </a>
 </em>
 </td>
 <td>
-<p>Containers allows injecting additional containers or modifying operator generated containers.
-Containers described here modify an operator generated
-container if they share the same name and modifications are done via a
-strategic merge patch.</p>
+<p>Defines the configuration of the Thanos Query web server.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>stores</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.QueryStores">
+[]QueryStores
+</a>
+</em>
+</td>
+<td>
+<p>Additional StoreApi servers from which Query component queries from</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>envoy</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.SidecarSpec">
+SidecarSpec
+</a>
+</em>
+</td>
+<td>
+<p>Envoy is used to config sidecar which proxies requests requiring auth to the secure stores</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>replicas</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>Number of component instances to deploy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>image</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Component container image URL.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullPolicy</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
+Kubernetes core/v1.PullPolicy
+</a>
+</em>
+</td>
+<td>
+<p>Image pull policy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resources</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
+Kubernetes core/v1.ResourceRequirements
+</a>
+</em>
+</td>
+<td>
+<p>Resources defines the resource requirements for single Pods.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logLevel</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log level for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logFormat</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log format for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>flags</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Flags allows setting additional flags for the component container.</p>
 </td>
 </tr>
 <tr>
@@ -6159,9 +6216,20 @@ EmbeddedObjectMetadata
 </td>
 <td>
 <p>PodMetadata configures labels and annotations which are propagated to the pods.</p>
-<ul>
-<li>&ldquo;kubectl.kubernetes.io/default-container&rdquo; annotation, set to main pod.</li>
-</ul>
+</td>
+</tr>
+<tr>
+<td>
+<code>configMaps</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
+object, which shall be mounted into the default Pods.
+Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
+The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
 </td>
 </tr>
 <tr>
@@ -6180,16 +6248,46 @@ The Secrets are mounted into /etc/whizard/secrets/<secret-name> in the default c
 </tr>
 <tr>
 <td>
-<code>configMaps</code><br/>
+<code>containers</code><br/>
 <em>
-[]string
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
+k8s.io/apimachinery/pkg/runtime.RawExtension
+</a>
 </em>
 </td>
 <td>
-<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
-object, which shall be mounted into the default Pods.
-Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
-The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
+<p>Containers allows injecting additional containers or modifying operator generated containers.
+Containers described here modify an operator generated
+container if they share the same name and modifications are done via a
+strategic merge patch.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullSecrets</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
+[]Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>An optional list of references to secrets in the same namespace
+to use for pulling images from registries</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>securityContext</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
+Kubernetes core/v1.PodSecurityContext
+</a>
+</em>
+</td>
+<td>
+<p>SecurityContext holds pod-level security attributes and common container settings.
+This defaults to the default PodSecurityContext.</p>
 </td>
 </tr>
 <tr>
@@ -6227,190 +6325,6 @@ map[string]string
 </td>
 <td>
 <p>If specified, the pod&rsquo;s tolerations.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>resources</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
-Kubernetes core/v1.ResourceRequirements
-</a>
-</em>
-</td>
-<td>
-<p>Define resources requests and limits for main container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>securityContext</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
-Kubernetes core/v1.PodSecurityContext
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>SecurityContext holds pod-level security attributes and common container settings.
-This defaults to the default PodSecurityContext.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>replicas</code><br/>
-<em>
-int32
-</em>
-</td>
-<td>
-<p>Number of replicas for a component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>image</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Image is the component image with tag/version.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullPolicy</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
-Kubernetes core/v1.PullPolicy
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Image pull policy.
-One of Always, Never, IfNotPresent.
-Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-Cannot be updated.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullSecrets</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
-[]Kubernetes core/v1.LocalObjectReference
-</a>
-</em>
-</td>
-<td>
-<p>An optional list of references to secrets in the same namespace
-to use for pulling images from registries</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logLevel</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log filtering level. Possible options: error, warn, info, debug.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logFormat</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log format to use. Possible options: logfmt or json.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>flags</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Flags is the flags of component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>webConfig</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.WebConfig">
-WebConfig
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>promqlEngine</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>stores</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.QueryStores">
-[]QueryStores
-</a>
-</em>
-</td>
-<td>
-<p>Additional StoreApi servers from which Query component queries from</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>selectorLabels</code><br/>
-<em>
-map[string]string
-</em>
-</td>
-<td>
-<p>Selector labels that will be exposed in info endpoint.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>replicaLabelNames</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Labels to treat as a replica indicator along which data is deduplicated.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>envoy</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.SidecarSpec">
-SidecarSpec
-</a>
-</em>
-</td>
-<td>
-<p>Envoy is used to config sidecar which proxies requests requiring auth to the secure stores</p>
 </td>
 </tr>
 </tbody>
@@ -6470,6 +6384,8 @@ Kubernetes core/v1.SecretKeySelector
 (<em>Appears on:</em><a href="#monitoring.whizard.io/v1alpha1.ServiceSpec">ServiceSpec</a>)
 </p>
 <div>
+<p>RemoteQuerySpec defines the configuration to query from remote service
+which should have prometheus-compatible Query APIs.</p>
 </div>
 <table>
 <thead>
@@ -6680,7 +6596,8 @@ Duration
 </em>
 </td>
 <td>
-<p>RetentionRaw specifies how long to retain raw samples in bucket</p>
+<p>How long to retain raw samples in bucket. Setting this to 0d will retain samples of this resolution forever
+default: 0d</p>
 </td>
 </tr>
 <tr>
@@ -6693,7 +6610,8 @@ Duration
 </em>
 </td>
 <td>
-<p>Retention5m specifies how long to retain samples of 5m resolution in bucket</p>
+<p>How long to retain samples of resolution 1 (5 minutes) in bucket. Setting this to 0d will retain samples of this resolution forever
+default: 0d</p>
 </td>
 </tr>
 <tr>
@@ -6706,7 +6624,8 @@ Duration
 </em>
 </td>
 <td>
-<p>Retention1h specifies how long to retain samples of 1h resolution in bucket</p>
+<p>How long to retain samples of resolution 2 (1 hour) in bucket. Setting this to 0d will retain samples of this resolution forever
+default: 0d</p>
 </td>
 </tr>
 </tbody>
@@ -6729,18 +6648,107 @@ Duration
 <tbody>
 <tr>
 <td>
-<code>containers</code><br/>
+<code>replicationFactor</code><br/>
 <em>
-<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
-k8s.io/apimachinery/pkg/runtime.RawExtension
+uint64
+</em>
+</td>
+<td>
+<p>How many times to replicate incoming write requests</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>webConfig</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.WebConfig">
+WebConfig
 </a>
 </em>
 </td>
 <td>
-<p>Containers allows injecting additional containers or modifying operator generated containers.
-Containers described here modify an operator generated
-container if they share the same name and modifications are done via a
-strategic merge patch.</p>
+<p>Defines the configuration of the Route(routing receiver) web server.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>replicas</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>Number of component instances to deploy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>image</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Component container image URL.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullPolicy</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
+Kubernetes core/v1.PullPolicy
+</a>
+</em>
+</td>
+<td>
+<p>Image pull policy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resources</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
+Kubernetes core/v1.ResourceRequirements
+</a>
+</em>
+</td>
+<td>
+<p>Resources defines the resource requirements for single Pods.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logLevel</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log level for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logFormat</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log format for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>flags</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Flags allows setting additional flags for the component container.</p>
 </td>
 </tr>
 <tr>
@@ -6754,9 +6762,20 @@ EmbeddedObjectMetadata
 </td>
 <td>
 <p>PodMetadata configures labels and annotations which are propagated to the pods.</p>
-<ul>
-<li>&ldquo;kubectl.kubernetes.io/default-container&rdquo; annotation, set to main pod.</li>
-</ul>
+</td>
+</tr>
+<tr>
+<td>
+<code>configMaps</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
+object, which shall be mounted into the default Pods.
+Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
+The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
 </td>
 </tr>
 <tr>
@@ -6775,16 +6794,46 @@ The Secrets are mounted into /etc/whizard/secrets/<secret-name> in the default c
 </tr>
 <tr>
 <td>
-<code>configMaps</code><br/>
+<code>containers</code><br/>
 <em>
-[]string
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
+k8s.io/apimachinery/pkg/runtime.RawExtension
+</a>
 </em>
 </td>
 <td>
-<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
-object, which shall be mounted into the default Pods.
-Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
-The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
+<p>Containers allows injecting additional containers or modifying operator generated containers.
+Containers described here modify an operator generated
+container if they share the same name and modifications are done via a
+strategic merge patch.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullSecrets</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
+[]Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>An optional list of references to secrets in the same namespace
+to use for pulling images from registries</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>securityContext</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
+Kubernetes core/v1.PodSecurityContext
+</a>
+</em>
+</td>
+<td>
+<p>SecurityContext holds pod-level security attributes and common container settings.
+This defaults to the default PodSecurityContext.</p>
 </td>
 </tr>
 <tr>
@@ -6822,143 +6871,6 @@ map[string]string
 </td>
 <td>
 <p>If specified, the pod&rsquo;s tolerations.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>resources</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
-Kubernetes core/v1.ResourceRequirements
-</a>
-</em>
-</td>
-<td>
-<p>Define resources requests and limits for main container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>securityContext</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
-Kubernetes core/v1.PodSecurityContext
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>SecurityContext holds pod-level security attributes and common container settings.
-This defaults to the default PodSecurityContext.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>replicas</code><br/>
-<em>
-int32
-</em>
-</td>
-<td>
-<p>Number of replicas for a component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>image</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Image is the component image with tag/version.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullPolicy</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
-Kubernetes core/v1.PullPolicy
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Image pull policy.
-One of Always, Never, IfNotPresent.
-Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-Cannot be updated.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullSecrets</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
-[]Kubernetes core/v1.LocalObjectReference
-</a>
-</em>
-</td>
-<td>
-<p>An optional list of references to secrets in the same namespace
-to use for pulling images from registries</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logLevel</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log filtering level. Possible options: error, warn, info, debug.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logFormat</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log format to use. Possible options: logfmt or json.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>flags</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Flags is the flags of component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>webConfig</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.WebConfig">
-WebConfig
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>replicationFactor</code><br/>
-<em>
-uint64
-</em>
-</td>
-<td>
-<p>How many times to replicate incoming write requests</p>
 </td>
 </tr>
 </tbody>
@@ -6989,253 +6901,6 @@ uint64
 <tbody>
 <tr>
 <td>
-<code>containers</code><br/>
-<em>
-<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
-k8s.io/apimachinery/pkg/runtime.RawExtension
-</a>
-</em>
-</td>
-<td>
-<p>Containers allows injecting additional containers or modifying operator generated containers.
-Containers described here modify an operator generated
-container if they share the same name and modifications are done via a
-strategic merge patch.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>podMetadata</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.EmbeddedObjectMetadata">
-EmbeddedObjectMetadata
-</a>
-</em>
-</td>
-<td>
-<p>PodMetadata configures labels and annotations which are propagated to the pods.</p>
-<ul>
-<li>&ldquo;kubectl.kubernetes.io/default-container&rdquo; annotation, set to main pod.</li>
-</ul>
-</td>
-</tr>
-<tr>
-<td>
-<code>secrets</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Secrets is a list of Secrets in the same namespace as the component
-object, which shall be mounted into the Prometheus Pods.
-Each Secret is added to the StatefulSet/Deployment definition as a volume named <code>secret-&lt;secret-name&gt;</code>.
-The Secrets are mounted into /etc/whizard/secrets/<secret-name> in the default container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>configMaps</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
-object, which shall be mounted into the default Pods.
-Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
-The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>affinity</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#affinity-v1-core">
-Kubernetes core/v1.Affinity
-</a>
-</em>
-</td>
-<td>
-<p>If specified, the pod&rsquo;s scheduling constraints.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>nodeSelector</code><br/>
-<em>
-map[string]string
-</em>
-</td>
-<td>
-<p>Define which Nodes the Pods are scheduled on.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>tolerations</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#toleration-v1-core">
-[]Kubernetes core/v1.Toleration
-</a>
-</em>
-</td>
-<td>
-<p>If specified, the pod&rsquo;s tolerations.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>resources</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
-Kubernetes core/v1.ResourceRequirements
-</a>
-</em>
-</td>
-<td>
-<p>Define resources requests and limits for main container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>securityContext</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
-Kubernetes core/v1.PodSecurityContext
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>SecurityContext holds pod-level security attributes and common container settings.
-This defaults to the default PodSecurityContext.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>replicas</code><br/>
-<em>
-int32
-</em>
-</td>
-<td>
-<p>Number of replicas for a component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>image</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Image is the component image with tag/version.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullPolicy</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
-Kubernetes core/v1.PullPolicy
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Image pull policy.
-One of Always, Never, IfNotPresent.
-Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-Cannot be updated.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullSecrets</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
-[]Kubernetes core/v1.LocalObjectReference
-</a>
-</em>
-</td>
-<td>
-<p>An optional list of references to secrets in the same namespace
-to use for pulling images from registries</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logLevel</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log filtering level. Possible options: error, warn, info, debug.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logFormat</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log format to use. Possible options: logfmt or json.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>flags</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Flags is the flags of component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>rulerQueryProxy</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.SidecarSpec">
-SidecarSpec
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>rulerWriteProxy</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.SidecarSpec">
-SidecarSpec
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>prometheusConfigReloader</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.SidecarSpec">
-SidecarSpec
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
 <code>ruleSelectors</code><br/>
 <em>
 <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#*k8s.io/apimachinery/pkg/apis/meta/v1.labelselector--">
@@ -7386,6 +7051,245 @@ KubernetesVolume
 </td>
 <td>
 <p>DataVolume specifies how volume shall be used</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>rulerQueryProxy</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.SidecarSpec">
+SidecarSpec
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>rulerWriteProxy</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.SidecarSpec">
+SidecarSpec
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>prometheusConfigReloader</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.SidecarSpec">
+SidecarSpec
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>replicas</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>Number of component instances to deploy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>image</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Component container image URL.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullPolicy</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
+Kubernetes core/v1.PullPolicy
+</a>
+</em>
+</td>
+<td>
+<p>Image pull policy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resources</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
+Kubernetes core/v1.ResourceRequirements
+</a>
+</em>
+</td>
+<td>
+<p>Resources defines the resource requirements for single Pods.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logLevel</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log level for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logFormat</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log format for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>flags</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Flags allows setting additional flags for the component container.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>podMetadata</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.EmbeddedObjectMetadata">
+EmbeddedObjectMetadata
+</a>
+</em>
+</td>
+<td>
+<p>PodMetadata configures labels and annotations which are propagated to the pods.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>configMaps</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
+object, which shall be mounted into the default Pods.
+Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
+The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secrets</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Secrets is a list of Secrets in the same namespace as the component
+object, which shall be mounted into the Prometheus Pods.
+Each Secret is added to the StatefulSet/Deployment definition as a volume named <code>secret-&lt;secret-name&gt;</code>.
+The Secrets are mounted into /etc/whizard/secrets/<secret-name> in the default container.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>containers</code><br/>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
+k8s.io/apimachinery/pkg/runtime.RawExtension
+</a>
+</em>
+</td>
+<td>
+<p>Containers allows injecting additional containers or modifying operator generated containers.
+Containers described here modify an operator generated
+container if they share the same name and modifications are done via a
+strategic merge patch.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullSecrets</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
+[]Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>An optional list of references to secrets in the same namespace
+to use for pulling images from registries</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>securityContext</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
+Kubernetes core/v1.PodSecurityContext
+</a>
+</em>
+</td>
+<td>
+<p>SecurityContext holds pod-level security attributes and common container settings.
+This defaults to the default PodSecurityContext.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>affinity</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#affinity-v1-core">
+Kubernetes core/v1.Affinity
+</a>
+</em>
+</td>
+<td>
+<p>If specified, the pod&rsquo;s scheduling constraints.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>nodeSelector</code><br/>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<p>Define which Nodes the Pods are scheduled on.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tolerations</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#toleration-v1-core">
+[]Kubernetes core/v1.Toleration
+</a>
+</em>
+</td>
+<td>
+<p>If specified, the pod&rsquo;s tolerations.</p>
 </td>
 </tr>
 </tbody>
@@ -7415,253 +7319,6 @@ KubernetesVolume
 <tbody>
 <tr>
 <td>
-<code>containers</code><br/>
-<em>
-<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
-k8s.io/apimachinery/pkg/runtime.RawExtension
-</a>
-</em>
-</td>
-<td>
-<p>Containers allows injecting additional containers or modifying operator generated containers.
-Containers described here modify an operator generated
-container if they share the same name and modifications are done via a
-strategic merge patch.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>podMetadata</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.EmbeddedObjectMetadata">
-EmbeddedObjectMetadata
-</a>
-</em>
-</td>
-<td>
-<p>PodMetadata configures labels and annotations which are propagated to the pods.</p>
-<ul>
-<li>&ldquo;kubectl.kubernetes.io/default-container&rdquo; annotation, set to main pod.</li>
-</ul>
-</td>
-</tr>
-<tr>
-<td>
-<code>secrets</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Secrets is a list of Secrets in the same namespace as the component
-object, which shall be mounted into the Prometheus Pods.
-Each Secret is added to the StatefulSet/Deployment definition as a volume named <code>secret-&lt;secret-name&gt;</code>.
-The Secrets are mounted into /etc/whizard/secrets/<secret-name> in the default container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>configMaps</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
-object, which shall be mounted into the default Pods.
-Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
-The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>affinity</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#affinity-v1-core">
-Kubernetes core/v1.Affinity
-</a>
-</em>
-</td>
-<td>
-<p>If specified, the pod&rsquo;s scheduling constraints.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>nodeSelector</code><br/>
-<em>
-map[string]string
-</em>
-</td>
-<td>
-<p>Define which Nodes the Pods are scheduled on.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>tolerations</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#toleration-v1-core">
-[]Kubernetes core/v1.Toleration
-</a>
-</em>
-</td>
-<td>
-<p>If specified, the pod&rsquo;s tolerations.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>resources</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
-Kubernetes core/v1.ResourceRequirements
-</a>
-</em>
-</td>
-<td>
-<p>Define resources requests and limits for main container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>securityContext</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
-Kubernetes core/v1.PodSecurityContext
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>SecurityContext holds pod-level security attributes and common container settings.
-This defaults to the default PodSecurityContext.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>replicas</code><br/>
-<em>
-int32
-</em>
-</td>
-<td>
-<p>Number of replicas for a component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>image</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Image is the component image with tag/version.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullPolicy</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
-Kubernetes core/v1.PullPolicy
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Image pull policy.
-One of Always, Never, IfNotPresent.
-Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-Cannot be updated.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullSecrets</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
-[]Kubernetes core/v1.LocalObjectReference
-</a>
-</em>
-</td>
-<td>
-<p>An optional list of references to secrets in the same namespace
-to use for pulling images from registries</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logLevel</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log filtering level. Possible options: error, warn, info, debug.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logFormat</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log format to use. Possible options: logfmt or json.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>flags</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Flags is the flags of component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>rulerQueryProxy</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.SidecarSpec">
-SidecarSpec
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>rulerWriteProxy</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.SidecarSpec">
-SidecarSpec
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>prometheusConfigReloader</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.SidecarSpec">
-SidecarSpec
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
 <code>ruleSelectors</code><br/>
 <em>
 <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#*k8s.io/apimachinery/pkg/apis/meta/v1.labelselector--">
@@ -7812,6 +7469,245 @@ KubernetesVolume
 </td>
 <td>
 <p>DataVolume specifies how volume shall be used</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>rulerQueryProxy</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.SidecarSpec">
+SidecarSpec
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>rulerWriteProxy</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.SidecarSpec">
+SidecarSpec
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>prometheusConfigReloader</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.SidecarSpec">
+SidecarSpec
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>replicas</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>Number of component instances to deploy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>image</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Component container image URL.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullPolicy</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
+Kubernetes core/v1.PullPolicy
+</a>
+</em>
+</td>
+<td>
+<p>Image pull policy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resources</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
+Kubernetes core/v1.ResourceRequirements
+</a>
+</em>
+</td>
+<td>
+<p>Resources defines the resource requirements for single Pods.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logLevel</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log level for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logFormat</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log format for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>flags</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Flags allows setting additional flags for the component container.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>podMetadata</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.EmbeddedObjectMetadata">
+EmbeddedObjectMetadata
+</a>
+</em>
+</td>
+<td>
+<p>PodMetadata configures labels and annotations which are propagated to the pods.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>configMaps</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
+object, which shall be mounted into the default Pods.
+Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
+The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secrets</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Secrets is a list of Secrets in the same namespace as the component
+object, which shall be mounted into the Prometheus Pods.
+Each Secret is added to the StatefulSet/Deployment definition as a volume named <code>secret-&lt;secret-name&gt;</code>.
+The Secrets are mounted into /etc/whizard/secrets/<secret-name> in the default container.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>containers</code><br/>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
+k8s.io/apimachinery/pkg/runtime.RawExtension
+</a>
+</em>
+</td>
+<td>
+<p>Containers allows injecting additional containers or modifying operator generated containers.
+Containers described here modify an operator generated
+container if they share the same name and modifications are done via a
+strategic merge patch.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullSecrets</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
+[]Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>An optional list of references to secrets in the same namespace
+to use for pulling images from registries</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>securityContext</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
+Kubernetes core/v1.PodSecurityContext
+</a>
+</em>
+</td>
+<td>
+<p>SecurityContext holds pod-level security attributes and common container settings.
+This defaults to the default PodSecurityContext.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>affinity</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#affinity-v1-core">
+Kubernetes core/v1.Affinity
+</a>
+</em>
+</td>
+<td>
+<p>If specified, the pod&rsquo;s scheduling constraints.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>nodeSelector</code><br/>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<p>Define which Nodes the Pods are scheduled on.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tolerations</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#toleration-v1-core">
+[]Kubernetes core/v1.Toleration
+</a>
+</em>
+</td>
+<td>
+<p>If specified, the pod&rsquo;s tolerations.</p>
 </td>
 </tr>
 <tr>
@@ -8059,9 +7955,7 @@ string
 <td>
 <code>idleConnTimeout</code><br/>
 <em>
-<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
-Kubernetes meta/v1.Duration
-</a>
+github.com/prometheus/common/model.Duration
 </em>
 </td>
 <td>
@@ -8071,9 +7965,7 @@ Kubernetes meta/v1.Duration
 <td>
 <code>responseHeaderTimeout</code><br/>
 <em>
-<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
-Kubernetes meta/v1.Duration
-</a>
+github.com/prometheus/common/model.Duration
 </em>
 </td>
 <td>
@@ -8093,9 +7985,7 @@ bool
 <td>
 <code>tlsHandshakeTimeout</code><br/>
 <em>
-<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
-Kubernetes meta/v1.Duration
-</a>
+github.com/prometheus/common/model.Duration
 </em>
 </td>
 <td>
@@ -8105,9 +7995,7 @@ Kubernetes meta/v1.Duration
 <td>
 <code>expectContinueTimeout</code><br/>
 <em>
-<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
-Kubernetes meta/v1.Duration
-</a>
+github.com/prometheus/common/model.Duration
 </em>
 </td>
 <td>
@@ -8354,6 +8242,7 @@ GatewaySpec
 </em>
 </td>
 <td>
+<p>GatewayTemplateSpec defines the Gateway configuration template.</p>
 </td>
 </tr>
 <tr>
@@ -8366,6 +8255,7 @@ QueryFrontendSpec
 </em>
 </td>
 <td>
+<p>QueryFrontendTemplateSpec defines the QueryFrontend configuration template.</p>
 </td>
 </tr>
 <tr>
@@ -8378,6 +8268,7 @@ QuerySpec
 </em>
 </td>
 <td>
+<p>QueryTemplateSpec defines the Query configuration template.</p>
 </td>
 </tr>
 <tr>
@@ -8390,6 +8281,7 @@ RulerTemplateSpec
 </em>
 </td>
 <td>
+<p>RulerTemplateSpec defines the Ruler configuration template.</p>
 </td>
 </tr>
 <tr>
@@ -8402,6 +8294,7 @@ RouterSpec
 </em>
 </td>
 <td>
+<p>RouterTemplateSpec defines the Router configuration template.</p>
 </td>
 </tr>
 <tr>
@@ -8414,6 +8307,7 @@ IngesterTemplateSpec
 </em>
 </td>
 <td>
+<p>IngesterTemplateSpec defines the Ingester configuration template.</p>
 </td>
 </tr>
 <tr>
@@ -8426,6 +8320,7 @@ StoreSpec
 </em>
 </td>
 <td>
+<p>StoreTemplateSpec defines the Store configuration template.</p>
 </td>
 </tr>
 <tr>
@@ -8438,6 +8333,7 @@ CompactorTemplateSpec
 </em>
 </td>
 <td>
+<p>CompactorTemplateSpec defines the Compactor configuration template.</p>
 </td>
 </tr>
 </tbody>
@@ -8559,217 +8455,6 @@ S3
 <tbody>
 <tr>
 <td>
-<code>containers</code><br/>
-<em>
-<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
-k8s.io/apimachinery/pkg/runtime.RawExtension
-</a>
-</em>
-</td>
-<td>
-<p>Containers allows injecting additional containers or modifying operator generated containers.
-Containers described here modify an operator generated
-container if they share the same name and modifications are done via a
-strategic merge patch.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>podMetadata</code><br/>
-<em>
-<a href="#monitoring.whizard.io/v1alpha1.EmbeddedObjectMetadata">
-EmbeddedObjectMetadata
-</a>
-</em>
-</td>
-<td>
-<p>PodMetadata configures labels and annotations which are propagated to the pods.</p>
-<ul>
-<li>&ldquo;kubectl.kubernetes.io/default-container&rdquo; annotation, set to main pod.</li>
-</ul>
-</td>
-</tr>
-<tr>
-<td>
-<code>secrets</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Secrets is a list of Secrets in the same namespace as the component
-object, which shall be mounted into the Prometheus Pods.
-Each Secret is added to the StatefulSet/Deployment definition as a volume named <code>secret-&lt;secret-name&gt;</code>.
-The Secrets are mounted into /etc/whizard/secrets/<secret-name> in the default container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>configMaps</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
-object, which shall be mounted into the default Pods.
-Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
-The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>affinity</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#affinity-v1-core">
-Kubernetes core/v1.Affinity
-</a>
-</em>
-</td>
-<td>
-<p>If specified, the pod&rsquo;s scheduling constraints.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>nodeSelector</code><br/>
-<em>
-map[string]string
-</em>
-</td>
-<td>
-<p>Define which Nodes the Pods are scheduled on.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>tolerations</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#toleration-v1-core">
-[]Kubernetes core/v1.Toleration
-</a>
-</em>
-</td>
-<td>
-<p>If specified, the pod&rsquo;s tolerations.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>resources</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
-Kubernetes core/v1.ResourceRequirements
-</a>
-</em>
-</td>
-<td>
-<p>Define resources requests and limits for main container.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>securityContext</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
-Kubernetes core/v1.PodSecurityContext
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>SecurityContext holds pod-level security attributes and common container settings.
-This defaults to the default PodSecurityContext.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>replicas</code><br/>
-<em>
-int32
-</em>
-</td>
-<td>
-<p>Number of replicas for a component.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>image</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Image is the component image with tag/version.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullPolicy</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
-Kubernetes core/v1.PullPolicy
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Image pull policy.
-One of Always, Never, IfNotPresent.
-Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-Cannot be updated.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>imagePullSecrets</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
-[]Kubernetes core/v1.LocalObjectReference
-</a>
-</em>
-</td>
-<td>
-<p>An optional list of references to secrets in the same namespace
-to use for pulling images from registries</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logLevel</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log filtering level. Possible options: error, warn, info, debug.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>logFormat</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Log format to use. Possible options: logfmt or json.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>flags</code><br/>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Flags is the flags of component.</p>
-</td>
-</tr>
-<tr>
-<td>
 <code>minTime</code><br/>
 <em>
 string
@@ -8828,6 +8513,209 @@ KubernetesVolume
 </td>
 <td>
 <p>DataVolume specifies how volume shall be used</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>replicas</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>Number of component instances to deploy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>image</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Component container image URL.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullPolicy</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core">
+Kubernetes core/v1.PullPolicy
+</a>
+</em>
+</td>
+<td>
+<p>Image pull policy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resources</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core">
+Kubernetes core/v1.ResourceRequirements
+</a>
+</em>
+</td>
+<td>
+<p>Resources defines the resource requirements for single Pods.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logLevel</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log level for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logFormat</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Log format for component to be configured with.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>flags</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Flags allows setting additional flags for the component container.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>podMetadata</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.EmbeddedObjectMetadata">
+EmbeddedObjectMetadata
+</a>
+</em>
+</td>
+<td>
+<p>PodMetadata configures labels and annotations which are propagated to the pods.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>configMaps</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>ConfigMaps is a list of ConfigMaps in the same namespace as the component
+object, which shall be mounted into the default Pods.
+Each ConfigMap is added to the StatefulSet/Deployment definition as a volume named <code>configmap-&lt;configmap-name&gt;</code>.
+The ConfigMaps are mounted into /etc/whizard/configmaps/<configmap-name> in the default container.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secrets</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Secrets is a list of Secrets in the same namespace as the component
+object, which shall be mounted into the Prometheus Pods.
+Each Secret is added to the StatefulSet/Deployment definition as a volume named <code>secret-&lt;secret-name&gt;</code>.
+The Secrets are mounted into /etc/whizard/secrets/<secret-name> in the default container.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>containers</code><br/>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime.#RawExtension">
+k8s.io/apimachinery/pkg/runtime.RawExtension
+</a>
+</em>
+</td>
+<td>
+<p>Containers allows injecting additional containers or modifying operator generated containers.
+Containers described here modify an operator generated
+container if they share the same name and modifications are done via a
+strategic merge patch.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagePullSecrets</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#localobjectreference-v1-core">
+[]Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>An optional list of references to secrets in the same namespace
+to use for pulling images from registries</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>securityContext</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#podsecuritycontext-v1-core">
+Kubernetes core/v1.PodSecurityContext
+</a>
+</em>
+</td>
+<td>
+<p>SecurityContext holds pod-level security attributes and common container settings.
+This defaults to the default PodSecurityContext.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>affinity</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#affinity-v1-core">
+Kubernetes core/v1.Affinity
+</a>
+</em>
+</td>
+<td>
+<p>If specified, the pod&rsquo;s scheduling constraints.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>nodeSelector</code><br/>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<p>Define which Nodes the Pods are scheduled on.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tolerations</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#toleration-v1-core">
+[]Kubernetes core/v1.Toleration
+</a>
+</em>
+</td>
+<td>
+<p>If specified, the pod&rsquo;s tolerations.</p>
 </td>
 </tr>
 </tbody>

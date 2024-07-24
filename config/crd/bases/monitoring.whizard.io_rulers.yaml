@@ -1016,9 +1016,8 @@ spec:
                 description: DataVolume specifies how volume shall be used
                 properties:
                   emptyDir:
-                    description: |-
-                      Represents an empty directory for a pod.
-                      Empty directory volumes support ownership management and SELinux relabeling.
+                    description: emptyDir represents a temporary directory that shares
+                      a pod's lifetime.
                     properties:
                       medium:
                         description: |-
@@ -1042,8 +1041,8 @@ spec:
                         x-kubernetes-int-or-string: true
                     type: object
                   persistentVolumeClaim:
-                    description: PersistentVolumeClaim is a user's request for and
-                      claim to a persistent volume
+                    description: Defines the PVC spec to be used by the component
+                      StatefulSets.
                     properties:
                       apiVersion:
                         description: |-
@@ -1452,6 +1451,9 @@ spec:
                       persistentVolumeClaimRetentionPolicy describes the lifecycle of persistent
                       volume claims created from persistentVolumeClaim.
                       This requires the kubernetes version >= 1.23 and its StatefulSetAutoDeletePVC feature gate to be enabled.
+
+
+                      This is an *experimental feature*, it may change in any upcoming release in a breaking way.
                     properties:
                       whenDeleted:
                         description: |-
@@ -1480,19 +1482,21 @@ spec:
                 pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
                 type: string
               flags:
-                description: Flags is the flags of component.
+                description: Flags allows setting additional flags for the component
+                  container.
                 items:
                   type: string
                 type: array
               image:
-                description: Image is the component image with tag/version.
+                description: Component container image URL.
                 type: string
               imagePullPolicy:
-                description: |-
-                  Image pull policy.
-                  One of Always, Never, IfNotPresent.
-                  Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
-                  Cannot be updated.
+                description: Image pull policy.
+                enum:
+                - ""
+                - Always
+                - Never
+                - IfNotPresent
                 type: string
               imagePullSecrets:
                 description: |-
@@ -1520,11 +1524,20 @@ spec:
                   `ruler_replica` will be always added  as a label with the value of the pod's name and it will be dropped in the alerts.
                 type: object
               logFormat:
-                description: 'Log format to use. Possible options: logfmt or json.'
+                description: Log format for component to be configured with.
+                enum:
+                - ""
+                - logfmt
+                - json
                 type: string
               logLevel:
-                description: 'Log filtering level. Possible options: error, warn,
-                  info, debug.'
+                description: Log level for component to be configured with.
+                enum:
+                - ""
+                - debug
+                - info
+                - warn
+                - error
                 type: string
               nodeSelector:
                 additionalProperties:
@@ -1532,11 +1545,8 @@ spec:
                 description: Define which Nodes the Pods are scheduled on.
                 type: object
               podMetadata:
-                description: |-
-                  PodMetadata configures labels and annotations which are propagated to the pods.
-
-
-                  * "kubectl.kubernetes.io/default-container" annotation, set to main pod.
+                description: PodMetadata configures labels and annotations which are
+                  propagated to the pods.
                 properties:
                   annotations:
                     additionalProperties:
@@ -1669,11 +1679,12 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               replicas:
-                description: Number of replicas for a component.
+                description: Number of component instances to deploy.
                 format: int32
                 type: integer
               resources:
-                description: Define resources requests and limits for main container.
+                description: Resources defines the resource requirements for single
+                  Pods.
                 properties:
                   claims:
                     description: |-

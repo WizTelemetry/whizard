@@ -41,9 +41,12 @@ import (
 
 // CompactorSpec defines the desired state of Compactor
 type CompactorSpec struct {
-	CommonSpec `json:",inline"`
+	// The tenants whose data is being compacted by the Compactor.
+	Tenants []string `json:"tenants,omitempty"`
 
-	// DisableDownsampling specifies whether to disable downsampling
+	// Disables downsampling.
+	// This is not recommended, as querying long time ranges without non-downsampled data is not efficient and useful.
+	// default: false
 	DisableDownsampling *bool `json:"disableDownsampling,omitempty"`
 
 	// Retention configs how long to retain samples
@@ -52,17 +55,19 @@ type CompactorSpec struct {
 	// DataVolume specifies how volume shall be used
 	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
 
-	// Tenants if not empty indicates current config is for hard tenants; otherwise, it is for soft tenants.
-	Tenants []string `json:"tenants,omitempty"`
+	CommonSpec `json:",inline"`
 }
 
 // Retention defines the config for retaining samples
 type Retention struct {
-	// RetentionRaw specifies how long to retain raw samples in bucket
+	// How long to retain raw samples in bucket. Setting this to 0d will retain samples of this resolution forever
+	// default: 0d
 	RetentionRaw Duration `json:"retentionRaw,omitempty"`
-	// Retention5m specifies how long to retain samples of 5m resolution in bucket
+	// How long to retain samples of resolution 1 (5 minutes) in bucket. Setting this to 0d will retain samples of this resolution forever
+	// default: 0d
 	Retention5m Duration `json:"retention5m,omitempty"`
-	// Retention1h specifies how long to retain samples of 1h resolution in bucket
+	// How long to retain samples of resolution 2 (1 hour) in bucket. Setting this to 0d will retain samples of this resolution forever
+	// default: 0d
 	Retention1h Duration `json:"retention1h,omitempty"`
 }
 
@@ -74,9 +79,13 @@ type CompactorStatus struct {
 
 // +genclient
 // +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".spec.replicas",description="The number of desired replicas"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
 
-// Compactor is the Schema for the compactors API
+// The `Compactor` custom resource definition (CRD) defines a desired [Compactor](https://thanos.io/tip/components/compactor.md/) setup to run in a Kubernetes cluster. It allows to specify many options such as the number of replicas, persistent storage and many more.
+//
+// For each `Compactor` resource, the Operator deploys a `StatefulSet` in the same namespace.
 type Compactor struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -96,11 +105,13 @@ type CompactorList struct {
 
 // GatewaySpec defines the desired state of Gateway
 type GatewaySpec struct {
-	CommonSpec `json:",inline"`
-
+	// Defines the configuration of the Gatewat web server.
 	WebConfig *WebConfig `json:"webConfig,omitempty"`
 
 	// If debug mode is on, gateway will proxy Query UI
+	//
+	// This is an *experimental feature*, it may change in any upcoming release in a breaking way.
+	//
 	DebugMode bool `json:"debug,omitempty"`
 
 	// Deny unknown tenant data remote-write and query if enabled
@@ -109,6 +120,8 @@ type GatewaySpec struct {
 	// NodePort is the port used to expose the gateway service.
 	// If this is a valid node port, the gateway service type will be set to NodePort accordingly.
 	NodePort int32 `json:"nodePort,omitempty"`
+
+	CommonSpec `json:",inline"`
 }
 
 // GatewayStatus defines the observed state of Gateway
@@ -119,9 +132,14 @@ type GatewayStatus struct {
 
 // +genclient
 // +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".spec.replicas",description="The number of desired replicas"
+// +kubebuilder:printcolumn:name="NodePort",type="integer",JSONPath=".spec.nodePort",description="The nodePort of Gateway service"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
 
-// Gateway is the Schema for the gateways API
+// The `Gateway` custom resource definition (CRD) defines a desired [Gateway](https://github.com/WhizardTelemetry/whizard-docs/blob/main/Architecture/components/whizard-monitoring-gateway.md) setup to run in a Kubernetes cluster. It allows to specify many options such as the number of replicas, and many more.
+//
+// For each `Gateway` resource, the Operator deploys a `Deployment` in the same namespace.
 type Gateway struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -141,11 +159,7 @@ type GatewayList struct {
 
 // IngesterSpec defines the desired state of Ingester
 type IngesterSpec struct {
-	CommonSpec `json:",inline"`
-
-	IngesterTSDBCleanUp SidecarSpec `json:"ingesterTsdbCleanup,omitempty"`
-
-	// Tenants if not empty indicates current config is for hard tenants; otherwise, it is for soft tenants.
+	// The tenants whose data is being ingested by the Ingester(ingesting receiver).
 	Tenants []string `json:"tenants,omitempty"`
 
 	// LocalTsdbRetention configs how long to retain raw samples on local storage.
@@ -153,6 +167,10 @@ type IngesterSpec struct {
 
 	// DataVolume specifies how volume shall be used
 	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
+
+	CommonSpec `json:",inline"`
+
+	IngesterTSDBCleanUp SidecarSpec `json:"ingesterTsdbCleanup,omitempty"`
 }
 
 // IngesterStatus defines the observed state of Ingester
@@ -173,9 +191,14 @@ type IngesterTenantStatus struct {
 
 // +genclient
 // +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".spec.replicas",description="The number of desired replicas"
+// +kubebuilder:printcolumn:name="LocalTsdbRetention",type="string",JSONPath=".spec.localTsdbRetention",description="How long to retain raw samples on local storage."
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
 
-// Ingester is the Schema for the ingesters API
+// The `Ingester` custom resource definition (CRD) defines a desired [Ingesting Receive](https://thanos.io/tip/components/receive.md/) setup to run in a Kubernetes cluster. It allows to specify many options such as the number of replicas, persistent storage and many more.
+//
+// For each `Ingester` resource, the Operator deploys a `StatefulSet` in the same namespace.
 type Ingester struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -195,21 +218,26 @@ type IngesterList struct {
 
 // QuerySpec defines the desired state of Query
 type QuerySpec struct {
-	CommonSpec `json:",inline"`
-
-	WebConfig *WebConfig `json:"webConfig,omitempty"`
-
+	// experimental PromQL engine, more info thanos.io/tip/components/query.md#promql-engine
+	// default: prometheus
+	// +kubebuilder:validation:Enum="";prometheus;thanos
 	PromqlEngine string `json:"promqlEngine,omitempty"`
 
-	// Additional StoreApi servers from which Query component queries from
-	Stores []QueryStores `json:"stores,omitempty"`
 	// Selector labels that will be exposed in info endpoint.
 	SelectorLabels map[string]string `json:"selectorLabels,omitempty"`
+
 	// Labels to treat as a replica indicator along which data is deduplicated.
 	ReplicaLabelNames []string `json:"replicaLabelNames,omitempty"`
 
+	// Defines the configuration of the Thanos Query web server.
+	WebConfig *WebConfig `json:"webConfig,omitempty"`
+
+	// Additional StoreApi servers from which Query component queries from
+	Stores []QueryStores `json:"stores,omitempty"`
 	// Envoy is used to config sidecar which proxies requests requiring auth to the secure stores
 	Envoy SidecarSpec `json:"envoy,omitempty"`
+
+	CommonSpec `json:",inline"`
 }
 
 type QueryStores struct {
@@ -227,9 +255,13 @@ type QueryStatus struct {
 
 // +genclient
 // +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".spec.replicas",description="The number of desired replicas"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
 
-// Query is the Schema for the queries API
+// The `Query` custom resource definition (CRD) defines a desired [Query](https://thanos.io/tip/components/query.md/) setup to run in a Kubernetes cluster. It allows to specify many options such as the number of replicas, and many more.
+//
+// For each `Query` resource, the Operator deploys a `Deployment` in the same namespace.
 type Query struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -249,12 +281,13 @@ type QueryList struct {
 
 // QueryFrontendSpec defines the desired state of QueryFrontend
 type QueryFrontendSpec struct {
-	CommonSpec `json:",inline"`
+	// CacheProviderConfig specifies response cache configuration.
+	CacheConfig *ResponseCacheProviderConfig `json:"cacheConfig,omitempty"`
 
+	// Defines the configuration of the Thanos QueryFrontend web server.
 	WebConfig *WebConfig `json:"webConfig,omitempty"`
 
-	// CacheProviderConfig ...
-	CacheConfig *ResponseCacheProviderConfig `json:"cacheConfig,omitempty"`
+	CommonSpec `json:",inline"`
 }
 
 type CacheProvider string
@@ -290,9 +323,13 @@ type QueryFrontendStatus struct {
 
 // +genclient
 // +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".spec.replicas",description="The number of desired replicas"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
 
-// QueryFrontend is the Schema for the queryfrontends API
+// The `QueryFrontend` custom resource definition (CRD) defines a desired [QueryFrontend](https://thanos.io/tip/components/query-frontend.md/) setup to run in a Kubernetes cluster. It allows to specify many options such as the number of replicas, and many more.
+//
+// For each `QueryFrontend` resource, the Operator deploys a `Deployment` in the same namespace.
 type QueryFrontend struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -312,12 +349,14 @@ type QueryFrontendList struct {
 
 // RouterSpec defines the desired state of Router
 type RouterSpec struct {
-	CommonSpec `json:",inline"`
-
-	WebConfig *WebConfig `json:"webConfig,omitempty"`
 
 	// How many times to replicate incoming write requests
 	ReplicationFactor *uint64 `json:"replicationFactor,omitempty"`
+
+	// Defines the configuration of the Route(routing receiver) web server.
+	WebConfig *WebConfig `json:"webConfig,omitempty"`
+
+	CommonSpec `json:",inline"`
 }
 
 // RouterStatus defines the observed state of Router
@@ -328,9 +367,14 @@ type RouterStatus struct {
 
 // +genclient
 // +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".spec.replicas",description="The number of desired replicas"
+// +kubebuilder:printcolumn:name="ReplicationFactor",type="integer",JSONPath=".spec.replicationFactor",description="How many times to replicate incoming write requests"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
 
-// Router is the Schema for the routers API
+// The `Router` custom resource definition (CRD) defines a desired [Routing Receivers](https://thanos.io/tip/components/receive.md/) setup to run in a Kubernetes cluster. It allows to specify many options such as the number of replicas, and many more.
+//
+// For each `Router` resource, the Operator deploys a `Deployment` in the same namespace.
 type Router struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -350,11 +394,6 @@ type RouterList struct {
 
 // RulerSpec defines the desired state of Ruler
 type RulerSpec struct {
-	CommonSpec `json:",inline"`
-
-	RulerQueryProxy          SidecarSpec `json:"rulerQueryProxy,omitempty"`
-	RulerWriteProxy          SidecarSpec `json:"rulerWriteProxy,omitempty"`
-	PrometheusConfigReloader SidecarSpec `json:"prometheusConfigReloader,omitempty"`
 
 	// Label selectors to select which PrometheusRules to mount for alerting and recording.
 	// The result of multiple selectors are ORed.
@@ -397,6 +436,12 @@ type RulerSpec struct {
 
 	// DataVolume specifies how volume shall be used
 	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
+
+	RulerQueryProxy          SidecarSpec `json:"rulerQueryProxy,omitempty"`
+	RulerWriteProxy          SidecarSpec `json:"rulerWriteProxy,omitempty"`
+	PrometheusConfigReloader SidecarSpec `json:"prometheusConfigReloader,omitempty"`
+
+	CommonSpec `json:",inline"`
 }
 
 // RulerStatus defines the observed state of Ruler
@@ -429,7 +474,6 @@ type RulerList struct {
 
 // StoreSpec defines the desired state of Store
 type StoreSpec struct {
-	CommonSpec `json:",inline"`
 
 	// MinTime specifies start of time range limit to serve
 	MinTime string `json:"minTime,omitempty"`
@@ -444,6 +488,8 @@ type StoreSpec struct {
 
 	// DataVolume specifies how volume shall be used
 	DataVolume *KubernetesVolume `json:"dataVolume,omitempty"`
+
+	CommonSpec `json:",inline"`
 }
 
 type TimeRange struct {
@@ -470,9 +516,13 @@ type StoreStatus struct {
 
 // +genclient
 // +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".spec.replicas",description="The number of desired replicas"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
 
-// Store is the Schema for the stores API
+// The `Store` custom resource definition (CRD) defines a desired [Compactor](https://thanos.io/tip/components/store.md/) setup to run in a Kubernetes cluster. It allows to specify many options such as the number of replicas, persistent storage and many more.
+//
+// For each `Store` resource, the Operator deploys a `StatefulSet` in the same namespace.
 type Store struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

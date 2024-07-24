@@ -1,0 +1,14 @@
+apiVersion: monitoring.whizard.io/v1alpha1
+kind: Query
+metadata:
+  labels:
+    app.kubernetes.io/name: whizard
+    app.kubernetes.io/managed-by: kustomize
+    monitoring.whizard.io/service: kubesphere-monitoring-system.whizard
+  name: query-sample
+  namespace: kubesphere-monitoring-system
+spec:
+  replicaLabelNames:
+    - prometheus_replica
+    - receive_replica
+    - ruler_replica

@@ -1,0 +1,23 @@
+apiVersion: monitoring.whizard.io/v1alpha1
+kind: Ruler
+metadata:
+  labels:
+    app.kubernetes.io/name: whizard
+    app.kubernetes.io/managed-by: kustomize
+    monitoring.whizard.io/service: kubesphere-monitoring-system.whizard
+  name: whizard
+  namespace: kubesphere-monitoring-system
+spec:
+  alertmanagersUrl:
+  - dnssrv+http://alertmanager-operated.kubesphere-monitoring-system.svc:9093
+  evaluationInterval: 1m
+  logFormat: logfmt
+  logLevel: info
+  replicas: 1
+  ruleSelectors:
+  - matchExpressions:
+    - key: alerting.kubesphere.io/rule_level
+      operator: In
+      values:
+      - global
+  shards: 1
