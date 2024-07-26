@@ -1,0 +1,18 @@
+apiVersion: v2
+name: whizard-agent-proxy
+description: A Helm chart for Whizard agent-proxy.
+type: application
+sources:
+  - https://github.com/WhizardTelemetry/whizard
+keywords:
+  - whizard
+  - agent
+maintainers:
+  - name: benjaminhuo
+    email: benjamin@kubesphere.io
+  - name: frezes
+    email: junhaozhang@kubesphere.io
+  - name: junot
+    email: junotxiang@kubesphere.io
+version: 0.3.0
+appVersion: "latest"
