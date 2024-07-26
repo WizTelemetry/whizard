@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "whizard-agent-proxy.fullname" . }}
+  namespace: {{ include "whizard-agent-proxy.namespace" . }}
+  labels:
+    {{- include "whizard-agent-proxy.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "whizard-agent-proxy.selectorLabels" . | nindent 4 }}
