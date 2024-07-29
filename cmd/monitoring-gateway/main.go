@@ -20,6 +20,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
+	versioncollector "github.com/prometheus/client_golang/prometheus/collectors/version"
 	"github.com/prometheus/common/version"
 	"go.uber.org/automaxprocs/maxprocs"
 	"gopkg.in/alecthomas/kingpin.v2"
@@ -63,7 +64,7 @@ func main() {
 
 	metrics := prometheus.NewRegistry()
 	metrics.MustRegister(
-		version.NewCollector("whizard"),
+		versioncollector.NewCollector("whizard"),
 		collectors.NewGoCollector(
 			collectors.WithGoCollectorRuntimeMetrics(collectors.GoRuntimeMetricsRule{Matcher: regexp.MustCompile("/.*")}),
 		),
