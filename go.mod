@@ -24,7 +24,7 @@ require (
 	github.com/prometheus-operator/prometheus-operator v0.74.0
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.75.2
 	github.com/prometheus/client_golang v1.19.1
-	github.com/prometheus/common v0.54.1-0.20240615204547-04635d2962f9
+	github.com/prometheus/common v0.55.0
 	// Prometheus maps version 2.x.y to tags v0.x.y.
 	github.com/prometheus/prometheus v0.53.2-0.20240718123124-e9dec5fc537b
 	github.com/spf13/cobra v1.8.1
