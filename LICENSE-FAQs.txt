@@ -1,0 +1,10 @@
+FAQs:
+1. Can I utilize Whizard as one of the observability backend services internally in my organization's projects?
+A: Yes, you can. Utilizing Whizard internally in your organization's projects is not offering a service or product to third parties, so you can utilize Whizard without opening relevant source code.
+
+2. What if I'm utilizing Whizard as one of the observability backend services in a commercial service or product offering to third parties?
+A: It depends:
+
+a. If your commercial service or product doesn't have observability features offered to third parties whose backend service is Whizard, and Whizard is only used for your service or product's internal observability, you can utilize Whizard without opening relevant source code. 
+
+b. If your commercial service or product has observability features offered to third parties whose backend service is Whizard, then you'll have to open relevant source code in SSPL license or obtain a commercial license.
