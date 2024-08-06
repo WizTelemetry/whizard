@@ -1,19 +1,10 @@
-Whizard is licensed under the Server Side Public License, version 1, as published by MongoDB, Inc., with the following additional conditions:
+Whizard is licensed under the Server Side Public License, version 1 (SSPL for short, https://www.mongodb.com/legal/licensing/server-side-public-license), with the following additional conditions:
 
-The SSPL, version 1 (https://www.mongodb.com/legal/licensing/server-side-public-license), requires you to make the source code available via network download at no charge if you provide the Program or a modified version as a service to third parties. This includes, but is not limited to:
-
-1. Enabling third parties to interact with the functionality of the Program or modified version remotely through a computer network
-2. Offering a service the value of which entirely or primarily derives from the value of the Program or modified version
-3. Offering a service that accomplishes for users the primary purpose of the Program or modified version.
-
-In addition to these conditions, you must also make the source code available via network download to everyone at no charge, under the terms of SSPL if you:
+Term 13 of SSPL requires you to make the Service Source Code available under 3 conditions. In addition to these 3 conditions, you must also make the Source Code available via network download to everyone at no charge, under the terms of SSPL if you:
 1. Offer a service or product (either On-Premises or Cloud-based) with observability features such as monitoring and alerting to third parties, and these monitoring and alerting features utilize Whizard as the backend service.
+The term "Source Code" here follows the definition of "Service Source Code" in term 13 of SSPL.
 
-The term "Source Code" follows the definition in the SSPL and means:
-The Corresponding Source for the Program or the modified version, and the Corresponding Source for all programs that you use to make the Program or modified version available as a service, including, without limitation, management software, user interfaces, application program interfaces, automation software, monitoring software, backup software, storage software and hosting software, all such that a user could run an instance of the service using the Service Source Code you make available.
-
-A commercial license is required if you choose not to make your source code available under these terms.
-Please contact kubesphere@yunify.com by email to inquire about the commercial license.
+A commercial license is required if you choose not to make your source code available under these terms. Please contact kubesphere@yunify.com by email to inquire about the commercial license.
 
 Apart from the specific conditions mentioned above, all other rights and restrictions follow the Server Side Public License, version 1. For more details, please refer to https://www.mongodb.com/legal/licensing/server-side-public-license.
 
@@ -26,4 +17,4 @@ A: It depends:
 
 a. If your commercial service or product doesn't have observability features offered to third parties whose backend service is Whizard, and Whizard is only used for your service or product's internal observability, you can utilize Whizard without opening relevant source code. 
 
-b. If your commercial service or product has observability features offered to third parties whose backend service is Whizard, then you'll have to open relevant source code in SSPL license or obtain a commercial license.
+b. If your commercial service or product has observability features offered to third parties whose backend service is Whizard, then you'll have to open relevant source code in the SSPL license or obtain a commercial license.
