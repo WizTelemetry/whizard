@@ -13,6 +13,7 @@ The term "Source Code" follows the definition in the SSPL and means:
 The Corresponding Source for the Program or the modified version, and the Corresponding Source for all programs that you use to make the Program or modified version available as a service, including, without limitation, management software, user interfaces, application program interfaces, automation software, monitoring software, backup software, storage software and hosting software, all such that a user could run an instance of the service using the Service Source Code you make available.
 
 A commercial license is required if you choose not to make your source code available under these terms.
+Please contact kubesphere@yunify.com by email to inquire about the commercial license.
 
 Apart from the specific conditions mentioned above, all other rights and restrictions follow the Server Side Public License, version 1. For more details, please refer to https://www.mongodb.com/legal/licensing/server-side-public-license.
 
