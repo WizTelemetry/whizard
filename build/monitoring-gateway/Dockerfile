@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.23.1 as builder
+FROM golang:1.23.2 as builder
 ARG GOPROXY
 
 WORKDIR /workspace
