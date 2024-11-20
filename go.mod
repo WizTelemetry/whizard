@@ -20,7 +20,7 @@ require (
 	github.com/onsi/gomega v1.34.0
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus-community/prom-label-proxy v0.8.1
+	github.com/prometheus-community/prom-label-proxy v0.11.0
 	github.com/prometheus-operator/prometheus-operator v0.74.0
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.75.2
 	github.com/prometheus/client_golang v1.19.1
@@ -83,16 +83,16 @@ require (
 	github.com/go-logfmt/logfmt v0.6.0 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-logr/zapr v1.3.0 // indirect
-	github.com/go-openapi/analysis v0.22.2 // indirect
+	github.com/go-openapi/analysis v0.23.0 // indirect
 	github.com/go-openapi/errors v0.22.0 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/jsonreference v0.21.0 // indirect
-	github.com/go-openapi/loads v0.21.5 // indirect
-	github.com/go-openapi/runtime v0.27.1 // indirect
-	github.com/go-openapi/spec v0.20.14 // indirect
+	github.com/go-openapi/loads v0.22.0 // indirect
+	github.com/go-openapi/runtime v0.28.0 // indirect
+	github.com/go-openapi/spec v0.21.0 // indirect
 	github.com/go-openapi/strfmt v0.23.0 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect
-	github.com/go-openapi/validate v0.23.0 // indirect
+	github.com/go-openapi/validate v0.24.0 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/gogo/googleapis v1.4.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
