@@ -1,6 +1,7 @@
 package monitoringgateway
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -16,7 +17,7 @@ const (
 	targetMatchersParam = "match_target[]"
 )
 
-func enforceQueryValues(e *injectproxy.Enforcer, v url.Values) (values string, hasQuery bool, err error) {
+func enforceQueryValues(e *injectproxy.PromQLEnforcer, v url.Values) (values string, hasQuery bool, err error) {
 	// If no values were given or no query is present,
 	// e.g. because the query came in the POST body
 	// but the URL query string was passed, then finish early.
@@ -30,7 +31,8 @@ func enforceQueryValues(e *injectproxy.Enforcer, v url.Values) (values string, h
 	}
 
 	if err := e.EnforceNode(expr); err != nil {
-		if _, ok := err.(injectproxy.IllegalLabelMatcherError); ok {
+
+		if errors.Is(err, injectproxy.ErrIllegalLabelMatcher) {
 			return "", true, err
 		}
 		enforceLabelError := newEnforceLabelError(err)

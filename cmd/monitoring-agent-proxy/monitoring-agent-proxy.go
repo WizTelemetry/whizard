@@ -61,7 +61,7 @@ func main() {
 		ListenAddress: cli.HttpAddress,
 	}
 
-	options.TLSConfig, err = thanos_tls.NewServerConfig(logger, cli.ServerTlsCert, cli.ServerTlsKey, cli.ServerTlsClientCa)
+	options.TLSConfig, err = thanos_tls.NewServerConfig(logger, cli.ServerTlsCert, cli.ServerTlsKey, cli.ServerTlsClientCa, "1.1")
 	ctx.FatalIfErrorf(err)
 
 	server := monitoringagentproxy.NewServer(logger, options)
