@@ -17,7 +17,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/oklog/run v1.1.0
 	github.com/oklog/ulid v1.3.1
-	github.com/onsi/gomega v1.35.1
+	github.com/onsi/gomega v1.36.2
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus-community/prom-label-proxy v0.11.0
@@ -49,7 +49,7 @@ require (
 
 require (
 	dario.cat/mergo v1.0.0
-	github.com/onsi/ginkgo/v2 v2.21.0
+	github.com/onsi/ginkgo/v2 v2.22.1
 	golang.org/x/crypto v0.32.0
 )
 
