@@ -23,7 +23,7 @@ func ApplyDefaults(service *monitoringv1alpha1.Service) *monitoringv1alpha1.Serv
 		service.Spec.CompactorTemplateSpec.Replicas = &whizardCompactorReplicas
 	}
 	if service.Spec.CompactorTemplateSpec.Resources.Size() == 0 {
-		service.Spec.CompactorTemplateSpec.Resources = constants.DefaultWhizardBaseResources
+		service.Spec.CompactorTemplateSpec.Resources = constants.ComponentResourcePresetMedium
 	}
 
 	if service.Spec.GatewayTemplateSpec.Image == "" {
@@ -33,7 +33,7 @@ func ApplyDefaults(service *monitoringv1alpha1.Service) *monitoringv1alpha1.Serv
 		service.Spec.GatewayTemplateSpec.Replicas = &whizardDefaultReplicas
 	}
 	if service.Spec.GatewayTemplateSpec.Resources.Size() == 0 {
-		service.Spec.GatewayTemplateSpec.Resources = constants.DefaultWhizardBaseResources
+		service.Spec.GatewayTemplateSpec.Resources = constants.ComponentResourcePresetMedium
 	}
 
 	if service.Spec.IngesterTemplateSpec.Image == "" {
@@ -43,13 +43,13 @@ func ApplyDefaults(service *monitoringv1alpha1.Service) *monitoringv1alpha1.Serv
 		service.Spec.IngesterTemplateSpec.Replicas = &whizardDefaultReplicas
 	}
 	if service.Spec.IngesterTemplateSpec.Resources.Size() == 0 {
-		service.Spec.IngesterTemplateSpec.Resources = constants.DefaultWhizardLargeResource
+		service.Spec.IngesterTemplateSpec.Resources = constants.ComponentResourcePresetLarge
 	}
 	if service.Spec.IngesterTemplateSpec.IngesterTSDBCleanUp.Image == "" {
 		service.Spec.IngesterTemplateSpec.IngesterTSDBCleanUp.Image = constants.DefaultIngesterTSDBCleanupImage
 	}
 	if service.Spec.IngesterTemplateSpec.IngesterTSDBCleanUp.Resources.Size() == 0 {
-		service.Spec.IngesterTemplateSpec.IngesterTSDBCleanUp.Resources = constants.DefaultWhizardBaseResources
+		service.Spec.IngesterTemplateSpec.IngesterTSDBCleanUp.Resources = constants.ComponentResourcePresetMedium
 	}
 	if service.Spec.IngesterTemplateSpec.LocalTsdbRetention == "" {
 		service.Spec.IngesterTemplateSpec.LocalTsdbRetention = "7d"
@@ -62,7 +62,7 @@ func ApplyDefaults(service *monitoringv1alpha1.Service) *monitoringv1alpha1.Serv
 		service.Spec.QueryFrontendTemplateSpec.Replicas = &whizardDefaultReplicas
 	}
 	if service.Spec.QueryFrontendTemplateSpec.Resources.Size() == 0 {
-		service.Spec.QueryFrontendTemplateSpec.Resources = constants.DefaultWhizardBaseResources
+		service.Spec.QueryFrontendTemplateSpec.Resources = constants.ComponentResourcePresetMedium
 	}
 
 	if service.Spec.QueryTemplateSpec.Image == "" {
@@ -72,13 +72,13 @@ func ApplyDefaults(service *monitoringv1alpha1.Service) *monitoringv1alpha1.Serv
 		service.Spec.QueryTemplateSpec.Replicas = &whizardQueryReplicas
 	}
 	if service.Spec.QueryTemplateSpec.Resources.Size() == 0 {
-		service.Spec.QueryTemplateSpec.Resources = constants.DefaultWhizardBaseResources
+		service.Spec.QueryTemplateSpec.Resources = constants.ComponentResourcePresetMedium
 	}
 	if service.Spec.QueryTemplateSpec.Envoy.Image == "" {
 		service.Spec.QueryTemplateSpec.Envoy.Image = constants.DefaultEnvoyImage
 	}
 	if service.Spec.QueryTemplateSpec.Envoy.Resources.Size() == 0 {
-		service.Spec.QueryTemplateSpec.Envoy.Resources = constants.DefaultWhizardBaseResources
+		service.Spec.QueryTemplateSpec.Envoy.Resources = constants.ComponentResourcePresetMedium
 	}
 
 	if service.Spec.RulerTemplateSpec.Image == "" {
@@ -88,7 +88,7 @@ func ApplyDefaults(service *monitoringv1alpha1.Service) *monitoringv1alpha1.Serv
 		service.Spec.RulerTemplateSpec.Replicas = &whizardRulerReplicas
 	}
 	if service.Spec.RulerTemplateSpec.Resources.Size() == 0 {
-		service.Spec.RulerTemplateSpec.Resources = constants.DefaultWhizardBaseResources
+		service.Spec.RulerTemplateSpec.Resources = constants.ComponentResourcePresetMedium
 	}
 	if service.Spec.RulerTemplateSpec.PrometheusConfigReloader.Image == "" {
 		service.Spec.RulerTemplateSpec.PrometheusConfigReloader.Image = constants.DefaultPrometheusConfigReloaderImage
@@ -109,14 +109,14 @@ func ApplyDefaults(service *monitoringv1alpha1.Service) *monitoringv1alpha1.Serv
 		service.Spec.RulerTemplateSpec.RulerQueryProxy.Image = constants.DefaultWhizardMonitoringGatewayImage
 	}
 	if service.Spec.RulerTemplateSpec.RulerQueryProxy.Resources.Size() == 0 {
-		service.Spec.RulerTemplateSpec.RulerQueryProxy.Resources = constants.DefaultWhizardBaseResources
+		service.Spec.RulerTemplateSpec.RulerQueryProxy.Resources = constants.ComponentResourcePresetMedium
 	}
 
 	if service.Spec.RulerTemplateSpec.RulerWriteProxy.Image == "" {
 		service.Spec.RulerTemplateSpec.RulerWriteProxy.Image = constants.DefaultRulerWriteProxyImage
 	}
 	if service.Spec.RulerTemplateSpec.RulerWriteProxy.Resources.Size() == 0 {
-		service.Spec.RulerTemplateSpec.RulerWriteProxy.Resources = constants.DefaultWhizardBaseResources
+		service.Spec.RulerTemplateSpec.RulerWriteProxy.Resources = constants.ComponentResourcePresetMedium
 	}
 
 	if service.Spec.RouterTemplateSpec.Image == "" {
@@ -126,7 +126,7 @@ func ApplyDefaults(service *monitoringv1alpha1.Service) *monitoringv1alpha1.Serv
 		service.Spec.RouterTemplateSpec.Replicas = &whizardDefaultReplicas
 	}
 	if service.Spec.RouterTemplateSpec.Resources.Size() == 0 {
-		service.Spec.RouterTemplateSpec.Resources = constants.DefaultWhizardBaseResources
+		service.Spec.RouterTemplateSpec.Resources = constants.ComponentResourcePresetMedium
 	}
 	if service.Spec.RouterTemplateSpec.ReplicationFactor == nil {
 		service.Spec.RouterTemplateSpec.ReplicationFactor = &whizardRouterReplicationFactor
@@ -139,7 +139,7 @@ func ApplyDefaults(service *monitoringv1alpha1.Service) *monitoringv1alpha1.Serv
 		service.Spec.StoreTemplateSpec.Replicas = &whizardDefaultReplicas
 	}
 	if service.Spec.StoreTemplateSpec.Resources.Size() == 0 {
-		service.Spec.StoreTemplateSpec.Resources = constants.DefaultWhizardLargeResource
+		service.Spec.StoreTemplateSpec.Resources = constants.ComponentResourcePresetLarge
 	}
 
 	return service
