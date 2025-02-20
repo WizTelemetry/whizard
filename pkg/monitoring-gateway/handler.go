@@ -210,7 +210,7 @@ func (h *Handler) query(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// Set errorOnReplace to false to directly replace the existing tenant with the new TenantId without reporting an error.
-	enforcer := injectproxy.NewEnforcer(false, &labels.Matcher{
+	enforcer := injectproxy.NewPromQLEnforcer(false, &labels.Matcher{
 		Type:  labels.MatchEqual,
 		Name:  h.options.TenantLabelName,
 		Value: requestInfo.TenantId,
@@ -218,13 +218,15 @@ func (h *Handler) query(w http.ResponseWriter, req *http.Request) {
 
 	q, found, err := enforceQueryValues(enforcer, query)
 	if err != nil {
-		switch err.(type) {
-		case injectproxy.IllegalLabelMatcherError:
+		if errors.Is(err, injectproxy.ErrIllegalLabelMatcher) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
-		case queryParseError:
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		case enforceLabelError:
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+		} else {
+			switch err.(type) {
+			case queryParseError:
+				http.Error(w, err.Error(), http.StatusBadRequest)
+			case enforceLabelError:
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
 		}
 		return
 	}
@@ -235,13 +237,15 @@ func (h *Handler) query(w http.ResponseWriter, req *http.Request) {
 	if postForm != nil {
 		q, found, err := enforceQueryValues(enforcer, postForm)
 		if err != nil {
-			switch err.(type) {
-			case injectproxy.IllegalLabelMatcherError:
+			if errors.Is(err, injectproxy.ErrIllegalLabelMatcher) {
 				http.Error(w, err.Error(), http.StatusBadRequest)
-			case queryParseError:
-				http.Error(w, err.Error(), http.StatusBadRequest)
-			case enforceLabelError:
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+			} else {
+				switch err.(type) {
+				case queryParseError:
+					http.Error(w, err.Error(), http.StatusBadRequest)
+				case enforceLabelError:
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+				}
 			}
 			return
 		}

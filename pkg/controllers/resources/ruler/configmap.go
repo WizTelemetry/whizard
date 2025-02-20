@@ -206,7 +206,7 @@ func (r *Ruler) selectPrometheusRules() (map[string]*promv1.PrometheusRuleSpec, 
 	}
 
 	for _, ns := range namespaces {
-		var prometheusRules []*promv1.PrometheusRule
+		var prometheusRules []promv1.PrometheusRule
 		for _, s := range ruleSelectors {
 			var prometheusRuleList promv1.PrometheusRuleList
 			err = r.Client.List(r.Context, &prometheusRuleList,
