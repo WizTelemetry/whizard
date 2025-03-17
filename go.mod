@@ -11,18 +11,18 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-kit/log v0.2.1
 	github.com/go-logr/logr v1.4.2
-	github.com/google/go-cmp v0.6.0
+	github.com/google/go-cmp v0.7.0
 	github.com/gorilla/mux v1.8.1
 	github.com/lithammer/dedent v1.1.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/oklog/run v1.1.0
 	github.com/oklog/ulid v1.3.1
-	github.com/onsi/gomega v1.35.1
+	github.com/onsi/gomega v1.36.1
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus-community/prom-label-proxy v0.11.0
-	github.com/prometheus-operator/prometheus-operator v0.78.2
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.80.0
+	github.com/prometheus-operator/prometheus-operator v0.81.0
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.81.0
 	github.com/prometheus/client_golang v1.20.5
 	github.com/prometheus/common v0.61.0
 	// Prometheus maps version 2.x.y to tags v0.x.y.
@@ -30,27 +30,27 @@ require (
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.19.0
-	github.com/thanos-io/thanos v0.0.0-20250218193511-71bbafb61139
+	github.com/thanos-io/thanos v0.37.2
 	go.uber.org/automaxprocs v1.6.0
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/api v0.32.1
-	k8s.io/apiextensions-apiserver v0.32.1
-	k8s.io/apimachinery v0.32.1
-	k8s.io/client-go v0.32.1
-	k8s.io/code-generator v0.32.1
-	k8s.io/component-base v0.32.1
+	k8s.io/api v0.32.2
+	k8s.io/apiextensions-apiserver v0.32.2
+	k8s.io/apimachinery v0.32.2
+	k8s.io/client-go v0.32.2
+	k8s.io/code-generator v0.32.2
+	k8s.io/component-base v0.32.2
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
-	sigs.k8s.io/controller-runtime v0.20.1
+	sigs.k8s.io/controller-runtime v0.20.3
 	sigs.k8s.io/yaml v1.4.0
 )
 
 require (
 	dario.cat/mergo v1.0.0
-	github.com/onsi/ginkgo/v2 v2.21.0
-	golang.org/x/crypto v0.32.0
+	github.com/onsi/ginkgo/v2 v2.22.0
+	golang.org/x/crypto v0.36.0
 )
 
 require (
@@ -145,8 +145,8 @@ require (
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	github.com/prometheus-operator/prometheus-operator/pkg/client v0.80.0 // indirect
-	github.com/prometheus/alertmanager v0.28.0 // indirect
+	github.com/prometheus-operator/prometheus-operator/pkg/client v0.81.0 // indirect
+	github.com/prometheus/alertmanager v0.28.1 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/exporter-toolkit v0.13.2 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
@@ -198,12 +198,12 @@ require (
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20230525183740-e7c30c78aeb2 // indirect
 	golang.org/x/exp v0.0.0-20250106191152-7588d65b2ba8 // indirect
 	golang.org/x/mod v0.22.0 // indirect
-	golang.org/x/net v0.34.0 // indirect
+	golang.org/x/net v0.37.0 // indirect
 	golang.org/x/oauth2 v0.25.0 // indirect
-	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.29.0 // indirect
-	golang.org/x/term v0.28.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/sync v0.12.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
+	golang.org/x/term v0.30.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
 	golang.org/x/time v0.9.0 // indirect
 	golang.org/x/tools v0.29.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
@@ -211,14 +211,14 @@ require (
 	google.golang.org/api v0.213.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250122153221-138b5a5a4fd4 // indirect
 	google.golang.org/grpc v1.70.0 // indirect
-	google.golang.org/protobuf v1.36.4 // indirect
+	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	k8s.io/gengo/v2 v2.0.0-20240911193312-2b36238f13e9 // indirect
 	k8s.io/kube-openapi v0.0.0-20241212222426-2c72e554b1e7 // indirect
 	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
-	sigs.k8s.io/structured-merge-diff/v4 v4.5.0 // indirect
+	sigs.k8s.io/structured-merge-diff/v4 v4.6.0 // indirect
 )
 
 replace (
