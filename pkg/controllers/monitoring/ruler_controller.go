@@ -178,6 +178,21 @@ func (r *RulerReconciler) mapRuleToRulerFunc(ctx context.Context, o client.Objec
 			continue
 		}
 
+		// apply configuration from RulerTemplateSpec
+		if service_namespaced_name := util.ServiceNamespacedName(&item.ObjectMeta); service_namespaced_name != nil {
+			service := &monitoringv1alpha1.Service{}
+			if err := r.Get(r.Context, *util.ServiceNamespacedName(&item.ObjectMeta), service); err != nil {
+				log.FromContext(r.Context).WithValues("ruler", req.NamespacedName).Error(
+					err, "failed to get owned service")
+				continue
+			}
+			if _, err := r.applyConfigurationFromRulerTemplateSpec(&item, resources.ApplyDefaults(service).Spec.RulerTemplateSpec); err != nil {
+				log.FromContext(r.Context).WithValues("ruler", req.NamespacedName).Error(
+					err, "failed to apply configuration from RulerTemplateSpec")
+				continue
+			}
+		}
+
 		ruleNsSelector, err := metav1.LabelSelectorAsSelector(item.Spec.RuleNamespaceSelector)
 		if err != nil {
 			log.FromContext(r.Context).WithValues("ruler", req.NamespacedName).Error(
