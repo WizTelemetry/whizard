@@ -4,3 +4,4 @@ chart-dirs:
 helm-extra-args: --timeout 600s
 additional-commands:
   - helm unittest --helm3 --strict --file unittests/*.yaml --file 'unittests/**/*.yaml' {{ .Path }}
+target-branch: main
