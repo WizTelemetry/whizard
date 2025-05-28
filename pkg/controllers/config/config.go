@@ -13,8 +13,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
-
-	"github.com/WhizardTelemetry/whizard/pkg/client/k8s"
 )
 
 var (
@@ -94,13 +92,10 @@ func defaultConfig() *config {
 }
 
 type Config struct {
-	KubernetesOptions *k8s.KubernetesOptions `json:"kubernetes,omitempty" yaml:"kubernetes,omitempty" mapstructure:"kubernetes"`
 }
 
 func New() *Config {
-	return &Config{
-		KubernetesOptions: k8s.NewKubernetesOptions(),
-	}
+	return &Config{}
 }
 
 // TryLoadFromDisk loads configuration from default location after server startup
