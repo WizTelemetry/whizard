@@ -6,11 +6,10 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	"github.com/WhizardTelemetry/whizard/pkg/client/k8s"
 	"github.com/WhizardTelemetry/whizard/pkg/controllers"
 )
 
-func addControllers(mgr manager.Manager, client k8s.Client, ctx context.Context) error {
+func addControllers(mgr manager.Manager, ctx context.Context) error {
 
 	if err := (&controllers.GatewayReconciler{
 		Client:  mgr.GetClient(),

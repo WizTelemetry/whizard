@@ -8,20 +8,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"sigs.k8s.io/yaml"
-
-	"github.com/WhizardTelemetry/whizard/pkg/client/k8s"
 )
 
 func newTestConfig() (*Config, error) {
-
-	var conf = &Config{
-		KubernetesOptions: &k8s.KubernetesOptions{
-			KubeConfig: "/Users/frezes/.kube/config",
-			Master:     "https://127.0.0.1:6443",
-			QPS:        1e6,
-			Burst:      1e6,
-		},
-	}
+	var conf = &Config{}
 	return conf, nil
 }
 
