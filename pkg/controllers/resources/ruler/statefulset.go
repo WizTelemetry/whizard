@@ -776,19 +776,16 @@ func (r *Ruler) addQueryProxyContainer(serviceSpec *monitoringv1alpha1.ServiceSp
 	}
 	queryProxyContainer.Args = append(queryProxyContainer.Args, "--query.address="+queryAddr)
 
-	remoteWritesConigs := []monitoringgateway.RemoteWriteConfig{}
-	rwcfg := monitoringgateway.RemoteWriteConfig{}
-	if url, err := url.Parse(remoteWriteAddr + "/api/v1/receive"); err == nil {
-		rwcfg.URL = &promcommonconfig.URL{URL: url}
-		if url.Scheme == "https" {
-			rwcfg.TLSConfig = promcommonconfig.TLSConfig{
-				InsecureSkipVerify: true,
-			}
-		}
-		remoteWritesConigs = append(remoteWritesConigs, rwcfg)
+	queryProxyContainer.Args = append(queryProxyContainer.Args, fmt.Sprintf("--remote-write.address=%s", remoteWriteAddr))
 
-		buff, _ := yamlv3.Marshal(remoteWritesConigs)
-		queryProxyContainer.Args = append(queryProxyContainer.Args, fmt.Sprintf("--remote-writes.config=%s", buff))
+	url, err := url.Parse(remoteWriteAddr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid router address: %s", remoteWriteAddr)
+	}
+	if url.Scheme == "https" {
+		cfg := gatewayConfig{TLSConfig: &promcommonconfig.TLSConfig{InsecureSkipVerify: true}}
+		buff, _ := yaml.Marshal(cfg)
+		queryProxyContainer.Args = append(queryProxyContainer.Args, fmt.Sprintf("--remote-write.config=%s", buff))
 	}
 
 	return queryProxyContainer, nil

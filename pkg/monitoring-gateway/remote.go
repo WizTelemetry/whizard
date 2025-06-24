@@ -7,9 +7,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"time"
 
+	"github.com/pkg/errors"
 	config_util "github.com/prometheus/common/config"
+	"gopkg.in/yaml.v2"
 )
 
 type remoteWriteClient struct {
@@ -19,7 +22,44 @@ type remoteWriteClient struct {
 	timeout time.Duration
 }
 
-func newRemoteWriteClient(conf *RemoteWriteConfig) (*remoteWriteClient, error) {
+// LoadExternalRemoteWriteConfig loads remotewrites config, and prefers file to content
+func LoadExternalRemoteWriteConfig(file, content string) ([]ExternalRemoteWriteConfig, error) {
+	var buff []byte
+	if file != "" {
+		c, err := os.ReadFile(file)
+		if err != nil {
+			return nil, err
+		}
+		buff = c
+	} else {
+		buff = []byte(content)
+	}
+	if len(buff) == 0 {
+		return nil, nil
+	}
+	var rws []ExternalRemoteWriteConfig
+	if err := yaml.UnmarshalStrict(buff, &rws); err != nil {
+		return nil, errors.Wrap(err, "")
+	}
+	return rws, nil
+}
+
+func NewExternalRemoteWriteClients(rwsCfg []ExternalRemoteWriteConfig) ([]*remoteWriteClient, error) {
+
+	var clients []*remoteWriteClient
+	for _, rwCfg := range rwsCfg {
+		writeClient, err := newExternalRemoteWriteClient(&rwCfg)
+		if err != nil {
+			return nil, err
+		}
+		if writeClient != nil {
+			clients = append(clients, writeClient)
+		}
+	}
+	return clients, nil
+}
+
+func newExternalRemoteWriteClient(conf *ExternalRemoteWriteConfig) (*remoteWriteClient, error) {
 	cfg := config_util.HTTPClientConfig{
 		TLSConfig:   conf.TLSConfig,
 		BearerToken: config_util.Secret(conf.BearerToken),

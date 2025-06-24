@@ -3,7 +3,6 @@ package monitoringgateway
 import (
 	"net"
 	"net/http"
-	"os"
 	"reflect"
 	"time"
 
@@ -16,7 +15,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type RemoteWriteConfig struct {
+type ExternalRemoteWriteConfig struct {
 	Name          string            `yaml:"name,omitempty"`
 	URL           *config.URL       `yaml:"url"`
 	Headers       map[string]string `yaml:"headers,omitempty"`
@@ -36,28 +35,6 @@ type BasicAuth struct {
 	Username     string `yaml:"username" json:"username"`
 	Password     string `yaml:"password,omitempty" json:"password,omitempty"`
 	PasswordFile string `yaml:"password_file,omitempty" json:"password_file,omitempty"`
-}
-
-// LoadRemoteWritesConfig loads remotewrites config, and prefers file to content
-func LoadRemoteWritesConfig(file, content string) ([]RemoteWriteConfig, error) {
-	var buff []byte
-	if file != "" {
-		c, err := os.ReadFile(file)
-		if err != nil {
-			return nil, err
-		}
-		buff = c
-	} else {
-		buff = []byte(content)
-	}
-	if len(buff) == 0 {
-		return nil, nil
-	}
-	var rws []RemoteWriteConfig
-	if err := yaml.UnmarshalStrict(buff, &rws); err != nil {
-		return nil, errors.Wrap(err, "")
-	}
-	return rws, nil
 }
 
 // RegisterCommonObjStoreFlags register flags commonly used to configure http servers with.
@@ -98,6 +75,20 @@ func (rc *RulesQueryConfig) RegisterFlag(cmd extflag.FlagClause) *RulesQueryConf
 	rc.DownstreamTripperConfig.TripperPathOrContent = *extflag.RegisterPathOrContent(cmd, "rules-query.config", "YAML file that contains downstream tripper configuration. If your downstream URL is localhost or 127.0.0.1 then it is highly recommended to increase max_idle_conns_per_host to at least 100.", extflag.WithEnvSubstitution())
 
 	return rc
+}
+
+type RemoteWriteConfig struct {
+	DownstreamURL string
+	DownstreamTripperConfig
+}
+
+func (rwc *RemoteWriteConfig) RegisterFlag(cmd extflag.FlagClause) *RemoteWriteConfig {
+	cmd.Flag("remote-write.address", "Address to send remote write requests.").
+		PlaceHolder("<query>").StringVar(&rwc.DownstreamURL)
+
+	rwc.TripperPathOrContent = *extflag.RegisterPathOrContent(cmd, "remote-write.config", "YAML file that contains downstream tripper configuration. If your downstream URL is localhost or 127.0.0.1 then it is highly recommended to increase max_idle_conns_per_host to at least 100.", extflag.WithEnvSubstitution())
+
+	return rwc
 }
 
 // DownstreamTripperConfig stores the http.Transport configuration for query's HTTP downstream tripper.
