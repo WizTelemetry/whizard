@@ -254,6 +254,10 @@ func loadConfig(logger log.Logger, path string) (AdmissionControlConfig, float64
 		return AdmissionControlConfig{}, 0, errors.Wrap(err, "failed to read configuration file")
 	}
 
+	if len(cfgContent) == 0 {
+		return AdmissionControlConfig{}, 0, errors.Wrap(errEmptyConfigurationFile, "configuration file is empty")
+	}
+
 	config, err := ParseConfig(cfgContent)
 	if err != nil {
 		return AdmissionControlConfig{}, 0, errors.Wrapf(errParseConfigurationFile, "failed to parse configuration file: %v", err)

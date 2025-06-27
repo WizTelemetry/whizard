@@ -1,12 +1,13 @@
 package monitoringgateway
 
 import (
-	"crypto/tls"
+	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus-community/prom-label-proxy/injectproxy"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/common/route"
 	"github.com/prometheus/prometheus/model/labels"
 	extpromhttp "github.com/thanos-io/thanos/pkg/extprom/http"
@@ -25,7 +27,6 @@ import (
 const (
 	apiTenantPrefix = "/{tenant_id}/api/v1"
 	apiGlobalPrefix = "/api/v1"
-	apiUIPrefix     = "/-/ui"
 
 	epQuery       = "/query"
 	epQueryRange  = "/query_range"
@@ -35,36 +36,41 @@ const (
 	epReceive     = "/receive"
 	epRules       = "/rules"
 	epAlerts      = "/alerts"
+
+	epQueryUI = "/-/ui"
 )
 
 type Options struct {
-	ListenAddress string
-	TLSConfig     *tls.Config
-
 	TenantHeader    string
 	TenantLabelName string
 
-	RemoteWriteHandler http.Handler
-	QueryProxy         *httputil.ReverseProxy
-	RulesQueryProxy    *httputil.ReverseProxy
+	QueryProxy        *httputil.ReverseProxy
+	RulesQueryProxy   *httputil.ReverseProxy
+	RemoteWriteProxy  *httputil.ReverseProxy
+	ExternalRWClients []*remoteWriteClient
 
 	CertAuthenticator       *CertAuthenticator
 	EnabledTenantsAdmission bool
+	EnabledQueryUI          bool
 }
 
 type Handler struct {
 	logger  log.Logger
+	reg     *prometheus.Registry
 	options *Options
 	router  *mux.Router
 
 	tenantsAdmissionMap sync.Map
 
-	remoteWriteHander http.Handler
 	queryProxy        *httputil.ReverseProxy
 	rulesQueryProxy   *httputil.ReverseProxy
+	remoteWriteProxy  *httputil.ReverseProxy
+	externalRWClients []*remoteWriteClient
+
+	remoteWriteRequestsCounter *prometheus.CounterVec
 }
 
-func NewHandler(logger log.Logger, o *Options) *Handler {
+func NewHandler(logger log.Logger, reg *prometheus.Registry, o *Options) *Handler {
 	if logger == nil {
 		logger = log.NewNopLogger()
 	}
@@ -73,9 +79,19 @@ func NewHandler(logger log.Logger, o *Options) *Handler {
 		logger:            logger,
 		options:           o,
 		router:            mux.NewRouter(),
-		remoteWriteHander: o.RemoteWriteHandler,
+		reg:               reg,
 		queryProxy:        o.QueryProxy,
 		rulesQueryProxy:   o.RulesQueryProxy,
+		remoteWriteProxy:  o.RemoteWriteProxy,
+		externalRWClients: o.ExternalRWClients,
+
+		remoteWriteRequestsCounter: promauto.With(reg).NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "whizard_external_remote_write_requests_total",
+				Help: "Total number of remote write results, labeled by endpoint and code.",
+			},
+			[]string{"endpoint", "code"},
+		),
 	}
 
 	// do provide /api/v1/alerts because thanos does not support alerts filtering as of v0.28.0
@@ -84,14 +100,17 @@ func NewHandler(logger log.Logger, o *Options) *Handler {
 	h.addGlobalProxyHandler()
 	h.addTenantQueryHandler()
 	h.addTenantRemoteWriteHandler()
+
+	if o.EnabledQueryUI {
+		h.addQueryUIHandler()
+	}
+
 	return h
 }
 
 func (h *Handler) addTenantQueryHandler() {
-	h.router.Path(apiTenantPrefix + epQuery).Methods(http.MethodGet).HandlerFunc(h.wrap(h.query))
-	h.router.Path(apiTenantPrefix + epQuery).Methods(http.MethodPost).HandlerFunc(h.wrap(h.query))
-	h.router.Path(apiTenantPrefix + epQueryRange).Methods(http.MethodGet).HandlerFunc(h.wrap(h.query))
-	h.router.Path(apiTenantPrefix + epQueryRange).Methods(http.MethodPost).HandlerFunc(h.wrap(h.query))
+	h.router.Path(apiTenantPrefix+epQuery).Methods(http.MethodGet, http.MethodPost).HandlerFunc(h.wrap(h.query))
+	h.router.Path(apiTenantPrefix+epQueryRange).Methods(http.MethodGet, http.MethodPost).HandlerFunc(h.wrap(h.query))
 	h.router.Path(apiTenantPrefix + epSeries).Methods(http.MethodGet).HandlerFunc(h.wrap(h.matcher(matchersParam)))
 	h.router.Path(apiTenantPrefix + epLabels).Methods(http.MethodGet).HandlerFunc(h.wrap(h.matcher(matchersParam)))
 	h.router.Path(apiTenantPrefix + epLabelValues).Methods(http.MethodGet).HandlerFunc(h.wrap(h.matcher(matchersParam)))
@@ -102,22 +121,22 @@ func (h *Handler) addTenantRemoteWriteHandler() {
 }
 
 func (h *Handler) addGlobalProxyHandler() {
-	if h.remoteWriteHander != nil {
-		h.router.Path(apiGlobalPrefix + epReceive).HandlerFunc(h.remoteWriteHander.ServeHTTP)
+	if h.remoteWriteProxy != nil {
+		h.router.Path(apiGlobalPrefix + epReceive).HandlerFunc(h.remoteWrite)
 	}
 	if h.queryProxy != nil {
 		h.router.PathPrefix(apiGlobalPrefix).HandlerFunc(h.queryProxy.ServeHTTP)
 	}
 }
 
-func (h *Handler) AppendQueryUIHandler(logger log.Logger, reg *prometheus.Registry) {
+func (h *Handler) addQueryUIHandler() {
 
-	ins := extpromhttp.NewInstrumentationMiddleware(reg, nil)
+	ins := extpromhttp.NewInstrumentationMiddleware(h.reg, nil)
 	r := route.New()
-	ui.NewQueryUI(logger, nil, "/-/ui", "", "", "", "", false).Register(r, ins)
+	ui.NewQueryUI(h.logger, nil, epQueryUI, "", "", "", "", false).Register(r, ins)
 
 	// matching /-/ui/* routes
-	h.router.PathPrefix(apiUIPrefix).HandlerFunc(h.queryUIHander(apiUIPrefix, h.queryProxy.ServeHTTP, r.ServeHTTP))
+	h.router.PathPrefix(epQueryUI).HandlerFunc(h.queryUIHander(epQueryUI, h.queryProxy.ServeHTTP, r.ServeHTTP))
 }
 
 func (h *Handler) queryUIHander(prefix string, queryHanler, uiHandler http.HandlerFunc) http.HandlerFunc {
@@ -251,7 +270,7 @@ func (h *Handler) query(w http.ResponseWriter, req *http.Request) {
 		}
 		if found {
 			_ = req.Body.Close()
-			req.Body = ioutil.NopCloser(strings.NewReader(q))
+			req.Body = io.NopCloser(strings.NewReader(q))
 			req.ContentLength = int64(len(q))
 		}
 	}
@@ -299,7 +318,7 @@ func (h *Handler) matcher(matchersParam string) http.HandlerFunc {
 				return
 			}
 			_ = req.Body.Close()
-			req.Body = ioutil.NopCloser(strings.NewReader(q.Encode()))
+			req.Body = io.NopCloser(strings.NewReader(q.Encode()))
 			req.ContentLength = int64(len(q))
 		}
 
@@ -313,7 +332,7 @@ func (h *Handler) matcher(matchersParam string) http.HandlerFunc {
 }
 
 func (h *Handler) remoteWrite(w http.ResponseWriter, req *http.Request) {
-	if h.remoteWriteHander == nil {
+	if h.remoteWriteProxy == nil {
 		http.Error(w, "There is no remote write targets configured for the server", http.StatusNotAcceptable)
 		return
 	}
@@ -332,7 +351,44 @@ func (h *Handler) remoteWrite(w http.ResponseWriter, req *http.Request) {
 
 	req.Header.Set(h.options.TenantHeader, requestInfo.TenantId)
 
-	h.remoteWriteHander.ServeHTTP(w, req)
+	// Forward the request to multiple targets in parallel.
+	// If either forwarding fails, the errors are responded. This may result in repeated sending same data to one target.
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer req.Body.Close()
+
+	proxy := *h.remoteWriteProxy // 浅拷贝
+	originalDirector := proxy.Director
+	proxy.Director = func(req *http.Request) {
+		originalDirector(req)
+		req.Body = io.NopCloser(bytes.NewReader(body))
+	}
+	proxy.ServeHTTP(w, req)
+
+	var wg sync.WaitGroup
+	var tenantHeader = make(http.Header)
+	if tenantId := req.Header.Get(h.options.TenantHeader); tenantId != "" {
+		tenantHeader.Set(h.options.TenantHeader, tenantId)
+	}
+
+	for _, writeClient := range h.externalRWClients {
+		wg.Add(1)
+		ep := writeClient.Endpoint()
+
+		go func(writeClient *remoteWriteClient) {
+			defer wg.Done()
+			result := writeClient.Send(ctx, body, tenantHeader)
+			if result.err != nil {
+				level.Error(h.logger).Log("msg", "failed to forward request", "endpoint", ep, "err", result.err)
+			}
+			h.remoteWriteRequestsCounter.WithLabelValues(ep, strconv.Itoa(int(result.code))).Inc()
+		}(writeClient)
+	}
+	wg.Wait()
+
 }
 
 func NewSingleHostReverseProxy(target *url.URL, transport http.RoundTripper) *httputil.ReverseProxy {
@@ -356,91 +412,11 @@ func NewSingleHostReverseProxy(target *url.URL, transport http.RoundTripper) *ht
 	return proxy
 }
 
-type remoteWriteHandler struct {
-	writeClients []*remoteWriteClient
-	tenantHeader string
-}
-
-func (h remoteWriteHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	if len(h.writeClients) == 0 {
-		return
-	}
-
-	ctx := req.Context()
-
-	// Forward the request to multiple targets in parallel.
-	// If either forwarding fails, the errors are responded. This may result in repeated sending same data to one target.
-	body, err := ioutil.ReadAll(req.Body)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	var results = make([]result, len(h.writeClients))
-	var i = 0
-	var wg sync.WaitGroup
-
-	var tenantHeader = make(http.Header)
-	if tenantId := req.Header.Get(h.tenantHeader); tenantId != "" {
-		tenantHeader.Set(h.tenantHeader, tenantId)
-	}
-	for _, writeClient := range h.writeClients {
-		wg.Add(1)
-		ep := writeClient.Endpoint()
-
-		go func(idx int, writeClient *remoteWriteClient) {
-			defer wg.Done()
-			result := writeClient.Send(ctx, body, tenantHeader)
-			if result.err != nil {
-				result.err = errors.Wrapf(result.err, "forwarding request to endpoint %v", ep)
-			}
-			results[idx] = result
-		}(i, writeClient)
-		i++
-	}
-	wg.Wait()
-
-	var code int
-	for _, result := range results {
-		if result.code > code {
-			code = result.code
-			err = result.err
-		}
-	}
-	if code <= 0 {
-		code = http.StatusNoContent
-	}
-	if err != nil {
-		http.Error(w, err.Error(), code)
-	} else {
-		w.WriteHeader(code)
-	}
-}
-
-func NewRemoteWriteHandler(rwsCfg []RemoteWriteConfig, tenantHeader string) (http.Handler, error) {
-
-	if len(rwsCfg) > 0 {
-		var handler = remoteWriteHandler{tenantHeader: tenantHeader}
-		for _, rwCfg := range rwsCfg {
-			writeClient, err := newRemoteWriteClient(&rwCfg)
-			if err != nil {
-				return nil, err
-			}
-			if writeClient != nil {
-				handler.writeClients = append(handler.writeClients, writeClient)
-			}
-		}
-		return &handler, nil
-	}
-
-	return nil, nil
-}
-
 // indexByteNth returns the index of the nth instance of c in s, or -1 if the nth c is not present in s.
-func indexByteNth(s string, c byte, nth int) int {
+func indexByteNth(s string, b byte, nth int) int {
 	num := 0
 	for i, c := range s {
-		if c == '/' {
+		if c == rune(b) {
 			num++
 			if num == nth {
 				return i

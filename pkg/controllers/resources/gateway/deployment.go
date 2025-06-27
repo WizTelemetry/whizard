@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/url"
-	"path"
 	"reflect"
 	"time"
 
@@ -237,22 +236,24 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 		}
 	}
 
-	var rwsCfg []*monitoringgateway.RemoteWriteConfig
 	// write to router
 	routerAddr, err := g.remoteWriteAddress()
 	if err != nil {
 		return nil, "", err
 	}
+	container.Args = append(container.Args, fmt.Sprintf("--remote-write.address=%s", routerAddr))
+
 	url, err := url.Parse(routerAddr)
 	if err != nil {
 		return nil, "", fmt.Errorf("invalid router address: %s", queryAddr)
 	}
-	url.Path = path.Join(url.Path, "/api/v1/receive")
-	rwRouter := &monitoringgateway.RemoteWriteConfig{URL: &config_util.URL{URL: url}}
 	if url.Scheme == "https" {
-		rwRouter.TLSConfig = config_util.TLSConfig{InsecureSkipVerify: true}
+		cfg := config{TLSConfig: &config_util.TLSConfig{InsecureSkipVerify: true}}
+		buff, _ := yaml.Marshal(cfg)
+		container.Args = append(container.Args, fmt.Sprintf("--remote-write.config=%s", buff))
 	}
-	rwsCfg = append(rwsCfg, rwRouter)
+
+	var rwsCfg []*monitoringgateway.ExternalRemoteWriteConfig
 	// write to configured remote-writes targets
 	if g.Service != nil {
 		for _, rw := range g.Service.Spec.RemoteWrites {
@@ -260,7 +261,7 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 			if err != nil {
 				return nil, "", fmt.Errorf("invalid remote write url: %s", rw.URL)
 			}
-			rwCfg := &monitoringgateway.RemoteWriteConfig{
+			rwCfg := &monitoringgateway.ExternalRemoteWriteConfig{
 				Name:    rw.Name,
 				URL:     &config_util.URL{URL: url},
 				Headers: rw.Headers,
@@ -293,12 +294,12 @@ func (g *Gateway) deployment() (runtime.Object, resources.Operation, error) {
 			rwsCfg = append(rwsCfg, rwCfg)
 		}
 	}
-	// add remote-writes.config flag to gateway
+	// add external-remote-writes.config flag to gateway
 	buff, err := yaml.Marshal(rwsCfg)
 	if err != nil {
 		return nil, "", err
 	}
-	container.Args = append(container.Args, fmt.Sprintf("--remote-writes.config=%s", buff))
+	container.Args = append(container.Args, fmt.Sprintf("--external-remote-writes.config=%s", buff))
 
 	d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, container)
 

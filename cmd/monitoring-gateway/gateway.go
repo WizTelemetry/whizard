@@ -35,20 +35,22 @@ type gatewayConfig struct {
 	tenantHeader    string
 	tenantLabelName string
 
-	RemoteWrites struct {
+	ExternalRemoteWrites struct {
 		ConfigPathOrContent extflag.PathOrContent
 	}
 
-	queryConfig      *monitoringgateway.QueryConfig
-	rulesQueryConfig *monitoringgateway.RulesQueryConfig
+	queryConfig       *monitoringgateway.QueryConfig
+	rulesQueryConfig  *monitoringgateway.RulesQueryConfig
+	remoteWriteConfig *monitoringgateway.RemoteWriteConfig
 }
 
 func registerGateway(app *extkingpin.App) {
 	cmd := app.Command(Gateway.String(), "Proxy and forward query and remote write API requests to thanos.")
 
 	conf := &gatewayConfig{
-		queryConfig:      &monitoringgateway.QueryConfig{},
-		rulesQueryConfig: &monitoringgateway.RulesQueryConfig{},
+		queryConfig:       &monitoringgateway.QueryConfig{},
+		rulesQueryConfig:  &monitoringgateway.RulesQueryConfig{},
+		remoteWriteConfig: &monitoringgateway.RemoteWriteConfig{},
 	}
 	conf.registerFlag(cmd)
 
@@ -87,6 +89,7 @@ func runGateway(
 	options := &monitoringgateway.Options{
 		TenantHeader:    conf.tenantHeader,
 		TenantLabelName: conf.tenantLabelName,
+		EnabledQueryUI:  conf.debugEnabledUI,
 	}
 
 	if conf.queryConfig.DownstreamURL != "" {
@@ -121,26 +124,42 @@ func runGateway(
 		options.RulesQueryProxy = monitoringgateway.NewSingleHostReverseProxy(downstreamURL, downstreamTripper)
 	}
 
-	content, err := conf.RemoteWrites.ConfigPathOrContent.Content()
+	if conf.remoteWriteConfig.DownstreamURL != "" {
+		downstreamURL, err := url.Parse(conf.remoteWriteConfig.DownstreamURL)
+		if err != nil {
+			return errors.Wrap(err, "setup remote write downstream service")
+		}
+		downstreamTripperConfContentYaml, err := conf.remoteWriteConfig.DownstreamTripperConfig.TripperPathOrContent.Content()
+		if err != nil {
+			return err
+		}
+		downstreamTripper, err := monitoringgateway.ParseTransportConfiguration(downstreamTripperConfContentYaml)
+		if err != nil {
+			return err
+		}
+		options.RemoteWriteProxy = monitoringgateway.NewSingleHostReverseProxy(downstreamURL, downstreamTripper)
+	}
+
+	content, err := conf.ExternalRemoteWrites.ConfigPathOrContent.Content()
 	if err != nil {
 		return err
 	}
-	rwsCfg, err := monitoringgateway.LoadRemoteWritesConfig("", string(content))
+	rwsCfg, err := monitoringgateway.LoadExternalRemoteWriteConfig("", string(content))
+	if err != nil {
+		return err
+	}
+	clients, err := monitoringgateway.NewExternalRemoteWriteClients(rwsCfg)
 	if err != nil {
 		return err
 	}
 
-	options.RemoteWriteHandler, _ = monitoringgateway.NewRemoteWriteHandler(rwsCfg, options.TenantHeader)
+	options.ExternalRWClients = clients
 
 	if conf.tenantsFileContent != "" || conf.tenantsFilePath != "" {
 		options.EnabledTenantsAdmission = true
 	}
 
-	webhandler := monitoringgateway.NewHandler(logger, options)
-
-	if conf.debugEnabledUI {
-		webhandler.AppendQueryUIHandler(logger, reg)
-	}
+	webhandler := monitoringgateway.NewHandler(logger, reg, options)
 
 	srv.Handle("/", webhandler.Router())
 
@@ -243,10 +262,11 @@ func (gc *gatewayConfig) registerFlag(cmd extkingpin.FlagClause) {
 	cmd.Flag("tenant.admission-control-config", "Alternative to 'tenant.admission-control-config-file' flag (lower priority). Content of file that contains the configuration.").PlaceHolder("<content>").StringVar(&gc.tenantsFileContent)
 	gc.refreshInterval = extkingpin.ModelDuration(cmd.Flag("tenant.admission-control-config-file-refresh-interval", "Refresh interval to re-read the configuration file. (used as a fallback)").Default("1m"))
 
-	gc.RemoteWrites.ConfigPathOrContent = *extflag.RegisterPathOrContent(cmd, "remote-writes.config", "Path to YAML config for the remote-write configurations, that specify servers where received remote-write requests should be forwarded to.", extflag.WithEnvSubstitution())
+	gc.ExternalRemoteWrites.ConfigPathOrContent = *extflag.RegisterPathOrContent(cmd, "external-remote-writes.config", "Path to YAML config for the external remote-write configurations, that specify servers where received remote-write requests should be forwarded to.", extflag.WithEnvSubstitution())
 
 	gc.queryConfig.RegisterFlag(cmd)
 	gc.rulesQueryConfig.RegisterFlag(cmd)
+	gc.remoteWriteConfig.RegisterFlag(cmd)
 }
 
 var (
