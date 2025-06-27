@@ -34,6 +34,7 @@ const (
 	epLabels      = "/labels"
 	epLabelValues = "/label/*path"
 	epReceive     = "/receive"
+	epOTLP        = "/otlp"
 	epRules       = "/rules"
 	epAlerts      = "/alerts"
 
@@ -100,6 +101,7 @@ func NewHandler(logger log.Logger, reg *prometheus.Registry, o *Options) *Handle
 	h.addGlobalProxyHandler()
 	h.addTenantQueryHandler()
 	h.addTenantRemoteWriteHandler()
+	h.addTenantOTLPHandler()
 
 	if o.EnabledQueryUI {
 		h.addQueryUIHandler()
@@ -116,13 +118,20 @@ func (h *Handler) addTenantQueryHandler() {
 	h.router.Path(apiTenantPrefix + epLabelValues).Methods(http.MethodGet).HandlerFunc(h.wrap(h.matcher(matchersParam)))
 	h.router.Path(apiTenantPrefix + epRules).Methods(http.MethodGet).HandlerFunc(h.wrap(h.matcher(matchersParam)))
 }
+
+// addTenantRemoteWriteHandler adds a handler for receiving remote write requests, and supports forwarding them to external remote write targets.
 func (h *Handler) addTenantRemoteWriteHandler() {
 	h.router.Path(apiTenantPrefix + epReceive).Methods(http.MethodPost).HandlerFunc(h.wrap(h.remoteWrite))
 }
 
+func (h *Handler) addTenantOTLPHandler() {
+	h.router.PathPrefix(apiTenantPrefix + epOTLP).Methods(http.MethodPost).HandlerFunc(h.wrap(h.otlpReceive))
+}
+
 func (h *Handler) addGlobalProxyHandler() {
 	if h.remoteWriteProxy != nil {
-		h.router.Path(apiGlobalPrefix + epReceive).HandlerFunc(h.remoteWrite)
+		h.router.Path(apiGlobalPrefix + epReceive).HandlerFunc(h.remoteWriteProxy.ServeHTTP)
+		h.router.PathPrefix(apiGlobalPrefix + epOTLP).HandlerFunc(h.remoteWriteProxy.ServeHTTP)
 	}
 	if h.queryProxy != nil {
 		h.router.PathPrefix(apiGlobalPrefix).HandlerFunc(h.queryProxy.ServeHTTP)
@@ -389,6 +398,30 @@ func (h *Handler) remoteWrite(w http.ResponseWriter, req *http.Request) {
 	}
 	wg.Wait()
 
+}
+
+func (h *Handler) otlpReceive(w http.ResponseWriter, req *http.Request) {
+	if h.remoteWriteProxy == nil {
+		http.Error(w, "There is no remote write targets configured for the server", http.StatusNotAcceptable)
+		return
+	}
+
+	ctx := req.Context()
+	requestInfo, found := requestInfoFrom(ctx)
+
+	if !found || requestInfo.TenantId == "" {
+		http.NotFound(w, req)
+		return
+	}
+	if _, ok := h.tenantsAdmissionMap.Load(requestInfo.TenantId); h.options.EnabledTenantsAdmission && !ok {
+		err := fmt.Errorf("tenant %s is not allowed to access", requestInfo.TenantId)
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
+
+	req.Header.Set(h.options.TenantHeader, requestInfo.TenantId)
+
+	h.remoteWriteProxy.ServeHTTP(w, req)
 }
 
 func NewSingleHostReverseProxy(target *url.URL, transport http.RoundTripper) *httputil.ReverseProxy {
