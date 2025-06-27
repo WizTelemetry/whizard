@@ -18,6 +18,7 @@ const (
 	labels      = "/api/v1/labels"
 	labelValues = "/api/v1/label/*path"
 	receive     = "/api/v1/receive" // thanos receive endpoint
+	otlp        = "/api/v1/otlp"    // thanos otlp endpoint
 	write       = "/api/v1/write"   // prometheus remote write endpoint
 	rules       = "/api/v1/rules"
 	alerts      = "/api/v1/alerts"
@@ -68,6 +69,7 @@ func NewServer(logger log.Logger, opt *Options) *Server {
 	// s.router.Get(alerts, s.wrap(alerts))
 
 	s.router.Post(receive, s.wrap())
+	s.router.Post(otlp, s.wrap())
 	s.router.Post(write, s.wrap())
 
 	return s
