@@ -128,9 +128,9 @@ func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
 	if r.ingester.Spec.OtlpEnableTargetInfo != nil && !*r.ingester.Spec.OtlpEnableTargetInfo {
 		container.Args = append(container.Args, "--no-receive.otlp-enable-target-info")
 	}
-	if len(r.ingester.Spec.OtlpResourceAttributes) > 0 {
-		container.Args = append(container.Args, "--receive.otlp-promote-resource-attributes")
-		container.Args = append(container.Args, r.ingester.Spec.OtlpResourceAttributes...)
+
+	for _, attr := range r.ingester.Spec.OtlpResourceAttributes {
+		container.Args = append(container.Args, "--receive.otlp-promote-resource-attributes="+attr)
 	}
 
 	container.Args = append(container.Args, fmt.Sprintf("--label=%s=\"$(POD_NAME)\"", constants.ReceiveReplicaLabelName))
@@ -199,8 +199,7 @@ func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
 		}
 	}
 
-	// Some parameters of thanos are repeatable, such as `--otlp.resource-attributes a b c`, so we cannot sort them directly.
-	// sort.Strings(container.Args[1:])
+	sort.Strings(container.Args[1:])
 
 	sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, container)
 	sts.Spec.Template.Spec.InitContainers = r.generateInitContainer(getTSDBVolumeMount(container))
