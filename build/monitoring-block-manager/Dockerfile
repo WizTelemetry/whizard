@@ -19,7 +19,7 @@ RUN CGO_ENABLED=0 go build -a -o block-manager cmd/monitoring-block-manager/bloc
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM thanosio/thanos:v0.37.2
+FROM thanosio/thanos:v0.39.0
 WORKDIR /
 COPY --from=builder /workspace/block-manager .
 USER 65532:65532
