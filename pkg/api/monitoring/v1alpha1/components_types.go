@@ -143,6 +143,12 @@ type IngesterSpec struct {
 	// The tenants whose data is being ingested by the Ingester(ingesting receiver).
 	Tenants []string `json:"tenants,omitempty"`
 
+	// Enables target information in OTLP metrics ingested by Receive. If enabled, it converts the resource to the target info metric
+	OtlpEnableTargetInfo *bool `json:"otlpEnableTargetInfo,omitempty"`
+
+	// Resource attributes to include in OTLP metrics ingested by Receive.
+	OtlpResourceAttributes []string `json:"otlpResourceAttributes,omitempty"`
+
 	// LocalTsdbRetention configs how long to retain raw samples on local storage.
 	LocalTsdbRetention string `json:"localTsdbRetention,omitempty"`
 

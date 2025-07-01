@@ -124,6 +124,15 @@ func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
 	if r.ingester.Spec.LogFormat != "" {
 		container.Args = append(container.Args, "--log.format="+r.ingester.Spec.LogFormat)
 	}
+
+	if r.ingester.Spec.OtlpEnableTargetInfo != nil && !*r.ingester.Spec.OtlpEnableTargetInfo {
+		container.Args = append(container.Args, "--no-receive.otlp-enable-target-info")
+	}
+
+	for _, attr := range r.ingester.Spec.OtlpResourceAttributes {
+		container.Args = append(container.Args, "--receive.otlp-promote-resource-attributes="+attr)
+	}
+
 	container.Args = append(container.Args, fmt.Sprintf("--label=%s=\"$(POD_NAME)\"", constants.ReceiveReplicaLabelName))
 	container.Args = append(container.Args, fmt.Sprintf("--tsdb.path=%s", constants.StorageDir))
 	container.Args = append(container.Args, fmt.Sprintf("--receive.local-endpoint=$(POD_NAME).%s:%d", r.name(constants.ServiceNameSuffix), constants.GRPCPort))
