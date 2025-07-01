@@ -152,6 +152,9 @@ func (r *Router) deployment() (runtime.Object, resources.Operation, error) {
 	if r.router.Spec.ReplicationFactor != nil {
 		container.Args = append(container.Args, fmt.Sprintf("--receive.replication-factor=%d", *r.router.Spec.ReplicationFactor))
 	}
+	if r.router.Spec.ReplicationProtocol != "" {
+		container.Args = append(container.Args, "--receive.replication-protocol="+string(r.router.Spec.ReplicationProtocol))
+	}
 
 	if r.Service.Spec.TenantHeader != "" {
 		container.Args = append(container.Args, "--receive.tenant-header="+r.Service.Spec.TenantHeader)

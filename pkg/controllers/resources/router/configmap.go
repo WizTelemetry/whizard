@@ -2,8 +2,10 @@ package router
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 
+	"github.com/thanos-io/thanos/pkg/receive"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -25,15 +27,10 @@ func (r *Router) hashringsConfigMap() (runtime.Object, resources.Operation, erro
 		return cm, resources.OperationDelete, nil
 	}
 
-	type HashringConfig struct {
-		Hashring  string   `json:"hashring,omitempty"`
-		Tenants   []string `json:"tenants,omitempty"`
-		Endpoints []string `json:"endpoints"`
-	}
-	var hashrings []HashringConfig
-	var softHashring = HashringConfig{
+	var hashrings []receive.HashringConfig
+	var softHashring = receive.HashringConfig{
 		Hashring:  "softs",
-		Endpoints: []string{},
+		Endpoints: []receive.Endpoint{},
 	}
 
 	var ingesterList monitoringv1alpha1.IngesterList
@@ -53,14 +50,30 @@ func (r *Router) hashringsConfigMap() (runtime.Object, resources.Operation, erro
 		if len(item.Spec.Tenants) == 0 {
 			// specific ingesters can join the softHashring
 			if v, ok := item.Labels[constants.SoftTenantLabelKey]; ok && v == "true" {
-				softHashring.Endpoints = append(softHashring.Endpoints, ingester.GrpcAddrs()...)
+				for _, addr := range ingester.Address() {
+					ep := receive.Endpoint{
+						Address:          fmt.Sprintf("%s:%d", addr, constants.GRPCPort),
+						CapNProtoAddress: fmt.Sprintf("%s:%d", addr, constants.CapNProtoPort),
+					}
+					softHashring.Endpoints = append(softHashring.Endpoints, ep)
+				}
 			}
 			continue
 		}
-		hashrings = append(hashrings, HashringConfig{
+
+		var endpoints []receive.Endpoint
+		for _, addr := range ingester.Address() {
+			ep := receive.Endpoint{
+				Address:          fmt.Sprintf("%s:%d", addr, constants.GRPCPort),
+				CapNProtoAddress: fmt.Sprintf("%s:%d", addr, constants.CapNProtoPort),
+			}
+			endpoints = append(endpoints, ep)
+		}
+
+		hashrings = append(hashrings, receive.HashringConfig{
 			Hashring:  item.Namespace + "/" + item.Name,
 			Tenants:   item.Spec.Tenants,
-			Endpoints: ingester.GrpcAddrs(),
+			Endpoints: endpoints,
 		})
 	}
 	hashrings = append(hashrings, softHashring) // put soft tenants at the end
