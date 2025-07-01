@@ -21,7 +21,7 @@ global:
     image:
       registry: docker.io
       repository: thanosio/thanos
-      tag: v0.34.1
+      tag: v0.38.0
 
 hook:
   enabled: true
@@ -120,7 +120,7 @@ adapter:
     registry: docker.io
     repository: kubesphere/whizard-adapter
     # Overrides the image tag whose default is the chart appVersion.
-    tag: "v0.7.0"
+    tag: "v0.8.0"
   ## If null or unset, the enabled Service instance is used.
   defaultServiceReference: null
     # namespace:
@@ -160,7 +160,7 @@ service:
     image: {}
     # registry: docker.io
     # repository: thanosio/thanos
-    # tag: v0.35.0
+    # tag: v0.38.0
 
     resources: {}
     # limits:
@@ -225,7 +225,7 @@ service:
     image: {}
     # registry: docker.io
     # repository: thanosio/thanos
-    # tag: v0.35.0
+    # tag: v0.38.0
 
     resources: {}
     # limits:
@@ -262,7 +262,7 @@ service:
     image: {}
     # registry: docker.io
     # repository: thanosio/thanos
-    # tag: v0.35.0
+    # tag: v0.38.0
 
     resources: {}
     # limits:
@@ -303,7 +303,7 @@ service:
     image: {}
     # registry: docker.io
     # repository: thanosio/thanos
-    # tag: v0.35.0
+    # tag: v0.38.0
 
     resources: {}
     # limits:
@@ -327,7 +327,7 @@ service:
     image: {}
     # registry: docker.io
     # repository: thanosio/thanos
-    # tag: v0.35.0
+    # tag: v0.38.0
 
     resources: {}
     # limits:
@@ -348,7 +348,7 @@ service:
     image: {}
     # registry: docker.io
     # repository: thanosio/thanos
-    # tag: v0.35.0
+    # tag: v0.38.0
 
     resources: {}
     # limits:
@@ -375,7 +375,7 @@ service:
       image:
         registry: quay.io
         repository: prometheus-operator/prometheus-config-reloader
-        tag: v0.68.0
+        tag: v0.81.0
       resources: {}
       # limits:
       #   cpu: "2"
@@ -415,7 +415,7 @@ service:
     image: {}
     # registry: docker.io
     # repository: thanosio/thanos
-    # tag: v0.35.0
+    # tag: v0.38.0
 
     resources: {}
     # limits:
@@ -460,7 +460,7 @@ storage:
     ## If null or unset, the global.whizardImage is used.
     image: null
     # repository: thanosio/thanos
-    # tag: v0.28.0
+    # tag: v0.38.0
     serviceAccountName: ""          # If null or unset, the created controllerManager serviceAccountName is used.
     gc:
       image:
@@ -550,7 +550,7 @@ ruler:
   ## If null or unset, the global.whizardImage is used.
   image: null
     # repository: thanosio/thanos
-    # tag: v0.28.0
+    # tag: v0.38.0
 
 
   resources: {}

@@ -594,6 +594,16 @@ func (in *IngesterSpec) DeepCopyInto(out *IngesterSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.OtlpEnableTargetInfo != nil {
+		in, out := &in.OtlpEnableTargetInfo, &out.OtlpEnableTargetInfo
+		*out = new(bool)
+		**out = **in
+	}
+	if in.OtlpResourceAttributes != nil {
+		in, out := &in.OtlpResourceAttributes, &out.OtlpResourceAttributes
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.DataVolume != nil {
 		in, out := &in.DataVolume, &out.DataVolume
 		*out = new(KubernetesVolume)

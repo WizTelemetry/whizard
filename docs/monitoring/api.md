@@ -766,6 +766,28 @@ IngesterSpec
 </tr>
 <tr>
 <td>
+<code>otlpEnableTargetInfo</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>Enables target information in OTLP metrics ingested by Receive. If enabled, it converts the resource to the target info metric</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>otlpResourceAttributes</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Resource attributes to include in OTLP metrics ingested by Receive.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>localTsdbRetention</code><br/>
 <em>
 string
@@ -5064,6 +5086,28 @@ InMemoryIndexCacheConfig
 </tr>
 <tr>
 <td>
+<code>otlpEnableTargetInfo</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>Enables target information in OTLP metrics ingested by Receive. If enabled, it converts the resource to the target info metric</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>otlpResourceAttributes</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Resource attributes to include in OTLP metrics ingested by Receive.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>localTsdbRetention</code><br/>
 <em>
 string
@@ -5359,6 +5403,28 @@ except those Tenant objects that have been deleted.</p>
 </td>
 <td>
 <p>The tenants whose data is being ingested by the Ingester(ingesting receiver).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>otlpEnableTargetInfo</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>Enables target information in OTLP metrics ingested by Receive. If enabled, it converts the resource to the target info metric</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>otlpResourceAttributes</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Resource attributes to include in OTLP metrics ingested by Receive.</p>
 </td>
 </tr>
 <tr>
