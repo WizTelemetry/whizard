@@ -62,6 +62,22 @@ func (r *Ingester) GrpcAddrs() []string {
 	return addrs
 }
 
+func (r *Ingester) Address() []string {
+	var addrs []string
+	if r.ingester.Spec.Replicas != nil {
+		addrs = make([]string, *r.ingester.Spec.Replicas)
+	} else if r.Service.Spec.IngesterTemplateSpec.Replicas != nil {
+		addrs = make([]string, *r.Service.Spec.IngesterTemplateSpec.Replicas)
+	} else {
+		// whizard ingester default replicas is 2
+		addrs = make([]string, 2)
+	}
+	for i := range addrs {
+		addrs[i] = fmt.Sprintf("%s-%d.%s.%s.svc", r.name(), i, r.name(constants.ServiceNameSuffix), r.ingester.Namespace)
+	}
+	return addrs
+}
+
 func (r *Ingester) Reconcile() error {
 	return r.ReconcileResources([]resources.Resource{
 		r.statefulSet,

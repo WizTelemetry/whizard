@@ -31,6 +31,11 @@ func (r *Ingester) service() (runtime.Object, resources.Operation, error) {
 				Name:     constants.RemoteWritePortName,
 				Port:     constants.RemoteWritePort,
 			},
+			{
+				Protocol: corev1.ProtocolTCP,
+				Name:     constants.CapNProtoPortName,
+				Port:     constants.CapNProtoPort,
+			},
 		},
 	}
 	return s, resources.OperationCreateOrUpdate, ctrl.SetControllerReference(r.ingester, s, r.Scheme)

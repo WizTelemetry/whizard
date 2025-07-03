@@ -90,6 +90,11 @@ func (r *Ingester) statefulSet() (runtime.Object, resources.Operation, error) {
 				Name:          constants.RemoteWritePortName,
 				ContainerPort: constants.RemoteWritePort,
 			},
+			{
+				Protocol:      corev1.ProtocolTCP,
+				Name:          constants.CapNProtoPortName,
+				ContainerPort: constants.CapNProtoPort,
+			},
 		},
 		LivenessProbe:  r.DefaultLivenessProbe(),
 		ReadinessProbe: r.DefaultReadinessProbe(),

@@ -1768,6 +1768,19 @@ uint64
 </tr>
 <tr>
 <td>
+<code>replicationProtocol</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.ReplicationProtocol">
+ReplicationProtocol
+</a>
+</em>
+</td>
+<td>
+<p>The protocol to use for replicating remote-write requests. One of protobuf,capnproto</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>webConfig</code><br/>
 <em>
 <a href="#monitoring.whizard.io/v1alpha1.WebConfig">
@@ -6593,6 +6606,26 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="monitoring.whizard.io/v1alpha1.ReplicationProtocol">ReplicationProtocol
+(<code>string</code> alias)</h3>
+<p>
+(<em>Appears on:</em><a href="#monitoring.whizard.io/v1alpha1.RouterSpec">RouterSpec</a>)
+</p>
+<div>
+</div>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;capnproto&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;protobuf&#34;</p></td>
+<td></td>
+</tr></tbody>
+</table>
 <h3 id="monitoring.whizard.io/v1alpha1.ResponseCacheProviderConfig">ResponseCacheProviderConfig
 </h3>
 <p>
@@ -6721,6 +6754,19 @@ uint64
 </td>
 <td>
 <p>How many times to replicate incoming write requests</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>replicationProtocol</code><br/>
+<em>
+<a href="#monitoring.whizard.io/v1alpha1.ReplicationProtocol">
+ReplicationProtocol
+</a>
+</em>
+</td>
+<td>
+<p>The protocol to use for replicating remote-write requests. One of protobuf,capnproto</p>
 </td>
 </tr>
 <tr>

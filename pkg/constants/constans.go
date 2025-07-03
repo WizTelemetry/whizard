@@ -148,8 +148,8 @@ const (
 	// receive
 	RemoteWritePortName = "remote-write"
 	RemoteWritePort     = 19291
-	CapnprotoPortName   = "capnproto"
-	CapnprotoPort       = 19391
+	CapNProtoPortName   = "capnproto"
+	CapNProtoPort       = 19391
 )
 
 // ConponentProbePreset defines standard probe presets for components.

@@ -340,11 +340,22 @@ type RouterSpec struct {
 	// How many times to replicate incoming write requests
 	ReplicationFactor *uint64 `json:"replicationFactor,omitempty"`
 
+	// The protocol to use for replicating remote-write requests. One of protobuf,capnproto
+	// +kubebuilder:validation:Enum=protobuf;capnproto
+	ReplicationProtocol ReplicationProtocol `json:"replicationProtocol,omitempty"`
+
 	// Defines the configuration of the Route(routing receiver) web server.
 	WebConfig *WebConfig `json:"webConfig,omitempty"`
 
 	CommonSpec `json:",inline"`
 }
+
+type ReplicationProtocol string
+
+const (
+	ProtobufReplication  ReplicationProtocol = "protobuf"
+	CapNProtoReplication ReplicationProtocol = "capnproto"
+)
 
 // RouterStatus defines the observed state of Router
 type RouterStatus struct {

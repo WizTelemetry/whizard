@@ -9842,6 +9842,13 @@ spec:
                     description: How many times to replicate incoming write requests
                     format: int64
                     type: integer
+                  replicationProtocol:
+                    description: The protocol to use for replicating remote-write
+                      requests. One of protobuf,capnproto
+                    enum:
+                    - protobuf
+                    - capnproto
+                    type: string
                   resources:
                     description: Resources defines the resource requirements for single
                       Pods.

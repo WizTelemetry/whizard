@@ -4605,6 +4605,11 @@ spec:
                   replicationFactor:
                     format: int64
                     type: integer
+                  replicationProtocol:
+                    enum:
+                    - protobuf
+                    - capnproto
+                    type: string
                   resources:
                     properties:
                       claims:
