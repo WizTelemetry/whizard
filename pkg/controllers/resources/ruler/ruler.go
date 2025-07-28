@@ -74,6 +74,16 @@ func (r *Ruler) OwnerReferences() []metav1.OwnerReference {
 	}
 }
 
+func (r *Ruler) Endpoints() []string {
+	var endpoints []string
+	for shardSn := 0; shardSn < int(*r.ruler.Spec.Shards); shardSn++ {
+		endpoints = append(endpoints, fmt.Sprintf("dnssrv+_grpc._tcp.%s.%s.svc",
+			r.name(strconv.Itoa(shardSn), constants.ServiceNameSuffix), r.ruler.Namespace))
+	}
+
+	return endpoints
+}
+
 func (r *Ruler) HttpAddrs() []string {
 	var addrs []string
 	for shardSn := 0; shardSn < int(*r.ruler.Spec.Shards); shardSn++ {

@@ -1,6 +1,7 @@
 package store
 
 import (
+	"fmt"
 	"strconv"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -9,6 +10,7 @@ import (
 	"github.com/WhizardTelemetry/whizard/pkg/api/monitoring/v1alpha1"
 	"github.com/WhizardTelemetry/whizard/pkg/constants"
 	"github.com/WhizardTelemetry/whizard/pkg/controllers/resources"
+	"github.com/WhizardTelemetry/whizard/pkg/util"
 )
 
 type Store struct {
@@ -70,6 +72,31 @@ func (r *Store) OwnerReferences() []metav1.OwnerReference {
 			Controller: pointer.BoolPtr(true),
 		},
 	}
+}
+
+func (r *Store) Endpoints() []string {
+	var endpoints []string
+
+	timeRanges := r.store.Spec.TimeRanges
+	if len(timeRanges) == 0 {
+		timeRanges = append(timeRanges, v1alpha1.TimeRange{
+			MinTime: r.store.Spec.MinTime,
+			MaxTime: r.store.Spec.MaxTime,
+		})
+	}
+	for i := range timeRanges {
+		// partitionName should be consistent with store.partitionName()
+		var partitionName string
+		if i == 0 {
+			partitionName = util.Join("-", constants.AppNameStore, r.store.Name, constants.ServiceNameSuffix)
+		} else {
+			partitionName = util.Join("-", constants.AppNameStore, r.store.Name, "partition", strconv.Itoa(i), constants.ServiceNameSuffix)
+		}
+
+		endpoint := fmt.Sprintf("dnssrv+_grpc._tcp.%s.%s.svc", partitionName, r.store.Namespace)
+		endpoints = append(endpoints, endpoint)
+	}
+	return endpoints
 }
 
 func (r *Store) Reconcile() error {
