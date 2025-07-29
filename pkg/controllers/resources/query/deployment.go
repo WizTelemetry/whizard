@@ -187,7 +187,7 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 		if err != nil {
 			return nil, "", err
 		}
-		for _, endpoint := range ingesterInstance.GrpcAddrs() {
+		for _, endpoint := range ingesterInstance.Endpoints() {
 			queryContainer.Args = append(queryContainer.Args, "--endpoint="+endpoint)
 		}
 	}
@@ -216,7 +216,7 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 				partitionName = util.Join("-", constants.AppNameStore, item.Name, "partition", strconv.Itoa(i), constants.ServiceNameSuffix)
 			}
 
-			endpoint := fmt.Sprintf("%s.%s.svc:%d", partitionName, item.Namespace, constants.GRPCPort)
+			endpoint := fmt.Sprintf("dnssrv+_grpc._tcp.%s.%s.svc", partitionName, item.Namespace)
 			queryContainer.Args = append(queryContainer.Args, "--endpoint="+endpoint)
 		}
 	}
@@ -237,10 +237,9 @@ func (q *Query) deployment() (runtime.Object, resources.Operation, error) {
 			shards = *item.Spec.Shards
 		}
 		for shardSn := 0; shardSn < int(shards); shardSn++ {
-			addr := fmt.Sprintf("%s.%s.svc:%d",
-				q.QualifiedName(constants.AppNameRuler, item.Name, strconv.Itoa(shardSn), constants.ServiceNameSuffix),
-				item.Namespace, constants.GRPCPort)
-			queryContainer.Args = append(queryContainer.Args, "--endpoint="+addr)
+			endpoint := fmt.Sprintf("dnssrv+_grpc._tcp.%s.%s.svc",
+				q.QualifiedName(constants.AppNameRuler, item.Name, strconv.Itoa(shardSn), constants.ServiceNameSuffix), item.Namespace)
+			queryContainer.Args = append(queryContainer.Args, "--endpoint="+endpoint)
 		}
 	}
 
