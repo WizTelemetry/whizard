@@ -45,6 +45,10 @@ func (r *Ingester) meta(name string) metav1.ObjectMeta {
 	}
 }
 
+func (r *Ingester) Endpoints() []string {
+	return []string{fmt.Sprintf("dnssrv+_grpc._tcp.%s.%s.svc", r.name(constants.ServiceNameSuffix), r.ingester.Namespace)}
+}
+
 func (r *Ingester) GrpcAddrs() []string {
 	var addrs []string
 	if r.ingester.Spec.Replicas != nil {
