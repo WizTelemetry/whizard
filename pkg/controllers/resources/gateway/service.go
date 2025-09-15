@@ -37,8 +37,8 @@ func (g *Gateway) service() (runtime.Object, resources.Operation, error) {
 	}
 
 	replaced := util.ReplaceInSlice(s.Spec.Ports, func(v interface{}) bool {
-		port := v.(corev1.ServicePort)
-		return port.Name == port.Name
+		p := v.(corev1.ServicePort)
+		return p.Name == port.Name
 	}, port)
 
 	if !replaced {

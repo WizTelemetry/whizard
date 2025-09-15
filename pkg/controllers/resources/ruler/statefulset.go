@@ -598,18 +598,8 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 
 	sort.Strings(container.Args[1:])
 
-	defautReloaderConfig := promoperator.DefaultConfig(r.ruler.Spec.PrometheusConfigReloader.Resources.Limits.Cpu().String(), r.ruler.Spec.PrometheusConfigReloader.Resources.Limits.Memory().String())
-	var reloaderConfig = promoperator.ContainerConfig{
-		Image:          r.ruler.Spec.PrometheusConfigReloader.Image,
-		CPURequests:    defautReloaderConfig.ReloaderConfig.CPURequests,
-		MemoryRequests: defautReloaderConfig.ReloaderConfig.MemoryRequests,
-		CPULimits:      defautReloaderConfig.ReloaderConfig.CPULimits,
-		MemoryLimits:   defautReloaderConfig.ReloaderConfig.MemoryLimits,
-	}
-
 	var reloadContainer = promoperator.CreateConfigReloader(
 		"config-reloader",
-		promoperator.ReloaderConfig(reloaderConfig),
 		promoperator.ReloaderURL(url.URL{
 			Scheme: "http",
 			Host:   fmt.Sprintf("127.0.0.1:%d", constants.HTTPPort),
@@ -623,6 +613,8 @@ func (r *Ruler) statefulSet(shardSn int) (runtime.Object, resources.Operation, e
 		promoperator.VolumeMounts(configReloaderVolumeMounts),
 		promoperator.Shard(-1),
 	)
+	reloadContainer.Image = r.ruler.Spec.PrometheusConfigReloader.Image
+	reloadContainer.Resources = r.ruler.Spec.PrometheusConfigReloader.Resources
 
 	sts.Spec.Template.Spec.Containers = append(sts.Spec.Template.Spec.Containers, container, reloadContainer)
 
